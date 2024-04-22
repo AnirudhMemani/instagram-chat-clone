@@ -1,0 +1,23 @@
+{
+    "name": "@instachat/db",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "db:generate": "prisma generate",
+        "db:push": "prisma db push --skip-generate",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "db:dev": "npx prisma migrate dev && npx prisma generate"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@prisma/client": "5.12.1",
+        "prisma": "^5.12.0"
+    },
+    "exports": {
+        "./client": "./src/index.ts"
+    }
+}

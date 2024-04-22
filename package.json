@@ -1,0 +1,28 @@
+{
+  "name": "InstaChatClone",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@types/node": "^20.12.7",
+    "prettier": "^3.2.5",
+    "prisma": "^5.12.1",
+    "ts-node": "^10.9.2",
+    "turbo": "latest",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "npm@9.7.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
