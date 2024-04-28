@@ -9,11 +9,16 @@ export const NavigationRoutes = {
 } as const;
 
 export const env = {
-    SERVER_URL: import.meta.env.VITE_PROD_URL || "",
+    SERVER_URL: import.meta.env.VITE_PROD_URL || "http://localhost:3000",
+    WS_BACKEND_URL: import.meta.env.WS_BACKEND_URL || "ws://localhost:8080",
 } as const;
 
 const attachUrl = (path: string) => {
     return `${env.SERVER_URL}${path}`;
+};
+
+const attachWsUrl = (path: string) => {
+    return `${env.WS_BACKEND_URL}${path}`;
 };
 
 export const handleUserLogout = (navigate: NavigateFunction) => {

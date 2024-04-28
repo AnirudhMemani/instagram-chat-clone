@@ -1,16 +1,20 @@
-import { profilePicAtom, userIdAtom, usernameAtom } from "@/state/user";
+import { profilePicAtom, usernameAtom } from "@/state/user";
 import { Edit } from "lucide-react";
-import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
+import { useRecoilValue, useSetRecoilState } from "recoil";
 import { ChatPreviewBox, TChatPreviewBoxProps } from "./ChatPreviewBox";
-import { isChatModalVisibleAtom, loadingAtom } from "@/state/global";
+import { isChatModalVisibleAtom } from "@/state/global";
 import { UserLoadingSkeleton } from "@/components/UserLoadingSkeleton";
-import { useEffect } from "react";
-import { getUserDirectMessages } from "@/api/users-api";
+import { useEffect, useState } from "react";
+import { GET_DM } from "@instachat/messages/messages";
+import { IMessage } from "@instachat/messages/types";
 
-const DirectMessage: React.FC = (): JSX.Element => {
+const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({
+    socket,
+}): JSX.Element => {
+    const [DM, setDM] = useState<TChatPreviewBoxProps[]>();
     const username = useRecoilValue(usernameAtom);
     const profilePic = useRecoilValue(profilePicAtom);
-    const id = useRecoilValue(userIdAtom);
+    // @ts-ignore
     const chatPreview: TChatPreviewBoxProps[] = [
         {
             messageAge: "2hr",
@@ -190,23 +194,34 @@ const DirectMessage: React.FC = (): JSX.Element => {
     ];
 
     const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
-    const [isLoading, setIsLoading] = useRecoilState(loadingAtom);
-
-    const populateDirectMessages = async () => {
-        try {
-            setIsLoading(true);
-
-            await getUserDirectMessages(id);
-        } catch (error) {
-            //
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
     useEffect(() => {
-        populateDirectMessages();
-    }, []);
+        if (!socket) {
+            console.log("Socket not found");
+            return;
+        }
+
+        const getUserDM = {
+            type: GET_DM,
+            payload: {
+                take: 20,
+                skip: 0,
+            },
+        };
+
+        socket.onmessage = (event) => {
+            const message = JSON.parse(event.data) as IMessage;
+            if (message.type === GET_DM) {
+                setDM(message.payload);
+                console.log(message);
+                setIsLoading(false);
+            }
+        };
+
+        setIsLoading(true);
+        socket.send(JSON.stringify(getUserDM));
+    }, [socket]);
 
     return (
         <div className="h-dvh w-full overflow-y-hidden lg:w-[450px] xl:w-[550px] border-r border-gray-700">
@@ -222,8 +237,8 @@ const DirectMessage: React.FC = (): JSX.Element => {
                 <h2 className="pt-3 pb-5">Messages</h2>
             </div>
             <div className="flex h-dvh overflow-y-scroll scrollbar pl-6 flex-col gap-4 w-full">
-                {chatPreview && chatPreview.length > 0 ? (
-                    chatPreview.map((dm, index) => (
+                {DM && DM.length > 0 ? (
+                    DM.map((dm, index) => (
                         <ChatPreviewBox
                             key={index}
                             messageAge={dm.messageAge}
@@ -233,12 +248,14 @@ const DirectMessage: React.FC = (): JSX.Element => {
                             unReadMessage={dm.unReadMessage}
                         />
                     ))
-                ) : (
+                ) : isLoading ? (
                     <div className="flex flex-col gap-4 mr-2">
                         {Array.from({ length: 10 }, (_, index) => (
                             <UserLoadingSkeleton key={index} />
                         ))}
                     </div>
+                ) : (
+                    <div>Your DMs are empty. Start a new conversation </div>
                 )}
             </div>
         </div>

@@ -1,23 +1,46 @@
-import { WebSocketServer } from "ws";
+import WebSocket, { WebSocketServer } from "ws";
+import url from "url";
+import { validateUser } from "./utils/helper.js";
+import { connectToRedis } from "./redis/client.js";
+import { IUser } from "./managers/UserManager.js";
+import { InboxManager } from "./managers/InboxManager.js";
 
 const port = 8080;
 const wss = new WebSocketServer({ port });
 
-wss.on("connection", (socket, req) => {
+connectToRedis();
+
+const inboxManager = new InboxManager();
+
+wss.on("connection", function connection(socket, req) {
     console.log("Connection Established");
 
-    wss.on("error", console.error);
+    socket.on("error", console.error);
 
-    wss.on("message", (message, isBinary) => {
-        console.log("message", message);
-        console.log("isBinary", isBinary);
+    const token = url.parse(req.url as string, true).query.token as string;
 
-        wss.clients.forEach((client) => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(message, { binary: isBinary });
-            }
-        });
-    });
+    if (!token) {
+        socket.terminate();
+        return;
+    }
 
-    socket.send("Listening on port " + port);
+    const { id, fullName, profilePic } = validateUser(token, socket) as Omit<
+        IUser,
+        "socket"
+    >;
+
+    if (!id || !fullName || !profilePic) {
+        return;
+    }
+
+    const userInfo = {
+        id,
+        fullName,
+        profilePic,
+        socket,
+    };
+
+    inboxManager.connectUser(userInfo);
+
+    socket.on("close", () => {});
 });

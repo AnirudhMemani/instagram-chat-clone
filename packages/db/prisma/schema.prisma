@@ -14,71 +14,86 @@ datasource db {
 }
 
 model User {
-    id         String     @id @default(uuid())
-    username   String     @unique
-    email      String     @unique
-    fullName   String
-    password   String
-    createdAt  DateTime   @default(now())
-    updatedAt  DateTime   @updatedAt
-    profilePic String
-    chatRooms  ChatRoom[] @relation("ChatRoomParticipants")
-    messages   Message[]
-    memberOf   Group[]    @relation(name: "GroupMembers")
-    adminOf    Group[]    @relation(name: "GroupAdmin")
-    superAdmin Group[]    @relation(name: "SuperAdmin")
+    id              String          @id @default(uuid())
+    username        String          @unique
+    email           String          @unique
+    fullName        String
+    password        String
+    createdAt       DateTime        @default(now())
+    updatedAt       DateTime        @updatedAt
+    profilePic      String
+    chatRooms       ChatRoom[]      @relation(name: "ChatRoomParticipants")
+    memberOf        Group[]         @relation(name: "GroupMembers")
+    adminOf         Group[]         @relation(name: "GroupAdmin")
+    superAdmin      Group[]         @relation(name: "SuperAdmin")
+    MessageRead     Message[]       @relation(name: "MessageReadBy")
+    MessageReceived Message[]       @relation(name: "MessageReceivedBy")
+    MessageSent     Message[]       @relation(name: "MessageSentBy")
+    DirectMessage   DirectMessage[]
 
-    @@index([username, id])
+    @@index([id])
 }
 
 model Message {
-    id          String       @id @default(uuid())
-    content     String
-    contentType ContentType
-    createdAt   DateTime     @default(now())
-    updatedAt   DateTime     @updatedAt
-    senderId    String
-    read        Boolean?     @default(false)
-    chatRoomId  String
-    sentBy      User         @relation(fields: [senderId], references: [id])
-    chatRoom    ChatRoom     @relation(fields: [chatRoomId], references: [id])
-    Attachment  Attachment[]
+    id            String         @id @default(uuid())
+    content       String
+    contentType   ContentType
+    sentAt        DateTime       @default(now())
+    editedAt      DateTime       @updatedAt
+    readBy        User[]         @relation(name: "MessageReadBy")
+    senderId      String
+    sentBy        User           @relation(name: "MessageSentBy", fields: [senderId], references: [id])
+    chatRoomId    String
+    chatRoom      ChatRoom       @relation(fields: [chatRoomId], references: [id])
+    Attachments   Attachment[]
+    ReceivedBy    User[]         @relation(name: "MessageReceivedBy")
+    DirectMessage DirectMessage? @relation(name: "LatestMessgae")
 
-    @@index([chatRoomId, senderId])
+    @@index([senderId, chatRoomId])
+}
+
+model DirectMessage {
+    id              String   @id @default(uuid())
+    latestMessageId String   @unique
+    latestMessage   Message  @relation(name: "LatestMessgae", fields: [latestMessageId], references: [id])
+    sentTo          User[]
+    chatRoomId      String   @unique
+    chatRoom        ChatRoom @relation(fields: [chatRoomId], references: [id])
 }
 
 model ChatRoom {
-    id           String    @id @default(uuid())
-    createdAt    DateTime  @default(now())
-    updatedAt    DateTime  @updatedAt
-    messages     Message[]
-    participants User[]    @relation(name: "ChatRoomParticipants")
-    Group        Group[]
+    id            String         @id @default(uuid())
+    name          String
+    createdAt     DateTime       @default(now())
+    updatedAt     DateTime       @updatedAt
+    messages      Message[]
+    participants  User[]         @relation(name: "ChatRoomParticipants")
+    Group         Group[]
+    DirectMessage DirectMessage?
 }
 
 model Group {
     id               String   @id @default(uuid())
     name             String
-    picture          String?
+    picture          String
     createdAt        DateTime @default(now())
     pictureUpdatedAt DateTime @updatedAt
     nameUpdatedAt    DateTime @updatedAt
     members          User[]   @relation(name: "GroupMembers")
-    superAdminId     String   @unique
+    superAdminId     String
     superAdmin       User     @relation(name: "SuperAdmin", fields: [superAdminId], references: [id])
     adminOf          User[]   @relation(name: "GroupAdmin")
-    chatRoomId       String   @unique
+    chatRoomId       String
     chatRoom         ChatRoom @relation(fields: [chatRoomId], references: [id])
 }
 
 model Attachment {
-    id          String   @id @default(uuid())
+    id          String    @id @default(uuid())
     url         String
     contentType String
     size        Int
-    createdAt   DateTime @default(now())
-    messageId   String
-    message     Message  @relation(fields: [messageId], references: [id])
+    sentAt      DateTime  @default(now())
+    message     Message[]
 }
 
 enum ContentType {
