@@ -3,6 +3,7 @@ import { TUsersSchema } from "./NewChatModal";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 export interface IUserBarsProps extends TUsersSchema {
     isSelected?: boolean;

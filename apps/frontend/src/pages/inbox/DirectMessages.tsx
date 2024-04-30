@@ -198,9 +198,17 @@ const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({
 
     useEffect(() => {
         if (!socket) {
-            console.log("Socket not found");
+            console.log("DirectMessage() - Socket not found");
             return;
         }
+
+        socket.onmessage = (event) => {
+            const message = JSON.parse(event.data) as IMessage;
+            if (message.type === GET_DM) {
+                setDM(message.payload);
+                setIsLoading(false);
+            }
+        };
 
         const getUserDM = {
             type: GET_DM,
@@ -210,17 +218,12 @@ const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({
             },
         };
 
-        socket.onmessage = (event) => {
-            const message = JSON.parse(event.data) as IMessage;
-            if (message.type === GET_DM) {
-                setDM(message.payload);
-                console.log(message);
-                setIsLoading(false);
-            }
-        };
-
         setIsLoading(true);
         socket.send(JSON.stringify(getUserDM));
+
+        return () => {
+            socket.onmessage = null;
+        };
     }, [socket]);
 
     return (

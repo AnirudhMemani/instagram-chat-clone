@@ -6,6 +6,7 @@ export const NavigationRoutes = {
     Signup: "/signup",
     Inbox: "/inbox",
     DirectMessage: "/inbox/direct/:id",
+    CreateNewGroup: "/inbox/group/create",
 } as const;
 
 export const env = {
@@ -15,10 +16,6 @@ export const env = {
 
 const attachUrl = (path: string) => {
     return `${env.SERVER_URL}${path}`;
-};
-
-const attachWsUrl = (path: string) => {
-    return `${env.WS_BACKEND_URL}${path}`;
 };
 
 export const handleUserLogout = (navigate: NavigateFunction) => {

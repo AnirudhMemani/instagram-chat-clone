@@ -5,6 +5,7 @@ import ProtectedRoutes from "./routes/ProtectedRoutes";
 import Inbox from "./pages/inbox/Inbox";
 import Signup from "./pages/Signup";
 import ImageCropProvider from "./components/image-editor/ImageCropProvider";
+import { Toaster } from "./components/ui/toaster";
 
 const App: React.FC = (): JSX.Element => {
     return (
@@ -41,6 +42,7 @@ const App: React.FC = (): JSX.Element => {
                     />
                 </Routes>
             </ImageCropProvider>
+            <Toaster />
         </main>
     );
 };

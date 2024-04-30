@@ -3,6 +3,12 @@ import { recoilPersist } from "recoil-persist";
 
 const { persistAtom } = recoilPersist();
 
+type TSelectedUsersAtom = {
+    id: string;
+    fullName: string;
+    profilePic: string;
+};
+
 export const userIdAtom = atom({
     key: "userIdAtom",
     default: "",
@@ -35,4 +41,9 @@ export const profilePicAtom = atom({
     key: "profilePicAtom",
     default: "",
     effects_UNSTABLE: [persistAtom],
+});
+
+export const selectedUsersAtom = atom<TSelectedUsersAtom[]>({
+    key: "selectedUsersAtom",
+    default: [],
 });

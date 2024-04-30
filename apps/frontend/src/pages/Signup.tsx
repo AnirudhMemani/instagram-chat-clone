@@ -74,7 +74,7 @@ const Signup: React.FC = (): JSX.Element => {
                             .message || "Bad Request!";
                     setError(message);
                 } else if (error.response?.status === StatusCodes.Conflict) {
-                    setError("Useranme or Email already exists!");
+                    setError("Username or Email already exists!");
                 } else {
                     setError("An unknown error occured");
                 }

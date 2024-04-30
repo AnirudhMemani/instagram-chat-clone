@@ -68,7 +68,7 @@ model ChatRoom {
     updatedAt     DateTime       @updatedAt
     messages      Message[]
     participants  User[]         @relation(name: "ChatRoomParticipants")
-    Group         Group[]
+    Group         Group?
     DirectMessage DirectMessage?
 }
 
@@ -83,7 +83,7 @@ model Group {
     superAdminId     String
     superAdmin       User     @relation(name: "SuperAdmin", fields: [superAdminId], references: [id])
     adminOf          User[]   @relation(name: "GroupAdmin")
-    chatRoomId       String
+    chatRoomId       String   @unique
     chatRoom         ChatRoom @relation(fields: [chatRoomId], references: [id])
 }
 

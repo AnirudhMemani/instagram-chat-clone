@@ -6,7 +6,8 @@ import {
     FIND_USERS,
     GET_DM,
     NEW_MESSAGE,
-    START_CONVO,
+    ROOM_EXISTS,
+    CREATE_GROUP,
 } from "@instachat/messages/messages";
 import { IUser } from "./UserManager.js";
 import { getSortedSetKey } from "../utils/helper.js";
@@ -97,6 +98,7 @@ export class InboxManager {
                 NOT: { id },
             },
         });
+        console.log("users", users);
         socket.send(
             JSON.stringify({
                 type: FIND_USERS,
@@ -105,36 +107,113 @@ export class InboxManager {
         );
     }
 
-    async handleDMs(socket: WebSocket, id: string, message: IMessage) {
+    async handleGroupConvo(socket: WebSocket, id: string, message: IMessage) {
         const selectedUsers = message as IStartConvoMessage;
         const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
-        let groupProfilePic;
-        let chatRoomName: string;
-        const isGroup = selectedUsers.payload.groupDetails;
+        const participants = selectedUsers.payload.userDetails;
+        const groupDetails = selectedUsers.payload.groupDetails;
 
-        if (selectedUsers.payload.groupDetails) {
-            const { name, profilePic, pictureName } =
-                selectedUsers.payload.groupDetails;
+        const { name, profilePic, pictureName } = groupDetails;
 
-            const fileSize = Buffer.byteLength(profilePic);
+        const fileSize = Buffer.byteLength(profilePic);
 
-            if (fileSize > MAX_FILE_SIZE) {
-                return;
-            }
+        console.log("fileSize:", fileSize);
 
-            chatRoomName = name;
-            const decodedImage = Buffer.from(profilePic, "base64");
-
-            await fs.mkdir("pictures", { recursive: true });
-            groupProfilePic = `pictures/${crypto.randomUUID()}~${pictureName}`;
-            await fs.writeFile(groupProfilePic, decodedImage);
-        } else {
-            chatRoomName = selectedUsers.payload.userDetails[0].fullName;
+        if (fileSize > MAX_FILE_SIZE) {
+            socket.send(
+                JSON.stringify({
+                    type: CREATE_GROUP,
+                    payload: {
+                        error: "Exceeded max file size for group image",
+                    },
+                })
+            );
         }
 
-        const existingChatRoom = await prisma.chatRoom.findFirst({
+        const decodedImage = Buffer.from(profilePic, "base64");
+
+        await fs.mkdir("src/pictures", { recursive: true });
+        const groupProfilePic = `src/pictures/${crypto.randomUUID()}~${pictureName}`;
+        await fs.writeFile(groupProfilePic, decodedImage);
+
+        participants.push({ fullName: "", id });
+
+        const newChatRoom = await prisma.chatRoom.create({
+            data: {
+                name,
+                createdAt: new Date(Date.now()),
+                participants: {
+                    connect: participants.map((user) => ({
+                        id: user.id,
+                    })),
+                },
+                Group: {
+                    create: {
+                        name,
+                        picture: groupProfilePic,
+                        superAdminId: id,
+                        adminOf: { connect: { id } },
+                        createdAt: new Date(Date.now()),
+                        members: {
+                            connect: participants.map((user) => ({
+                                id: user.id,
+                            })),
+                        },
+                    },
+                },
+            },
+            include: {
+                participants: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        username: true,
+                        profilePic: true,
+                    },
+                },
+                Group: {
+                    select: {
+                        id: true,
+                        name: true,
+                        picture: true,
+                        createdAt: true,
+                        chatRoomId: true,
+                        adminOf: {
+                            select: { id: true },
+                        },
+                        superAdminId: true,
+                    },
+                },
+            },
+        });
+        socket.send(
+            JSON.stringify({
+                type: CREATE_GROUP,
+                payload: {
+                    chatRoomId: newChatRoom.id,
+                    chatRoomName: newChatRoom.name,
+                    createdAt: newChatRoom.createdAt,
+                    participants: newChatRoom.participants,
+                    groupDetails: newChatRoom.Group,
+                },
+            })
+        );
+    }
+
+    async checkRoomExists(socket: WebSocket, id: string, message: IMessage) {
+        const selectedUsers = message as IStartConvoMessage;
+        const participants = selectedUsers.payload.userDetails;
+        const isGroup = participants.length > 1;
+
+        const existingChatRoom = await this.prisma.chatRoom.findFirst({
             where: {
-                name: chatRoomName,
+                AND: participants.map((user) => ({
+                    participants: {
+                        some: {
+                            id: user.id,
+                        },
+                    },
+                })),
             },
             include: {
                 messages: {
@@ -153,13 +232,79 @@ export class InboxManager {
                         sentAt: true,
                     },
                 },
-                Group: {
+                participants: {
                     select: {
                         id: true,
-                        name: true,
-                        picture: true,
-                        createdAt: true,
-                        members: {
+                        profilePic: true,
+                        fullName: true,
+                        username: true,
+                    },
+                },
+                Group: {
+                    ...(isGroup
+                        ? {
+                              select: {
+                                  id: true,
+                                  name: true,
+                                  picture: true,
+                                  createdAt: true,
+                                  chatRoomId: true,
+                                  adminOf: {
+                                      select: {
+                                          id: true,
+                                      },
+                                  },
+                                  superAdminId: true,
+                              },
+                          }
+                        : {}),
+                },
+            },
+        });
+
+        if (existingChatRoom) {
+            const payload = {
+                result: "exists",
+                chatRoomId: existingChatRoom.id,
+                chatRoomName: existingChatRoom.name,
+                createdAt: existingChatRoom.createdAt,
+                participants: existingChatRoom.participants,
+                messageDetails: existingChatRoom.messages || [],
+                ...(existingChatRoom.Group && {
+                    groupDetails: existingChatRoom.Group,
+                }),
+            };
+
+            socket.send(
+                JSON.stringify({
+                    type: ROOM_EXISTS,
+                    payload,
+                })
+            );
+        } else {
+            if (isGroup) {
+                socket.send(
+                    JSON.stringify({
+                        type: ROOM_EXISTS,
+                        payload: {
+                            result: "group",
+                        },
+                    })
+                );
+            } else {
+                participants.push({ id, fullName: "" });
+                const newChatRoom = await prisma.chatRoom.create({
+                    data: {
+                        name: participants[0].fullName,
+                        createdAt: new Date(Date.now()),
+                        participants: {
+                            connect: participants.map((user) => ({
+                                id: user.id,
+                            })),
+                        },
+                    },
+                    include: {
+                        participants: {
                             select: {
                                 id: true,
                                 fullName: true,
@@ -167,109 +312,21 @@ export class InboxManager {
                                 profilePic: true,
                             },
                         },
-                        adminOf: {
-                            select: {
-                                id: true,
-                            },
+                    },
+                });
+                socket.send(
+                    JSON.stringify({
+                        type: ROOM_EXISTS,
+                        payload: {
+                            result: "created",
+                            chatRoomId: newChatRoom.id,
+                            chatRoomName: newChatRoom.name,
+                            createdAt: newChatRoom.createdAt,
+                            participants: newChatRoom.participants,
                         },
-                        superAdmin: {
-                            select: {
-                                id: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
-
-        if (existingChatRoom) {
-            socket.send(
-                JSON.stringify({
-                    type: START_CONVO,
-                    payload: {
-                        chatRoomId: existingChatRoom.id,
-                        chatRoomName: existingChatRoom.name,
-                        createdAt: existingChatRoom.createdAt,
-                        messageDetails: existingChatRoom.messages || [],
-                        groupDetails: existingChatRoom.Group || [],
-                    },
-                })
-            );
-            return;
-        } else {
-            const newChatRoom = await prisma.chatRoom.create({
-                data: {
-                    name: chatRoomName,
-                    createdAt: new Date(Date.now()),
-                    participants: {
-                        connect: selectedUsers.payload.userDetails.map(
-                            (user) => ({
-                                id: user.id,
-                            })
-                        ),
-                    },
-                    Group: {
-                        ...(isGroup
-                            ? {
-                                  create: {
-                                      name: chatRoomName,
-                                      picture: groupProfilePic!,
-                                      superAdminId: id,
-                                      adminOf: { connect: { id } },
-                                      createdAt: new Date(Date.now()),
-                                      members: {
-                                          connect:
-                                              selectedUsers.payload.userDetails.map(
-                                                  (user) => ({
-                                                      id: user.id,
-                                                  })
-                                              ),
-                                      },
-                                  },
-                              }
-                            : {}),
-                    },
-                },
-                include: {
-                    participants: {
-                        select: {
-                            id: true,
-                            fullName: true,
-                            username: true,
-                            profilePic: true,
-                        },
-                    },
-                    Group: {
-                        ...(isGroup
-                            ? {
-                                  select: {
-                                      name: true,
-                                      superAdminId: true,
-                                      adminOf: {
-                                          select: { id: true },
-                                      },
-                                      chatRoomId: true,
-                                      picture: true,
-                                      createdAt: true,
-                                  },
-                              }
-                            : {}),
-                    },
-                },
-            });
-            socket.send(
-                JSON.stringify({
-                    type: START_CONVO,
-                    payload: {
-                        chatRoomName: newChatRoom.name,
-                        createdAt: newChatRoom.createdAt,
-                        participants: newChatRoom.participants,
-                        ...(newChatRoom.Group && {
-                            groupDetails: newChatRoom.Group,
-                        }),
-                    },
-                })
-            );
+                    })
+                );
+            }
         }
     }
 
@@ -281,17 +338,22 @@ export class InboxManager {
             console.log("message", message);
 
             switch (message.type) {
-                case NEW_MESSAGE:
-                    this.handleNewMessage(message);
-                    break;
                 case GET_DM:
                     this.getDMs(socket, id, message);
                     break;
                 case FIND_USERS:
                     this.getUsers(socket, id);
                     break;
-                case START_CONVO:
-                    this.handleDMs(socket, id, message);
+                case ROOM_EXISTS:
+                    this.checkRoomExists(socket, id, message);
+                    break;
+                case CREATE_GROUP:
+                    this.handleGroupConvo(socket, id, message);
+                    break;
+                case NEW_MESSAGE:
+                    this.handleNewMessage(message);
+                    break;
+                default:
                     break;
             }
         });

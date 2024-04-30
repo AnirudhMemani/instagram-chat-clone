@@ -9,7 +9,7 @@ export interface IStartConvoMessage extends IMessage {
             id: string;
             fullName: string;
         }[];
-        groupDetails?: {
+        groupDetails: {
             name: string;
             profilePic: any;
             pictureName: string;

@@ -1,21 +1,17 @@
-import { StartChatPrompt } from "./StartChatPrompt";
-import DirectMessage from "./DirectMessages";
-import Sidebar from "./Sidebar";
-import { NewChatModal } from "@/components/NewChatModal";
 import { useSocket } from "@/hooks/useSocket";
+import { LargeScreenInbox } from "./LargeScreenInbox";
+import { isChatModalVisibleAtom } from "@/state/global";
+import { useRecoilValue } from "recoil";
+import { NewChatModal } from "@/components/NewChatModal";
 
 const Inbox: React.FC = (): JSX.Element => {
     const socket = useSocket();
+    const isChatModalVisible = useRecoilValue(isChatModalVisibleAtom);
 
     return (
         <>
-            <div className="flex lg:flex-row flex-col h-dvh w-full">
-                <Sidebar className="lg:block hidden" />
-                <DirectMessage socket={socket} />
-                <StartChatPrompt />
-                <Sidebar className="lg:hidden bottom-0 z-20" />
-                <NewChatModal socket={socket} />
-            </div>
+            <LargeScreenInbox socket={socket} />
+            {isChatModalVisible && <NewChatModal socket={socket} />}
         </>
     );
 };

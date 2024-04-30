@@ -1,15 +1,16 @@
 import { X } from "lucide-react";
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
-import { useRecoilState } from "recoil";
-import { isChatModalVisibleAtom, loadingAtom } from "@/state/global";
+import { useRecoilState, useSetRecoilState } from "recoil";
+import { isChatModalVisibleAtom, pageTypeAtom } from "@/state/global";
 import { IUserBarsProps, UserBars } from "./UserBars";
 import { UserLoadingSkeleton } from "./UserLoadingSkeleton";
-import { IMessage, IStartConvoMessage } from "@instachat/messages/types";
-import { FIND_USERS, START_CONVO } from "@instachat/messages/messages";
+import { IMessage } from "@instachat/messages/types";
+import { FIND_USERS, ROOM_EXISTS } from "@instachat/messages/messages";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { Input } from "./ui/input";
+import { selectedUsersAtom } from "@/state/user";
+import { chatRoomAtom, groupAtom } from "@/state/chat";
+import { useToast } from "./ui/use-toast";
 
 export type TUsersSchema = {
     id: string;
@@ -25,18 +26,15 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
     const [usersData, setUsersData] = useState<TUsersSchema[]>();
     const [filteredUsers, setFilteredUsers] =
         useState<Omit<IUserBarsProps, "onClick">[]>();
-    const [isSelectedUsers, setIsSelectedUsers] = useState<
-        { id: string; fullName: string }[]
-    >([]);
-    const [groupName, _setGroupName] = useState<string>("Random Group Name");
-    const [groupProfilePic, setGroupProfilePic] = useState<File | null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    const [isChatModalVisible, setIsChatModalVisible] = useRecoilState(
-        isChatModalVisibleAtom
-    );
+    const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
+    const [selectedUsers, setSelectedUsers] = useRecoilState(selectedUsersAtom);
+    const setPagetype = useSetRecoilState(pageTypeAtom);
+    const setChatRoomDetails = useSetRecoilState(chatRoomAtom);
+    const setGroupDetails = useSetRecoilState(groupAtom);
 
-    const [isLoading, setIsLoading] = useRecoilState(loadingAtom);
-
+    const { toast } = useToast();
     const modalContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -48,17 +46,49 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
         socket.onmessage = (event) => {
             try {
                 const message = JSON.parse(event.data) as IMessage;
+                const payload = message.payload;
 
                 if (message.type === FIND_USERS) {
-                    setUsersData(message.payload);
-                    setIsLoading(false);
+                    setUsersData(payload);
                 }
 
-                if (message.type === START_CONVO) {
-                    console.log("START_CONVO Response:", message);
+                if (message.type === ROOM_EXISTS) {
+                    const isGroup = Boolean(payload.groupDetails);
+
+                    if (
+                        payload.result === "created" ||
+                        payload.result === "exists"
+                    ) {
+                        setChatRoomDetails(() => ({
+                            id: payload.chatRoomId,
+                            name: payload.chatRoomName,
+                            createdAt: payload.createdAt,
+                            participants: payload.participants,
+                            messages: payload.messageDetails,
+                            isGroup,
+                        }));
+
+                        if (isGroup) {
+                            setGroupDetails(payload.groupDetails);
+                        }
+
+                        setPagetype("ChatRoom");
+                    }
+
+                    if (payload.result === "group") {
+                        setPagetype("GroupDetailsPage");
+                    }
+
+                    setIsChatModalVisible(false);
                 }
             } catch (error) {
-                console.error("\n\nERROR parsing WebSocket message:", error);
+                toast({
+                    variant: "destructive",
+                    title: "Uh oh! Something went wrong.",
+                    description: "Your request could not be processed",
+                });
+            } finally {
+                setIsLoading(false);
             }
         };
 
@@ -82,14 +112,16 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
             ) {
                 setIsChatModalVisible(false);
                 setSearchInput("");
-                setIsSelectedUsers([]);
+                setSelectedUsers([]);
             }
         };
 
         document.addEventListener("mousedown", handleModalClose);
 
-        return () =>
+        return () => {
             document.removeEventListener("mousedown", handleModalClose);
+            console.log("exited modal");
+        };
     }, []);
 
     const filterUsers = (users: TUsersSchema[], searchQuery: string) => {
@@ -104,10 +136,9 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
         setFilteredUsers(
             filteredUserData.map((user) => ({
                 ...user,
-                isSelected: isSelectedUsers.includes({
-                    id: user.id,
-                    fullName: user.fullName,
-                }),
+                isSelected: selectedUsers.some(
+                    (selectedUser) => user.id === selectedUser.id
+                ),
             }))
         );
     };
@@ -123,17 +154,21 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
         }
     };
 
-    const handleUserSelection = (id: string, fullName: string) => {
-        setIsSelectedUsers((p) =>
-            p.includes({ id, fullName })
+    const handleUserSelection = (
+        id: string,
+        fullName: string,
+        profilePic: string
+    ) => {
+        setSelectedUsers((p) =>
+            p.some((user) => user.id === id)
                 ? p.filter((user) => user.id !== id)
-                : [...p, { id, fullName }]
+                : [...p, { id, fullName, profilePic }]
         );
         setSearchInput("");
     };
 
     const removeSelectedUser = (id: string) => {
-        setIsSelectedUsers((p) => p.filter((user) => user.id !== id));
+        setSelectedUsers((p) => p.filter((user) => user.id !== id));
     };
 
     const initiateNewChat = () => {
@@ -142,42 +177,20 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
             return;
         }
 
-        if (!groupProfilePic) {
-            return;
-        }
+        setIsLoading(true);
 
-        const reader = new FileReader();
-
-        reader.onload = (e) => {
-            const imageData = e.target?.result;
-
-            if (!imageData) {
-                return;
-            }
-
-            const message: IStartConvoMessage = {
-                type: START_CONVO,
-                payload: {
-                    userDetails: isSelectedUsers,
-                    groupDetails: {
-                        name: groupName,
-                        profilePic: imageData,
-                        pictureName: groupProfilePic.name,
-                    },
-                },
-            };
-            socket.send(JSON.stringify(message));
+        const message: IMessage = {
+            type: ROOM_EXISTS,
+            payload: {
+                userDetails: selectedUsers,
+            },
         };
-        reader.readAsDataURL(groupProfilePic);
+
+        socket.send(JSON.stringify(message));
     };
 
     return (
-        <div
-            className={cn(
-                "h-dvh fixed top-0 left-0 right-0 w-full bg-[#00000080] flex items-center justify-center z-30",
-                { hidden: !isChatModalVisible }
-            )}
-        >
+        <div className="h-dvh fixed top-0 left-0 right-0 w-full bg-[#00000080] flex items-center justify-center z-30">
             <div
                 className="py-6 rounded-lg sm:w-[588px] overflow-hidden sm:h-[70%] bg-background w-[90%] border border-input flex flex-col"
                 ref={modalContainerRef}
@@ -189,22 +202,30 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                     <X
                         className="size-6 mr-6 cursor-pointer"
                         onClick={() => {
+                            if (isLoading) {
+                                return;
+                            }
                             setIsChatModalVisible(false);
-                            setIsSelectedUsers([]);
+                            setSelectedUsers([]);
                         }}
                     />
                 </div>
                 <div className="flex items-center py-2 gap-3 border border-input">
                     <span className="ml-6 font-semibold">To:</span>
-                    {isSelectedUsers.length > 0 &&
-                        isSelectedUsers.map((user) => (
+                    {selectedUsers.length > 0 &&
+                        selectedUsers.map((user) => (
                             <Badge
                                 className="cursor-pointer"
                                 key={user.id}
                             >
                                 {user.fullName}
                                 <X
-                                    onClick={() => removeSelectedUser(user.id)}
+                                    onClick={() => {
+                                        if (isLoading) {
+                                            return;
+                                        }
+                                        removeSelectedUser(user.id);
+                                    }}
                                 />
                             </Badge>
                         ))}
@@ -228,16 +249,20 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                                         fullName={user.fullName}
                                         username={user.username}
                                         profilePic={user.profilePic}
-                                        isSelected={isSelectedUsers.includes({
-                                            id: user.id,
-                                            fullName: user.fullName,
-                                        })}
-                                        onClick={() =>
+                                        isSelected={selectedUsers.some(
+                                            (selectedUser) =>
+                                                selectedUser.id === user.id
+                                        )}
+                                        onClick={() => {
+                                            if (isLoading) {
+                                                return;
+                                            }
                                             handleUserSelection(
                                                 user.id,
-                                                user.fullName
-                                            )
-                                        }
+                                                user.fullName,
+                                                user.profilePic
+                                            );
+                                        }}
                                     />
                                 </React.Fragment>
                             ))
@@ -255,20 +280,12 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                     )}
                 </div>
                 <div className="w-full flex items-center justify-center">
-                    <Input
-                        type="file"
-                        onChange={(e) => {
-                            if (e.target.files?.length) {
-                                setGroupProfilePic(e.target.files[0]);
-                            }
-                        }}
-                    />
                     <Button
                         className="w-full mx-6"
-                        disabled={isSelectedUsers.length === 0}
+                        disabled={selectedUsers.length === 0 || isLoading}
                         onClick={initiateNewChat}
                     >
-                        Chat
+                        {isLoading ? "Creating..." : "Chat"}
                     </Button>
                 </div>
             </div>
