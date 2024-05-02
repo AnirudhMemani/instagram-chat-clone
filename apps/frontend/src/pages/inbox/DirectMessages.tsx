@@ -258,7 +258,7 @@ const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({
                         ))}
                     </div>
                 ) : (
-                    <div>Your DMs are empty. Start a new conversation </div>
+                    <div>You do not have any DMs</div>
                 )}
             </div>
         </div>

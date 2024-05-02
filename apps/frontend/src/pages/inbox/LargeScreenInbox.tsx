@@ -19,7 +19,7 @@ export const LargeScreenInbox: React.FC<{ socket: WebSocket | null }> = ({
             case "GroupDetailsPage":
                 return <GroupDetailsPage socket={socket} />;
             case "ChatRoom":
-                return <ChatRoom />;
+                return <ChatRoom socket={socket} />;
             default:
                 return <StartChatPrompt />;
         }

@@ -27,6 +27,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
     const [filteredUsers, setFilteredUsers] =
         useState<Omit<IUserBarsProps, "onClick">[]>();
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
     const [selectedUsers, setSelectedUsers] = useRecoilState(selectedUsersAtom);
@@ -72,6 +73,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                             setGroupDetails(payload.groupDetails);
                         }
 
+                        setSelectedUsers([]);
                         setPagetype("ChatRoom");
                     }
 
@@ -87,8 +89,10 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                     title: "Uh oh! Something went wrong.",
                     description: "Your request could not be processed",
                 });
+                setSelectedUsers([]);
             } finally {
                 setIsLoading(false);
+                setIsSubmitting(false);
             }
         };
 
@@ -177,7 +181,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
             return;
         }
 
-        setIsLoading(true);
+        setIsSubmitting(true);
 
         const message: IMessage = {
             type: ROOM_EXISTS,
@@ -202,7 +206,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                     <X
                         className="size-6 mr-6 cursor-pointer"
                         onClick={() => {
-                            if (isLoading) {
+                            if (isSubmitting) {
                                 return;
                             }
                             setIsChatModalVisible(false);
@@ -282,10 +286,10 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                 <div className="w-full flex items-center justify-center">
                     <Button
                         className="w-full mx-6"
-                        disabled={selectedUsers.length === 0 || isLoading}
+                        disabled={selectedUsers.length === 0 || isSubmitting}
                         onClick={initiateNewChat}
                     >
-                        {isLoading ? "Creating..." : "Chat"}
+                        {isSubmitting ? "Creating..." : "Chat"}
                     </Button>
                 </div>
             </div>

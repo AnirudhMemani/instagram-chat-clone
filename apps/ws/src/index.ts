@@ -1,9 +1,21 @@
 import WebSocket, { WebSocketServer } from "ws";
-import url from "url";
+import url, { fileURLToPath } from "url";
 import { validateUser } from "./utils/helper.js";
 import { connectToRedis } from "./redis/client.js";
 import { IUser } from "./managers/UserManager.js";
 import { InboxManager } from "./managers/InboxManager.js";
+import express from "express";
+import path from "path";
+
+const app = express();
+
+const __filename = fileURLToPath(import.meta.url);
+export const directoryName = path.dirname(__filename);
+
+app.use(
+    "/pictures",
+    express.static(path.resolve(directoryName, "..", "pictures"))
+);
 
 const port = 8080;
 const wss = new WebSocketServer({ port });

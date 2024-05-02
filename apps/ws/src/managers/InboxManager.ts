@@ -98,7 +98,6 @@ export class InboxManager {
                 NOT: { id },
             },
         });
-        console.log("users", users);
         socket.send(
             JSON.stringify({
                 type: FIND_USERS,
@@ -132,8 +131,8 @@ export class InboxManager {
 
         const decodedImage = Buffer.from(profilePic, "base64");
 
-        await fs.mkdir("src/pictures", { recursive: true });
-        const groupProfilePic = `src/pictures/${crypto.randomUUID()}~${pictureName}`;
+        await fs.mkdir("../pictures", { recursive: true });
+        const groupProfilePic = `pictures/${crypto.randomUUID()}~${pictureName}`;
         await fs.writeFile(groupProfilePic, decodedImage);
 
         participants.push({ fullName: "", id });

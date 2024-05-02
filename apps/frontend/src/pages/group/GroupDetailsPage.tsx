@@ -94,7 +94,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
 
         return () => {
             socket.onmessage = null;
-            console.log("Unmounted Group Details Page");
+            setSelectedUsers([]);
         };
     }, [socket]);
 
