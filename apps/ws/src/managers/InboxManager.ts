@@ -8,12 +8,17 @@ import {
     NEW_MESSAGE,
     ROOM_EXISTS,
     CREATE_GROUP,
+    CHANGE_GROUP_NAME,
+    ERROR,
+    SUCCESS,
+    LEAVE_GROUP_CHAT,
+    MAKE_ADMIN,
+    REMOVE_AS_ADMIN,
 } from "@instachat/messages/messages";
 import { IUser } from "./UserManager.js";
 import { getSortedSetKey } from "../utils/helper.js";
 import { IMessage, IStartConvoMessage } from "@instachat/messages/types";
 import fs from "fs/promises";
-import { mkdir } from "fs";
 
 /**
  * TODO:
@@ -185,6 +190,7 @@ export class InboxManager {
                 },
             },
         });
+
         socket.send(
             JSON.stringify({
                 type: CREATE_GROUP,
@@ -329,6 +335,234 @@ export class InboxManager {
         }
     }
 
+    async handleChangeGroupName(
+        socket: WebSocket,
+        id: string,
+        message: IMessage
+    ) {
+        const updatedGroupName = message.payload.groupName;
+        const chatRoomId = message.payload.chatRoomId;
+
+        const isMember =
+            (await this.prisma.chatRoom.count({
+                where: {
+                    AND: [
+                        { id: chatRoomId },
+                        { Group: { members: { some: { id } } } },
+                    ],
+                },
+            })) > 0;
+
+        if (!isMember) {
+            socket.send(
+                JSON.stringify({
+                    type: CHANGE_GROUP_NAME,
+                    payload: {
+                        result: ERROR,
+                    },
+                })
+            );
+        }
+
+        await this.prisma.chatRoom.update({
+            where: { id: chatRoomId },
+            data: {
+                name: updatedGroupName,
+                Group: {
+                    update: {
+                        name: updatedGroupName,
+                    },
+                },
+            },
+            select: {
+                name: true,
+            },
+        });
+
+        socket.send(
+            JSON.stringify({
+                type: CHANGE_GROUP_NAME,
+                payload: {
+                    result: SUCCESS,
+                    groupName: updatedGroupName,
+                },
+            })
+        );
+    }
+
+    async handleLeaveGroupChat(
+        socket: WebSocket,
+        id: string,
+        message: IMessage
+    ) {
+        const chatRoomId = message.payload.chatRoomId;
+
+        const isSuperAdmin = await this.prisma.group.findFirst({
+            where: {
+                superAdminId: id,
+            },
+            select: {
+                adminOf: {
+                    where: {
+                        NOT: {
+                            id,
+                        },
+                    },
+                },
+            },
+        });
+
+        await this.prisma.chatRoom.update({
+            where: { id: chatRoomId },
+            data: {
+                participants: {
+                    disconnect: {
+                        id,
+                    },
+                },
+                Group: {
+                    update: {
+                        members: {
+                            disconnect: {
+                                id,
+                            },
+                        },
+                        adminOf: {
+                            disconnect: {
+                                id,
+                            },
+                        },
+                        ...(isSuperAdmin
+                            ? {
+                                  superAdminId:
+                                      isSuperAdmin.adminOf[0].id !== id
+                                          ? isSuperAdmin.adminOf[0].id
+                                          : isSuperAdmin.adminOf[1].id,
+                              }
+                            : ""),
+                    },
+                },
+            },
+        });
+
+        socket.send(
+            JSON.stringify({
+                type: LEAVE_GROUP_CHAT,
+                payload: {
+                    result: SUCCESS,
+                    userId: id,
+                },
+            })
+        );
+    }
+
+    async handleAddAdmin(socket: WebSocket, id: string, message: IMessage) {
+        const adminId = message.payload.userId;
+        const groupId = message.payload.groupId;
+
+        const memberExists = await this.prisma.group.findFirst({
+            where: {
+                AND: [
+                    { id: groupId },
+                    { members: { some: { id: adminId } } },
+                    { superAdminId: id },
+                ],
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        if (!memberExists) {
+            socket.send(
+                JSON.stringify({
+                    type: MAKE_ADMIN,
+                    payload: {
+                        result: ERROR,
+                    },
+                })
+            );
+            return;
+        }
+
+        const userDetails = await this.prisma.group.update({
+            where: { id: groupId },
+            data: {
+                adminOf: {
+                    connect: {
+                        id: adminId,
+                    },
+                },
+            },
+            include: {
+                adminOf: {
+                    where: {
+                        id: adminId,
+                    },
+                },
+            },
+        });
+
+        socket.send(
+            JSON.stringify({
+                type: MAKE_ADMIN,
+                payload: {
+                    userDetails,
+                },
+            })
+        );
+    }
+
+    async handleRemoveAdmin(socket: WebSocket, id: string, message: IMessage) {
+        const adminId = message.payload.userId;
+        const groupId = message.payload.groupId;
+
+        const memberExists = await this.prisma.group.findFirst({
+            where: {
+                AND: [
+                    { id: groupId },
+                    { members: { some: { id: adminId } } },
+                    { superAdminId: id },
+                ],
+            },
+            select: {
+                id: true,
+            },
+        });
+
+        if (!memberExists) {
+            socket.send(
+                JSON.stringify({
+                    type: MAKE_ADMIN,
+                    payload: {
+                        result: ERROR,
+                    },
+                })
+            );
+            return;
+        }
+
+        await this.prisma.group.update({
+            where: { id: groupId },
+            data: {
+                adminOf: {
+                    disconnect: {
+                        id: adminId,
+                    },
+                },
+            },
+        });
+
+        socket.send(
+            JSON.stringify({
+                type: MAKE_ADMIN,
+                payload: {
+                    adminId,
+                },
+            })
+        );
+    }
+
     async handleIncomingMessages(id: string, socket: WebSocket) {
         console.log("Inside handle incoming request");
         socket.on("message", async (data) => {
@@ -351,6 +585,18 @@ export class InboxManager {
                     break;
                 case NEW_MESSAGE:
                     this.handleNewMessage(message);
+                    break;
+                case CHANGE_GROUP_NAME:
+                    this.handleChangeGroupName(socket, id, message);
+                    break;
+                case LEAVE_GROUP_CHAT:
+                    this.handleLeaveGroupChat(socket, id, message);
+                    break;
+                case MAKE_ADMIN:
+                    this.handleAddAdmin(socket, id, message);
+                    break;
+                case REMOVE_AS_ADMIN:
+                    this.handleRemoveAdmin(socket, id, message);
                     break;
                 default:
                     break;

@@ -6,11 +6,10 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DialogClose } from "@radix-ui/react-dialog";
+import { FormEvent, SetStateAction } from "react";
 
 type TEditModalProps = {
     children?: React.ReactNode;
@@ -23,10 +22,13 @@ type TEditModalProps = {
     required?: boolean;
     required2?: boolean;
     submitLabel?: string;
-    onSubmit?: () => void;
+    onSubmit?: (e: FormEvent) => void;
     defaultValue?: string;
     onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
     value?: string;
+    open?: boolean;
+    setOpen?: React.Dispatch<SetStateAction<boolean>>;
+    disabled?: boolean;
 };
 
 export const EditModal: React.FC<TEditModalProps> = ({
@@ -44,60 +46,69 @@ export const EditModal: React.FC<TEditModalProps> = ({
     defaultValue,
     onChange,
     value,
+    open,
+    setOpen,
+    disabled,
 }) => {
     return (
-        <Dialog>
-            <DialogTrigger asChild>{children}</DialogTrigger>
+        <Dialog
+            open={open}
+            onOpenChange={setOpen}
+        >
+            {children}
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle className="text-center">{title}</DialogTitle>
                     <DialogDescription>{description}</DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="flex flex-col items-start gap-4">
-                        <Label
-                            htmlFor={label}
-                            className="text-right"
-                        >
-                            {label}
-                        </Label>
-                        <Input
-                            id={label}
-                            placeholder={placeholder}
-                            className="col-span-3"
-                            required={required}
-                            defaultValue={defaultValue}
-                            onChange={onChange}
-                            value={value}
-                        />
-                    </div>
-                    {label2 && (
-                        <div className="grid grid-cols-4 items-center gap-4">
+                <form
+                    className="py-2 grid gap-8"
+                    onSubmit={onSubmit}
+                >
+                    <div className="grid gap-4">
+                        <div className="flex flex-col items-start gap-4">
                             <Label
-                                htmlFor={label2}
+                                htmlFor={label}
                                 className="text-right"
                             >
-                                {label2}
+                                {label}
                             </Label>
                             <Input
-                                id={label2}
-                                placeholder={placeholder2}
+                                id={label}
+                                placeholder={placeholder}
                                 className="col-span-3"
-                                required={required2}
+                                required={required}
+                                defaultValue={defaultValue}
+                                onChange={onChange}
+                                value={value}
                             />
                         </div>
-                    )}
-                </div>
-                <DialogFooter>
-                    <DialogClose asChild>
+                        {label2 && (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label
+                                    htmlFor={label2}
+                                    className="text-right"
+                                >
+                                    {label2}
+                                </Label>
+                                <Input
+                                    id={label2}
+                                    placeholder={placeholder2}
+                                    className="col-span-3"
+                                    required={required2}
+                                />
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
                         <Button
                             type="submit"
-                            onClick={onSubmit}
+                            disabled={disabled}
                         >
                             {submitLabel ?? "Save changes"}
                         </Button>
-                    </DialogClose>
-                </DialogFooter>
+                    </DialogFooter>
+                </form>
             </DialogContent>
         </Dialog>
     );

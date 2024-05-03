@@ -25,7 +25,7 @@
         --accent: 210 40% 96.1%;
         --accent-foreground: 222.2 47.4% 11.2%;
 
-        --destructive: 0 84.2% 60.2%;
+        --destructive: 355 82% 60.8%;
         --destructive-foreground: 210 40% 98%;
 
         --border: 214.3 31.8% 91.4%;
@@ -59,7 +59,7 @@
         --accent: 217.2 32.6% 17.5%;
         --accent-foreground: 210 40% 98%;
 
-        --destructive: 0 62.8% 30.6%;
+        --destructive: 355 82% 60.8%;
         --destructive-foreground: 210 40% 98%;
 
         --border: 217.2 32.6% 17.5%;
@@ -102,7 +102,8 @@
         width: 236px;
         height: 236px;
 
-        background: linear-gradient(to right, #cbd4e1 8px, transparent 8px) 0 0,
+        background:
+            linear-gradient(to right, #cbd4e1 8px, transparent 8px) 0 0,
             linear-gradient(to right, #cbd4e1 8px, transparent 8px) 0 100%,
             linear-gradient(to left, #cbd4e1 8px, transparent 8px) 100% 0,
             linear-gradient(to left, #cbd4e1 8px, transparent 8px) 100% 100%,

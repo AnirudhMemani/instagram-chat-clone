@@ -18,6 +18,7 @@ type TDialogBoxProps = {
     negativeTitle?: string;
     positiveOnClick?: () => void;
     negativeOnClick?: () => void;
+    PositiveButtonStyles?: string;
 };
 
 export const DialogBox: React.FC<TDialogBoxProps> = ({
@@ -28,6 +29,7 @@ export const DialogBox: React.FC<TDialogBoxProps> = ({
     positiveTitle = "Continue",
     title,
     negativeOnClick,
+    PositiveButtonStyles,
 }) => {
     return (
         <AlertDialog>
@@ -45,7 +47,10 @@ export const DialogBox: React.FC<TDialogBoxProps> = ({
                     <AlertDialogCancel onClick={negativeOnClick}>
                         {negativeTitle}
                     </AlertDialogCancel>
-                    <AlertDialogAction onClick={positiveOnClick}>
+                    <AlertDialogAction
+                        onClick={positiveOnClick}
+                        className={PositiveButtonStyles}
+                    >
                         {positiveTitle}
                     </AlertDialogAction>
                 </AlertDialogFooter>
