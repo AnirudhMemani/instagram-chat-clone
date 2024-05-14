@@ -19,6 +19,7 @@ import { IUser } from "./UserManager.js";
 import { getSortedSetKey } from "../utils/helper.js";
 import { IMessage, IStartConvoMessage } from "@instachat/messages/types";
 import fs from "fs/promises";
+import cloudinary from "cloudinary";
 
 /**
  * TODO:
@@ -113,7 +114,7 @@ export class InboxManager {
 
     async handleGroupConvo(socket: WebSocket, id: string, message: IMessage) {
         const selectedUsers = message as IStartConvoMessage;
-        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+        const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8 MB
         const participants = selectedUsers.payload.userDetails;
         const groupDetails = selectedUsers.payload.groupDetails;
 
@@ -134,11 +135,9 @@ export class InboxManager {
             );
         }
 
-        const decodedImage = Buffer.from(profilePic, "base64");
-
-        await fs.mkdir("../pictures", { recursive: true });
-        const groupProfilePic = `pictures/${crypto.randomUUID()}~${pictureName}`;
-        await fs.writeFile(groupProfilePic, decodedImage);
+        const result = await cloudinary.v2.uploader.upload(profilePic, {
+            upload_preset: process.env.CLOUDINARY_PRESET_NAME,
+        });
 
         participants.push({ fullName: "", id });
 
@@ -154,7 +153,7 @@ export class InboxManager {
                 Group: {
                     create: {
                         name,
-                        picture: groupProfilePic,
+                        picture: result.secure_url,
                         superAdminId: id,
                         adminOf: { connect: { id } },
                         createdAt: new Date(Date.now()),

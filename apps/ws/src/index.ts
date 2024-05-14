@@ -1,4 +1,4 @@
-import WebSocket, { WebSocketServer } from "ws";
+import { WebSocketServer } from "ws";
 import url, { fileURLToPath } from "url";
 import { validateUser } from "./utils/helper.js";
 import { connectToRedis } from "./redis/client.js";
@@ -6,19 +6,25 @@ import { IUser } from "./managers/UserManager.js";
 import { InboxManager } from "./managers/InboxManager.js";
 import express from "express";
 import path from "path";
+import cloudinary from "cloudinary";
+import dotenv from "dotenv";
 
 const app = express();
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 export const directoryName = path.dirname(__filename);
 
-app.use(
-    "/pictures",
-    express.static(path.resolve(directoryName, "..", "pictures"))
-);
+app.use("pictures", express.static(path.resolve(directoryName, "pictures")));
 
-const port = 8080;
+const port = Number(process.env.WS_URL) || 8080;
 const wss = new WebSocketServer({ port });
+
+cloudinary.v2.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_SECRET,
+});
 
 connectToRedis();
 
@@ -54,5 +60,5 @@ wss.on("connection", function connection(socket, req) {
 
     inboxManager.connectUser(userInfo);
 
-    socket.on("close", () => {});
+    socket.on("close", () => socket.terminate());
 });

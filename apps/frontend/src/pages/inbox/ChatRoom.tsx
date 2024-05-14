@@ -58,10 +58,9 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
         ? groupDetails.name
         : chatRoomDetails.name;
 
-    const roomPicture =
-        url + "/" + chatRoomDetails.isGroup
-            ? groupDetails.picture
-            : chatRoomDetails.participants[0].profilePic;
+    const roomPicture = chatRoomDetails.isGroup
+        ? groupDetails.picture
+        : chatRoomDetails.participants[0].profilePic;
 
     const inputRef = useRef<HTMLInputElement | null>(null);
     const emojiPickerRef = useRef<HTMLDivElement | null>(null);
@@ -326,7 +325,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             className="size-12 cursor-pointer select-none"
                             onClick={() => setShowRoomInfo((p) => !p)}
                         >
-                            <AvatarImage src={roomPicture} />
+                            <AvatarImage
+                                src={roomPicture}
+                                alt="Group Image"
+                            />
                             <AvatarFallback>
                                 {roomName.slice(0, 2).toUpperCase()}
                             </AvatarFallback>
