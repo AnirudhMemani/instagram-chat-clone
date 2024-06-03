@@ -16,6 +16,7 @@ import { ArrowUpRight } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useRecoilState, useSetRecoilState } from "recoil";
+import { ClipLoader } from "react-spinners";
 
 const Login: React.FC = (): JSX.Element => {
     const token = localStorageUtils.getToken();
@@ -136,7 +137,14 @@ const Login: React.FC = (): JSX.Element => {
                         type="submit"
                         disabled={isLoading}
                     >
-                        {isLoading ? "Signing in..." : "Sign in"}
+                        {!isLoading ? (
+                            "Sign in"
+                        ) : (
+                            <ClipLoader
+                                size={20}
+                                color="#0F172A"
+                            />
+                        )}
                     </Button>
                 </form>
                 <div className="flex items-center justify-center gap-2">

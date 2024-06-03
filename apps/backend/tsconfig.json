@@ -12,7 +12,5 @@
     },
     "include": [
         "src/**/*",
-        "src/pictures",
-        "src/static"
     ],
 }

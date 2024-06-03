@@ -1,4 +1,6 @@
 import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+dotenv.config();
 import path from "path";
 import fs from "fs";
 
@@ -46,24 +48,12 @@ export class HTTPMessages {
 export const env = {
     PORT: process.env.PORT || 3000,
     JWT_SECRET: process.env.JWT_SECRET || "FallbackJWTSecretForNow",
+    CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || "",
+    CLOUDINARY_PRESET_NAME: process.env.CLOUDINARY_PRESET_NAME || "",
+    CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || "",
+    CLOUDINARY_SECRET: process.env.CLOUDINARY_SECRET || "",
+    CLOUDINARY_URL: process.env.CLOUDINARY_URL || "",
 };
 
-const __filename = fileURLToPath(import.meta.url);
-export const directoryName = path.dirname(__filename);
-
-export const attachedExtension = (
-    fileWithExt: string,
-    fileWithoutExt: string
-) => {
-    const extension = fileWithExt.split(".").pop();
-
-    const oldPath =
-        path.resolve(directoryName, "..", "pictures") + "\\" + fileWithoutExt;
-    const newPath = `${oldPath}.${extension}`;
-
-    fs.renameSync(oldPath, newPath);
-
-    const servePath = `pictures/${fileWithoutExt}.${extension}`;
-
-    return servePath;
-};
+// const __filename = fileURLToPath(import.meta.url);
+// export const directoryName = path.dirname(__filename);

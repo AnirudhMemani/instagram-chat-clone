@@ -29,6 +29,7 @@
         "react-dom": "^18.2.0",
         "react-easy-crop": "^5.0.6",
         "react-router-dom": "^6.22.3",
+        "react-spinners": "^0.13.8",
         "recoil": "^0.7.7",
         "recoil-persist": "^5.1.0",
         "sonner": "^1.4.41",

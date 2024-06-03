@@ -3,7 +3,7 @@ import { useRecoilValue } from "recoil";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { profilePicAtom, usernameAtom } from "@/state/user";
 import { useNavigate } from "react-router-dom";
-import { NavigationRoutes, env, handleUserLogout } from "@/utils/constants";
+import { NavigationRoutes, handleUserLogout } from "@/utils/constants";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -11,11 +11,11 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ModeToggle } from "@/components/mode-toggle";
 import { DialogBox } from "@/components/DialogBox";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { loadingAtom } from "@/state/global";
+import DarkModeToggle from "@/components/DarkModeToggle";
 
 type TSidebarProps = {
     className?: string;
@@ -28,13 +28,11 @@ const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
 
     const navigate = useNavigate();
 
-    const url = env.SERVER_URL;
-
     return (
         <div className={cn("lg:h-dvh lg:w-fit w-full", className)}>
             <div className="flex lg:flex-col w-full lg:w-fit border-gray-950 justify-center h-full gap-6 lg:py-0 py-3 lg:px-6 border-t lg:border-r dark:border-gray-700">
                 <Home
-                    className="size-10 cursor-pointer"
+                    className="size-10 cursor-pointer active:brightness-50 select-none"
                     aria-disabled={isLoading}
                     onClick={() =>
                         navigate(NavigationRoutes.Inbox, { replace: true })
@@ -43,7 +41,7 @@ const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
                 <DropdownMenu>
                     <DropdownMenuTrigger disabled={isLoading}>
                         <Avatar>
-                            <AvatarImage src={`${url}/${profilePic}`} />
+                            <AvatarImage src={profilePic} />
                             <AvatarFallback>
                                 {username.slice(0, 2).toUpperCase()}
                             </AvatarFallback>
@@ -51,7 +49,6 @@ const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                         <DropdownMenuItem>Profile</DropdownMenuItem>
-                        <ModeToggle />
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
                             <DialogBox
@@ -72,6 +69,7 @@ const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
+                <DarkModeToggle />
             </div>
         </div>
     );

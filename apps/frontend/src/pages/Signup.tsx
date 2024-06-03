@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { loadingAtom } from "@/state/global";
 import { localStorageUtils } from "@/utils/LocalStorageUtils";
@@ -16,6 +17,7 @@ import { ArrowUpRight } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useRecoilState } from "recoil";
+import { ClipLoader } from "react-spinners";
 
 const Signup: React.FC = (): JSX.Element => {
     const token = localStorageUtils.getToken();
@@ -42,24 +44,30 @@ const Signup: React.FC = (): JSX.Element => {
     const [isLoading, setIsLoading] = useRecoilState(loadingAtom);
 
     const navigate = useNavigate();
+    const { toast } = useToast();
 
     const { getProcessedImage, setImage, resetStates } = useImageCropContext();
 
     const handleUserSignup = async (e: FormEvent) => {
         e.preventDefault();
 
+        if (!profilePic) {
+            toast({
+                title: "Please add a profile picture",
+            });
+            return;
+        }
+
         try {
             setIsLoading(true);
-            await new Promise((r) => setTimeout(r, 5000));
+
             const formData = new FormData();
+
             formData.set("email", email);
             formData.set("username", username);
             formData.set("password", password);
             formData.set("fullName", fullName);
-
-            if (profilePic) {
-                formData.set("profilePic", profilePic);
-            }
+            formData.append("profilePic", profilePic);
 
             const response = await processUserSignup(formData, navigate);
 
@@ -223,7 +231,14 @@ const Signup: React.FC = (): JSX.Element => {
                         type="submit"
                         disabled={isLoading}
                     >
-                        {isLoading ? "Signing up..." : "Sign up"}
+                        {!isLoading ? (
+                            "Sign up"
+                        ) : (
+                            <ClipLoader
+                                size={20}
+                                color="#0F172A"
+                            />
+                        )}
                     </Button>
                 </form>
                 <div className="flex items-center justify-center gap-2">

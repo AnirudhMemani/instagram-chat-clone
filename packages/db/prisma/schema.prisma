@@ -31,7 +31,7 @@ model User {
     MessageSent     Message[]       @relation(name: "MessageSentBy")
     DirectMessage   DirectMessage[]
 
-    @@index([id])
+    @@index([username, email])
 }
 
 model Message {
@@ -44,21 +44,21 @@ model Message {
     senderId      String
     sentBy        User           @relation(name: "MessageSentBy", fields: [senderId], references: [id])
     chatRoomId    String
-    chatRoom      ChatRoom       @relation(fields: [chatRoomId], references: [id])
+    chatRoom      ChatRoom       @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
     Attachments   Attachment[]
     ReceivedBy    User[]         @relation(name: "MessageReceivedBy")
     DirectMessage DirectMessage? @relation(name: "LatestMessgae")
 
-    @@index([senderId, chatRoomId])
+    @@index([senderId, chatRoomId, sentAt])
 }
 
 model DirectMessage {
     id              String   @id @default(uuid())
     latestMessageId String   @unique
-    latestMessage   Message  @relation(name: "LatestMessgae", fields: [latestMessageId], references: [id])
+    latestMessage   Message  @relation(name: "LatestMessgae", fields: [latestMessageId], references: [id], onDelete: Cascade)
     sentTo          User[]
     chatRoomId      String   @unique
-    chatRoom        ChatRoom @relation(fields: [chatRoomId], references: [id])
+    chatRoom        ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
 }
 
 model ChatRoom {
@@ -84,7 +84,7 @@ model Group {
     superAdmin       User     @relation(name: "SuperAdmin", fields: [superAdminId], references: [id])
     adminOf          User[]   @relation(name: "GroupAdmin")
     chatRoomId       String   @unique
-    chatRoom         ChatRoom @relation(fields: [chatRoomId], references: [id])
+    chatRoom         ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
 }
 
 model Attachment {

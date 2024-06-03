@@ -1,5 +1,4 @@
 import { Input } from "@/components/ui/input";
-import DefaultGroupImagePath from "../../assets/default-group-image.png";
 import { FormEvent, useEffect, useState } from "react";
 import { ArrowLeft, Camera } from "lucide-react";
 import { useRecoilState, useSetRecoilState } from "recoil";
@@ -8,7 +7,6 @@ import { useImageCropContext } from "@/components/image-editor/ImageCropProvider
 import { readFile } from "@/components/image-editor/helpers/cropImage";
 import { CropModal } from "@/components/image-editor/CropModal";
 import { cn } from "@/lib/utils";
-import { env } from "@/utils/constants";
 import { pageTypeAtom } from "@/state/global";
 import { Button } from "@/components/ui/button";
 import { IMessage, IStartConvoMessage } from "@instachat/messages/types";
@@ -20,24 +18,25 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
     socket,
 }): JSX.Element => {
     const defaultGroupImageFile = new File(
-        [DefaultGroupImagePath],
+        [
+            "https://res.cloudinary.com/dtbyy0w95/image/upload/v1716144011/default-group-image_eopbih.png",
+        ],
         "default-group-image.png"
     );
 
     const [groupName, setGroupName] = useState<string>("");
     const [groupImage, setGroupImage] = useState<File>(defaultGroupImageFile);
     const [previewImage, setPreviewImage] = useState<string>(
-        DefaultGroupImagePath
+        "https://res.cloudinary.com/dtbyy0w95/image/upload/v1716144011/default-group-image_eopbih.png"
     );
-    const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isCropModalVisible, setIsCropModalVisible] =
+        useState<boolean>(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const [selectedUsers, setSelectedUsers] = useRecoilState(selectedUsersAtom);
     const setChatRoomDetails = useSetRecoilState(chatRoomAtom);
     const setGroupDetails = useSetRecoilState(groupAtom);
     const setPagetype = useSetRecoilState(pageTypeAtom);
-
-    const url = env.SERVER_URL;
 
     const { getProcessedImage, setImage, resetStates } = useImageCropContext();
     const { toast } = useToast();
@@ -87,7 +86,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                     return p;
                 });
 
-                setIsLoading(false);
+                setIsSubmitting(false);
                 setPagetype("ChatRoom");
             }
         };
@@ -98,7 +97,9 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
         };
     }, [socket]);
 
-    const handleGroupImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleGroupImageChange = async (
+        e: React.ChangeEvent<HTMLInputElement>
+    ) => {
         if (!e.target.files?.length) {
             return;
         }
@@ -107,15 +108,15 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
 
         const imageDataUrl = await readFile(file);
         setImage(imageDataUrl);
-        setIsModalVisible(true);
+        setIsCropModalVisible(true);
     };
 
-    const handleDone = async () => {
+    const handleCropDone = async () => {
         const avatar = await getProcessedImage();
         setGroupImage(avatar);
         setPreviewImage(window.URL.createObjectURL(avatar));
         resetStates();
-        setIsModalVisible(false);
+        setIsCropModalVisible(false);
     };
 
     const handleGroupCreation = (e: FormEvent) => {
@@ -126,7 +127,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
             return;
         }
 
-        setIsLoading(true);
+        setIsSubmitting(true);
 
         const reader = new FileReader();
 
@@ -176,10 +177,10 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                 <div className="relative h-40 w-40 overflow-hidden bg-gray-200 rounded-full flex items-center justify-center">
                     <Input
                         type="file"
-                        onChange={handleGroupImage}
+                        onChange={handleGroupImageChange}
                         accept=".jpg, .png, .jpeg, .webp"
                         className="absolute opacity-0 w-full h-full peer z-20 cursor-pointer"
-                        disabled={isLoading}
+                        disabled={isSubmitting}
                     />
                     <img
                         src={previewImage}
@@ -188,13 +189,15 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                     <div
                         className={cn(
                             "absolute text-black hover:opacity-100 font-medium flex flex-col items-center justify-center",
-                            previewImage !== DefaultGroupImagePath &&
+                            previewImage !==
+                                "https://res.cloudinary.com/dtbyy0w95/image/upload/v1716144011/default-group-image_eopbih.png" &&
                                 "peer-hover:opacity-100 opacity-0 transition-opacity duration-300 ease-in-out"
                         )}
                     >
                         <Camera className="size-10" />
                         <span>
-                            {previewImage === DefaultGroupImagePath
+                            {previewImage ===
+                            "https://res.cloudinary.com/dtbyy0w95/image/upload/v1716144011/default-group-image_eopbih.png"
                                 ? "Add a group icon"
                                 : "Change group icon"}
                         </span>
@@ -206,7 +209,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                     required
                     onChange={(e) => setGroupName(e.target.value)}
                     value={groupName}
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                 />
                 <h1 className="mr-auto">Members</h1>
                 <div className="overflow-y-auto flex-grow flex-wrap flex gap-3 w-full max-h-24">
@@ -218,7 +221,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                             >
                                 <img
                                     className="object-center object-cover"
-                                    src={`${url}/${user.profilePic}`}
+                                    src={user.profilePic}
                                 />
                             </div>
                         ))}
@@ -226,15 +229,15 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                 <Button
                     className="w-full"
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                 >
-                    {isLoading ? "Creating..." : "Create"}
+                    {isSubmitting ? "Creating..." : "Create"}
                 </Button>
             </form>
             <CropModal
-                handleDone={handleDone}
-                isModalVisible={isModalVisible}
-                setIsModalVisible={setIsModalVisible}
+                handleDone={handleCropDone}
+                isModalVisible={isCropModalVisible}
+                setIsModalVisible={setIsCropModalVisible}
             />
         </div>
     );

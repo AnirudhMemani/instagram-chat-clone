@@ -4,21 +4,18 @@ import {
     UserLoginController,
     userSignupController,
 } from "../controllers/user.controllers.js";
-import multer from "multer";
-import path from "path";
-import { directoryName } from "../utils/constants.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
+import multer from "multer";
 
 const router = Router();
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
-const uploadDirectory = path.resolve(directoryName, "..", "pictures");
-const uploadMiddleware = multer({ dest: uploadDirectory });
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: MAX_FILE_SIZE },
+});
 
-router.post(
-    "/signup",
-    uploadMiddleware.single("profilePic"),
-    userSignupController
-);
+router.post("/signup", upload.single("profilePic"), userSignupController);
 
 router.post("/login", UserLoginController);
 

@@ -136,6 +136,7 @@ export class InboxManager {
         }
 
         const result = await cloudinary.v2.uploader.upload(profilePic, {
+            public_id: pictureName,
             upload_preset: process.env.CLOUDINARY_PRESET_NAME,
         });
 
@@ -565,9 +566,7 @@ export class InboxManager {
     async handleIncomingMessages(id: string, socket: WebSocket) {
         console.log("Inside handle incoming request");
         socket.on("message", async (data) => {
-            console.log("on message");
             const message = JSON.parse(data.toString());
-            console.log("message", message);
 
             switch (message.type) {
                 case GET_DM:

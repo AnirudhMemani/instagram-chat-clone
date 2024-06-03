@@ -1,5 +1,4 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { env } from "@/utils/constants";
 import { TWebSocket } from "@/utils/types";
 import { CircleAlert, EllipsisVertical, Smile } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
@@ -35,34 +34,34 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
-    const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
-    const [message, setMessage] = useState<string>("");
-    const [showRoomInfo, setShowRoomInfo] = useState<boolean>(false);
+    const [isEmojiPickerVisible, setIsEmojiPickerVisible] =
+        useState<boolean>(false);
+    const [messageText, setMessageText] = useState<string>("");
+    const [isRoomInfoVisible, setIsRoomInfoVisible] = useState<boolean>(false);
     const [newGroupName, setNewGroupName] = useState<string>("");
-    const [showEditNameModal, setShowEditNameModal] = useState<boolean>(false);
+    const [isEditNameModalVisible, setIsEditNameModalVisible] =
+        useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    const [chatRoomDetails, setChatRoomDetails] = useRecoilState(chatRoomAtom);
-    const [groupDetails, setGroupDetails] = useRecoilState(groupAtom);
+    const [chatRoomState, setChatRoomState] = useRecoilState(chatRoomAtom);
+    const [groupState, setGroupState] = useRecoilState(groupAtom);
     const userId = useRecoilValue(userIdAtom);
 
     const [isAdmin, _setIsAdmin] = useState<boolean>(
-        chatRoomDetails.isGroup
-            ? groupDetails.adminOf.some((admin) => admin.id === userId)
+        chatRoomState.isGroup
+            ? groupState.adminOf.some((admin) => admin.id === userId)
             : false
     );
 
-    const url = env.SERVER_URL;
+    const chatRoomName = chatRoomState.isGroup
+        ? groupState.name
+        : chatRoomState.name;
 
-    const roomName = chatRoomDetails.isGroup
-        ? groupDetails.name
-        : chatRoomDetails.name;
+    const chatRoomImage = chatRoomState.isGroup
+        ? groupState.picture
+        : chatRoomState.participants[0].profilePic;
 
-    const roomPicture = chatRoomDetails.isGroup
-        ? groupDetails.picture
-        : chatRoomDetails.participants[0].profilePic;
-
-    const inputRef = useRef<HTMLInputElement | null>(null);
+    const messageInputRef = useRef<HTMLInputElement | null>(null);
     const emojiPickerRef = useRef<HTMLDivElement | null>(null);
 
     const { theme } = useTheme();
@@ -75,22 +74,22 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
         socket.onmessage = (event) => {
             try {
-                const message = JSON.parse(event.data) as IMessage;
+                const messageText = JSON.parse(event.data) as IMessage;
 
-                switch (message.type) {
+                switch (messageText.type) {
                     case CHANGE_GROUP_NAME:
-                        if (message.payload.result === SUCCESS) {
-                            setGroupDetails({
-                                ...groupDetails,
-                                name: message.payload.groupName,
+                        if (messageText.payload.result === SUCCESS) {
+                            setGroupState({
+                                ...groupState,
+                                name: messageText.payload.groupName,
                             });
-                            setChatRoomDetails({
-                                ...chatRoomDetails,
-                                name: message.payload.groupName,
+                            setChatRoomState({
+                                ...chatRoomState,
+                                name: messageText.payload.groupName,
                             });
-                        } else if (message.payload.result === ERROR) {
+                        } else if (messageText.payload.result === ERROR) {
                             toast({
-                                title: "Uh oh! You do not have enough permission.",
+                                title: "Permission Denied",
                                 description:
                                     "Only a member of the group can change the group name",
                             });
@@ -103,23 +102,22 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                         }
                         break;
                     case LEAVE_GROUP_CHAT:
-                        if (message.payload.result === ERROR) {
+                        if (messageText.payload.result === ERROR) {
                             toast({
                                 description:
                                     "You are not a part of this group chat",
                             });
-                        } else if (message.payload.result === SUCCESS) {
-                            const id = message.payload.userId;
-                            setChatRoomDetails({
-                                ...chatRoomDetails,
-                                participants:
-                                    chatRoomDetails.participants.filter(
-                                        (participant) => participant.id !== id
-                                    ),
+                        } else if (messageText.payload.result === SUCCESS) {
+                            const id = messageText.payload.userId;
+                            setChatRoomState({
+                                ...chatRoomState,
+                                participants: chatRoomState.participants.filter(
+                                    (participant) => participant.id !== id
+                                ),
                             });
-                            setGroupDetails({
-                                ...groupDetails,
-                                adminOf: groupDetails.adminOf.filter(
+                            setGroupState({
+                                ...groupState,
+                                adminOf: groupState.adminOf.filter(
                                     (admin) => admin.id !== id
                                 ),
                             });
@@ -132,28 +130,28 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                         }
                         break;
                     case MAKE_ADMIN:
-                        if (message.payload.result === ERROR) {
+                        if (messageText.payload.result === ERROR) {
                             toast({
                                 title: "Uh oh! Something went wrong.",
                             });
                         } else {
-                            const userDetails = message.payload.userDetails;
-                            setGroupDetails({
-                                ...groupDetails,
-                                adminOf: [...groupDetails.adminOf, userDetails],
+                            const userDetails = messageText.payload.userDetails;
+                            setGroupState({
+                                ...groupState,
+                                adminOf: [...groupState.adminOf, userDetails],
                             });
                         }
                         break;
                     case REMOVE_AS_ADMIN:
-                        if (message.payload.result === ERROR) {
+                        if (messageText.payload.result === ERROR) {
                             toast({
                                 title: "Uh oh! Something went wrong.",
                             });
                         } else {
-                            const adminId = message.payload.adminId;
-                            setGroupDetails({
-                                ...groupDetails,
-                                adminOf: groupDetails.adminOf.filter(
+                            const adminId = messageText.payload.adminId;
+                            setGroupState({
+                                ...groupState,
+                                adminOf: groupState.adminOf.filter(
                                     (admin) => admin.id !== adminId
                                 ),
                             });
@@ -168,7 +166,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                         "There was an issue with your request. Please try again",
                 });
             } finally {
-                setShowEditNameModal(false);
+                setIsEditNameModalVisible(false);
                 setIsLoading(false);
             }
         };
@@ -180,7 +178,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 emojiPickerRef.current &&
                 !emojiPickerRef.current.contains(e.target as Node)
             ) {
-                setShowEmojiPicker(false);
+                setIsEmojiPickerVisible(false);
             }
         };
 
@@ -191,15 +189,15 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
         };
     }, []);
 
-    const addEmoji = (e: EmojiClickData) => {
-        setMessage((p) => p + e.emoji);
-        if (inputRef.current) {
-            inputRef.current.focus();
+    const handleEmojiClick = (e: EmojiClickData) => {
+        setMessageText((p) => p + e.emoji);
+        if (messageInputRef.current) {
+            messageInputRef.current.focus();
         }
     };
 
-    const sendMessage = () => {
-        if (message.length < 1) {
+    const handleSendMessage = () => {
+        if (messageText.length < 1) {
             return;
         }
 
@@ -207,15 +205,15 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             return;
         }
 
-        const socketMessage: IMessage = {
+        const newMessage: IMessage = {
             type: NEW_MESSAGE,
             payload: {},
         };
 
-        socket.send(JSON.stringify(socketMessage));
+        socket.send(JSON.stringify(newMessage));
     };
 
-    const changeGroupName = (e: FormEvent) => {
+    const handleChangeGroupName = (e: FormEvent) => {
         e.preventDefault();
         try {
             if (!socket) {
@@ -227,38 +225,38 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             const changeGroupNameMessage: IMessage = {
                 type: CHANGE_GROUP_NAME,
                 payload: {
-                    chatRoomId: chatRoomDetails.id,
+                    chatRoomId: chatRoomState.id,
                     groupName: newGroupName,
                 },
             };
 
             socket.send(JSON.stringify(changeGroupNameMessage));
         } catch (error) {
-            console.log(error);
+            console.error(error);
             toast({
                 description:
                     "Could not process your request. Please try again!",
             });
-            setShowEditNameModal(false);
+            setIsEditNameModalVisible(false);
             setIsLoading(false);
         }
     };
 
-    const handleLeaveChat = () => {
+    const handleLeaveGroupChat = () => {
         try {
             if (!socket) {
                 return;
             }
 
-            const leaveChatMessage: IMessage = {
+            const leaveGroupChatMessage: IMessage = {
                 type: LEAVE_GROUP_CHAT,
                 payload: {
-                    chatRoomId: chatRoomDetails.id,
+                    chatRoomId: chatRoomState.id,
                 },
             };
 
             setIsLoading(true);
-            socket.send(JSON.stringify(leaveChatMessage));
+            socket.send(JSON.stringify(leaveGroupChatMessage));
         } catch (error) {
             console.log(error);
             setIsLoading(false);
@@ -270,13 +268,13 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
         }
     };
 
-    const handleDeleteChat = () => {};
+    const handleDeleteGroupChat = () => {};
 
-    const handleRemoveUser = () => {};
+    const handleRemoveUserFromGroup = () => {};
 
-    const handleMakeAdmin = (
+    const handleAdminStatusChange = (
         userId: string,
-        operationType: "Make admin" | "Remove as admin"
+        action: "Make admin" | "Remove as admin"
     ) => {
         try {
             if (!socket) {
@@ -285,26 +283,26 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
             setIsLoading(true);
 
-            if (operationType === "Make admin") {
+            if (action === "Make admin") {
                 socket.send(
                     JSON.stringify({
                         type: MAKE_ADMIN,
                         payload: {
                             userId,
-                            groupId: groupDetails.id,
+                            groupId: groupState.id,
                         },
                     })
                 );
                 return;
             }
 
-            if (operationType === "Remove as admin") {
+            if (action === "Remove as admin") {
                 socket.send(
                     JSON.stringify({
                         type: REMOVE_AS_ADMIN,
                         payload: {
                             userId,
-                            groupId: groupDetails.id,
+                            groupId: groupState.id,
                         },
                     })
                 );
@@ -323,29 +321,29 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     <div className="flex gap-3 items-center">
                         <Avatar
                             className="size-12 cursor-pointer select-none"
-                            onClick={() => setShowRoomInfo((p) => !p)}
+                            onClick={() => setIsRoomInfoVisible((p) => !p)}
                         >
                             <AvatarImage
-                                src={roomPicture}
+                                src={chatRoomImage}
                                 alt="Group Image"
                             />
                             <AvatarFallback>
-                                {roomName.slice(0, 2).toUpperCase()}
+                                {chatRoomName.slice(0, 2).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
                         <h1
                             className="font-semibold cursor-pointer select-none"
-                            onClick={() => setShowRoomInfo((p) => !p)}
+                            onClick={() => setIsRoomInfoVisible((p) => !p)}
                         >
-                            {roomName}
+                            {chatRoomName}
                         </h1>
                     </div>
                     <CircleAlert
                         className={cn(
                             "rotate-180 cursor-pointer active:brightness-50",
-                            showRoomInfo && "fill-white text-black"
+                            isRoomInfoVisible && "fill-white text-black"
                         )}
-                        onClick={() => setShowRoomInfo((p) => !p)}
+                        onClick={() => setIsRoomInfoVisible((p) => !p)}
                     />
                 </div>
                 {/* messages */}
@@ -356,9 +354,9 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                         className="relative"
                     >
                         <EmojiPicker
-                            open={showEmojiPicker}
+                            open={isEmojiPickerVisible}
                             theme={theme === "dark" ? Theme.DARK : Theme.LIGHT}
-                            onEmojiClick={addEmoji}
+                            onEmojiClick={handleEmojiClick}
                             autoFocusSearch={false}
                             suggestedEmojisMode={SuggestionMode.FREQUENT}
                             className="!absolute bottom-[150%]"
@@ -366,31 +364,31 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                         />
                         <Smile
                             className="size-7 active:brightness-50 cursor-pointer"
-                            onClick={() => setShowEmojiPicker((p) => !p)}
+                            onClick={() => setIsEmojiPickerVisible((p) => !p)}
                         />
                     </div>
                     <input
                         className="bg-transparent border-none outline-none w-full text-lg"
                         type="text"
-                        id={"message"}
+                        id={"messageText"}
                         placeholder="Message..."
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        ref={inputRef}
+                        value={messageText}
+                        onChange={(e) => setMessageText(e.target.value)}
+                        ref={messageInputRef}
                     />
                     <p
                         className={cn(
                             "text-gray-400 cursor-not-allowed select-none",
-                            message.length > 0 &&
+                            messageText.length > 0 &&
                                 "text-blue-400 cursor-pointer active:scale-95 active:text-blue-700"
                         )}
-                        onClick={sendMessage}
+                        onClick={handleSendMessage}
                     >
                         Send
                     </p>
                 </div>
             </div>
-            {showRoomInfo && (
+            {isRoomInfoVisible && (
                 <div className="w-[550px] h-full flex flex-col border-l border-input ml-[1px]">
                     <h1 className="p-6 border-b border-input text-2xl font-semibold">
                         Details
@@ -399,21 +397,23 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                         <p>Change group name</p>
                         <EditModal
                             title="Change group name"
-                            defaultValue={groupDetails.name}
+                            defaultValue={groupState.name}
                             label="New group name"
                             placeholder="Change name to..."
                             description="Changing the name of a group chat changes it for everyone."
                             value={newGroupName}
                             onChange={(e) => setNewGroupName(e.target.value)}
-                            open={showEditNameModal}
-                            setOpen={setShowEditNameModal}
-                            onSubmit={changeGroupName}
+                            open={isEditNameModalVisible}
+                            setOpen={setIsEditNameModalVisible}
+                            onSubmit={handleChangeGroupName}
                             submitLabel={isLoading ? "Saving..." : "Save"}
                             disabled={isLoading}
                         >
                             <Button
                                 variant="outline"
-                                onClick={() => setShowEditNameModal((p) => !p)}
+                                onClick={() =>
+                                    setIsEditNameModalVisible((p) => !p)
+                                }
                             >
                                 Change
                             </Button>
@@ -421,8 +421,8 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     </div>
                     <div className="p-6 flex items-center justify-between">
                         <p className="font-medium">Members</p>
-                        {chatRoomDetails.isGroup &&
-                            groupDetails.adminOf.some(
+                        {chatRoomState.isGroup &&
+                            groupState.adminOf.some(
                                 (admin) => admin.id === userId
                             ) && (
                                 <p className="select-none text-blue-400 cursor-pointer active:scale-95 active:text-blue-700">
@@ -431,19 +431,19 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             )}
                     </div>
                     <div className="flex flex-grow w-full flex-col gap-4 overflow-y-auto px-6">
-                        {chatRoomDetails.participants
+                        {chatRoomState.participants
                             .map((members) => {
-                                const isUserAdmin = groupDetails.adminOf.some(
+                                const isUserAdmin = groupState.adminOf.some(
                                     (admin) => admin.id === members.id
                                 );
                                 const isUserSuperAdmin =
-                                    groupDetails.superAdminId === members.id;
+                                    groupState.superAdminId === members.id;
                                 return (
                                     <div className="flex justify-between items-center w-full">
                                         <div className="flex gap-3 items-center">
                                             <Avatar className="size-16">
                                                 <AvatarImage
-                                                    src={`${url}/${members.profilePic}`}
+                                                    src={members.profilePic}
                                                 />
                                                 <AvatarFallback>
                                                     {members.fullName
@@ -481,7 +481,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                                             negativeTitle="Cancel"
                                                             PositiveButtonStyles="!bg-destructive dark:text-slate-200 text-black"
                                                             positiveOnClick={
-                                                                handleRemoveUser
+                                                                handleRemoveUserFromGroup
                                                             }
                                                         >
                                                             <Button
@@ -503,7 +503,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                                                 : ""
                                                         }
                                                         onClick={() =>
-                                                            handleMakeAdmin(
+                                                            handleAdminStatusChange(
                                                                 members.id,
                                                                 isUserAdmin
                                                                     ? "Remove as admin"
@@ -529,7 +529,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             negativeTitle="Cancel"
                             title="Leave chat"
                             description="You won't be able to send or receive messages unless someone adds you back to the chat. No one will be notified that you left the chat."
-                            positiveOnClick={handleLeaveChat}
+                            positiveOnClick={handleLeaveGroupChat}
                             PositiveButtonStyles="!bg-destructive dark:text-slate-200 text-black"
                         >
                             <Button
@@ -550,7 +550,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 negativeTitle="Cancel"
                                 title="Permanently delete this chat?"
                                 description="This chat and all it's messages will be deleted forever."
-                                positiveOnClick={handleDeleteChat}
+                                positiveOnClick={handleDeleteGroupChat}
                                 PositiveButtonStyles="!bg-destructive dark:text-slate-200 text-black"
                             >
                                 <Button
