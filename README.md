@@ -1,4 +1,4 @@
-# Instagram Chat Clone using TurboRepo, Websockets, Pub/Subs, and RabbitMQ.
+# Instagram Chat Clone using TurboRepo, Websockets, Pub/Subs, and RabbitMQ
 
 # Architecture
 
