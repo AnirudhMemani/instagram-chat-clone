@@ -2,13 +2,13 @@ import { EndPoints, NavigationRoutes, StatusCodes } from "@/utils/constants";
 import { useEffect } from "react";
 import { Navigate, Routes } from "react-router-dom";
 import axios from "axios";
-import { LocalStorageKeys, localStorageUtils } from "@/utils/LocalStorageUtils";
+import { localStorageUtils } from "@/utils/LocalStorageUtils";
 import { useRecoilState, useSetRecoilState } from "recoil";
 import { isAuthenticatedAtom } from "@/state/user";
-import { loadingAtom } from "@/state/global";
+import { isLoadingAtom } from "@/state/global";
 
 const ProtectedRoutes = ({ children }: { children?: React.ReactNode }) => {
-    const token = localStorage.getItem(LocalStorageKeys.Token);
+    const token = localStorageUtils.getToken();
 
     const navigateToLoginScreen = () => {
         return (
@@ -20,12 +20,12 @@ const ProtectedRoutes = ({ children }: { children?: React.ReactNode }) => {
     };
 
     if (!token) {
-        return navigateToLoginScreen();
+        navigateToLoginScreen();
     }
 
     const [isAuthenticated, setIsAuthenticated] =
         useRecoilState(isAuthenticatedAtom);
-    const isLoading = useSetRecoilState(loadingAtom);
+    const isLoading = useSetRecoilState(isLoadingAtom);
 
     const authenticateUser = async () => {
         try {

@@ -9,14 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
-import { loadingAtom } from "@/state/global";
 import { localStorageUtils } from "@/utils/LocalStorageUtils";
 import { NavigationRoutes, StatusCodes } from "@/utils/constants";
 import axios from "axios";
 import { ArrowUpRight } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { useRecoilState } from "recoil";
 import { ClipLoader } from "react-spinners";
 
 const Signup: React.FC = (): JSX.Element => {
@@ -41,7 +39,7 @@ const Signup: React.FC = (): JSX.Element => {
     const [email, setEmail] = useState<string>("");
     const [fullName, setFullName] = useState<string>("");
 
-    const [isLoading, setIsLoading] = useRecoilState(loadingAtom);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const navigate = useNavigate();
     const { toast } = useToast();
@@ -139,7 +137,7 @@ const Signup: React.FC = (): JSX.Element => {
                         <CustomInput
                             type="email"
                             id="email"
-                            placeholder="user@email.com"
+                            placeholder="user@gmail.com"
                             label="Email"
                             htmlFor="email"
                             required
@@ -150,7 +148,7 @@ const Signup: React.FC = (): JSX.Element => {
                         <CustomInput
                             type="text"
                             id="fullName"
-                            placeholder="Cool user"
+                            placeholder="User"
                             label="Full Name"
                             htmlFor="fullName"
                             required

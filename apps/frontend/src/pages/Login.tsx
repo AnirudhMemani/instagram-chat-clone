@@ -2,21 +2,15 @@ import { processUserLogin } from "@/api/login-api";
 import { CustomInput } from "@/components/CustomInput";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { loadingAtom } from "@/state/global";
-import {
-    fullNameAtom,
-    profilePicAtom,
-    userIdAtom,
-    usernameAtom,
-} from "@/state/user";
 import { localStorageUtils } from "@/utils/LocalStorageUtils";
 import { NavigationRoutes, StatusCodes } from "@/utils/constants";
 import axios from "axios";
 import { ArrowUpRight } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { useRecoilState, useSetRecoilState } from "recoil";
+import { useSetRecoilState } from "recoil";
 import { ClipLoader } from "react-spinners";
+import { userAtom } from "@/state/user";
 
 const Login: React.FC = (): JSX.Element => {
     const token = localStorageUtils.getToken();
@@ -33,12 +27,9 @@ const Login: React.FC = (): JSX.Element => {
     const [credentials, setCredentials] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [error, setError] = useState<string>("");
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    const [isLoading, setIsLoading] = useRecoilState(loadingAtom);
-    const setUsername = useSetRecoilState(usernameAtom);
-    const setProfilePic = useSetRecoilState(profilePicAtom);
-    const setUserId = useSetRecoilState(userIdAtom);
-    const setFullName = useSetRecoilState(fullNameAtom);
+    const setUser = useSetRecoilState(userAtom);
 
     const navigate = useNavigate();
 
@@ -55,10 +46,13 @@ const Login: React.FC = (): JSX.Element => {
 
             if (response) {
                 localStorageUtils.setLoginResponse(response);
-                setUsername(response.data.username);
-                setProfilePic(response.data.profilePic);
-                setUserId(response.data.id);
-                setFullName(response.data.fullName);
+                setUser({
+                    id: response.data.id,
+                    email: response.data.email,
+                    username: response.data.username,
+                    fullName: response.data.fullName,
+                    profilePic: response.data.profilePic,
+                });
                 navigate(NavigationRoutes.Inbox, { replace: true });
             }
         } catch (error) {
@@ -103,7 +97,7 @@ const Login: React.FC = (): JSX.Element => {
                         <CustomInput
                             type="text"
                             id="email"
-                            placeholder="user@email.com"
+                            placeholder="user@gmail.com"
                             required
                             disabled={isLoading}
                             label="Username or Email"

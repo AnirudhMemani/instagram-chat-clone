@@ -18,13 +18,11 @@ export const ChatPreviewBox: React.FC<TChatPreviewBoxProps> = ({
     fullName,
     unReadMessage = false,
 }): JSX.Element => {
-    const url = env.SERVER_URL;
-
     return (
         <div className="flex justify-between items-center w-full">
             <div className="flex gap-3 items-center">
                 <Avatar className="size-14">
-                    <AvatarImage src={`${url}/${profilePic}`} />
+                    <AvatarImage src={profilePic} />
                     <AvatarFallback>
                         {fullName.slice(0, 2).toUpperCase()}
                     </AvatarFallback>

@@ -57,6 +57,7 @@ model DirectMessage {
     latestMessageId String   @unique
     latestMessage   Message  @relation(name: "LatestMessgae", fields: [latestMessageId], references: [id], onDelete: Cascade)
     sentTo          User[]
+    read            Boolean
     chatRoomId      String   @unique
     chatRoom        ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
 }

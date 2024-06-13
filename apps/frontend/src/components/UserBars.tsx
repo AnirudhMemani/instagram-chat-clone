@@ -1,9 +1,7 @@
-import { env } from "@/utils/constants";
 import { TUsersSchema } from "./NewChatModal";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
 
 export interface IUserBarsProps extends TUsersSchema {
     isSelected?: boolean;
@@ -17,8 +15,6 @@ export const UserBars: React.FC<IUserBarsProps> = ({
     isSelected = false,
     onClick,
 }) => {
-    const url = env.SERVER_URL;
-
     return (
         <div
             className="w-full px-6 flex items-center cursor-pointer hover:bg-[rgba(30,41,59,0.5)] active:scale-[0.98] py-2"
@@ -26,7 +22,7 @@ export const UserBars: React.FC<IUserBarsProps> = ({
         >
             <div className="w-full flex items-center gap-3 flex-grow">
                 <Avatar className="size-12">
-                    <AvatarImage src={`${url}/${profilePic}`} />
+                    <AvatarImage src={profilePic} />
                     <AvatarFallback>
                         {fullName.slice(0, 2).toUpperCase()}
                     </AvatarFallback>

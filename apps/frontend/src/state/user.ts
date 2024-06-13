@@ -9,37 +9,29 @@ type TSelectedUsersAtom = {
     profilePic: string;
 };
 
-export const userIdAtom = atom({
-    key: "userIdAtom",
-    default: "",
+type TUser = {
+    id: string;
+    username: string;
+    fullName: string;
+    email: string;
+    profilePic: string;
+};
+
+export const userAtom = atom<TUser>({
+    key: "userAtom",
+    default: {
+        id: "",
+        username: "",
+        fullName: "",
+        email: "",
+        profilePic: "",
+    },
     effects_UNSTABLE: [persistAtom],
-});
-
-export const usernameAtom = atom({
-    key: "usernameAtom",
-    default: "",
-    effects_UNSTABLE: [persistAtom],
-});
-
-export const fullNameAtom = atom({
-    key: "fullNameAtom",
-    default: "",
-});
-
-export const emailAtom = atom({
-    key: "emailAtom",
-    default: "",
 });
 
 export const isAuthenticatedAtom = atom({
     key: "isAuthenticatedAtom",
     default: false,
-    effects_UNSTABLE: [persistAtom],
-});
-
-export const profilePicAtom = atom({
-    key: "profilePicAtom",
-    default: "",
     effects_UNSTABLE: [persistAtom],
 });
 

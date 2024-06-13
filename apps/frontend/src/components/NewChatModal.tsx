@@ -11,6 +11,7 @@ import { Badge } from "./ui/badge";
 import { selectedUsersAtom } from "@/state/user";
 import { chatRoomAtom, groupAtom } from "@/state/chat";
 import { useToast } from "./ui/use-toast";
+import { ClipLoader } from "react-spinners";
 
 export type TUsersSchema = {
     id: string;
@@ -289,7 +290,14 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                         disabled={selectedUsers.length === 0 || isSubmitting}
                         onClick={initiateNewChat}
                     >
-                        {isSubmitting ? "Creating..." : "Chat"}
+                        {!isSubmitting ? (
+                            "Chat"
+                        ) : (
+                            <ClipLoader
+                                size={20}
+                                color="#0F172A"
+                            />
+                        )}
                     </Button>
                 </div>
             </div>

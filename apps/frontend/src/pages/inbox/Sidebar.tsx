@@ -1,7 +1,6 @@
 import { Home } from "lucide-react";
 import { useRecoilValue } from "recoil";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { profilePicAtom, usernameAtom } from "@/state/user";
 import { useNavigate } from "react-router-dom";
 import { NavigationRoutes, handleUserLogout } from "@/utils/constants";
 import {
@@ -14,17 +13,17 @@ import {
 import { DialogBox } from "@/components/DialogBox";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { loadingAtom } from "@/state/global";
+import { isLoadingAtom } from "@/state/global";
 import DarkModeToggle from "@/components/DarkModeToggle";
+import { userAtom } from "@/state/user";
 
 type TSidebarProps = {
     className?: string;
 };
 
 const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
-    const profilePic = useRecoilValue(profilePicAtom);
-    const username = useRecoilValue(usernameAtom);
-    const isLoading = useRecoilValue(loadingAtom);
+    const user = useRecoilValue(userAtom);
+    const isLoading = useRecoilValue(isLoadingAtom);
 
     const navigate = useNavigate();
 
@@ -40,10 +39,10 @@ const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
                 />
                 <DropdownMenu>
                     <DropdownMenuTrigger disabled={isLoading}>
-                        <Avatar>
-                            <AvatarImage src={profilePic} />
+                        <Avatar className="select-none">
+                            <AvatarImage src={user.profilePic} />
                             <AvatarFallback>
-                                {username.slice(0, 2).toUpperCase()}
+                                {user.username.slice(0, 2).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
                     </DropdownMenuTrigger>

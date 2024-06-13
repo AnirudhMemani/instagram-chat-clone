@@ -1,4 +1,3 @@
-import { LocalStorageUtils } from "@/utils/LocalStorageUtils";
 import { env, handleUserLogout } from "@/utils/constants";
 import axios, {
     Axios,
@@ -33,7 +32,7 @@ export class APIServices {
 
     useAxiosInterceptor = () => {
         const attachToken = async (config: InternalAxiosRequestConfig) => {
-            const token = new LocalStorageUtils().getToken();
+            const token = localStorage.getToken();
 
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;

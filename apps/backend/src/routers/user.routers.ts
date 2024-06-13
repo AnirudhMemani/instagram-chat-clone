@@ -21,7 +21,7 @@ router.post("/login", UserLoginController);
 
 router.get("/get-all", AllUserDataController);
 
-router.post("/auth", authMiddleware, (req, res) =>
+router.post("/auth", authMiddleware, (_, res) =>
     res.status(200).json("success")
 );
 

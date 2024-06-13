@@ -7,15 +7,13 @@ import { InboxManager } from "./managers/InboxManager.js";
 import express from "express";
 import path from "path";
 import cloudinary from "cloudinary";
-import dotenv from "dotenv";
 
-const app = express();
-dotenv.config();
+// const app = express();
 
-const __filename = fileURLToPath(import.meta.url);
-export const directoryName = path.dirname(__filename);
+// const __filename = fileURLToPath(import.meta.url);
+// export const directoryName = path.dirname(__filename);
 
-app.use("pictures", express.static(path.resolve(directoryName, "pictures")));
+// app.use("pictures", express.static(path.resolve(directoryName, "pictures")));
 
 const port = Number(process.env.WS_URL) || 8080;
 const wss = new WebSocketServer({ port });

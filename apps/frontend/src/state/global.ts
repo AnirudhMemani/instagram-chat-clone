@@ -2,8 +2,8 @@ import { atom } from "recoil";
 
 type TPageTypeAtom = "StartChatPrompt" | "GroupDetailsPage" | "ChatRoom";
 
-export const loadingAtom = atom<boolean>({
-    key: "loadingAtom",
+export const isLoadingAtom = atom<boolean>({
+    key: "isLoadingAtom",
     default: false,
 });
 

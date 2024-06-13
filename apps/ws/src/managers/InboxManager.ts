@@ -20,6 +20,7 @@ import { getSortedSetKey } from "../utils/helper.js";
 import { IMessage, IStartConvoMessage } from "@instachat/messages/types";
 import fs from "fs/promises";
 import cloudinary from "cloudinary";
+import apqp from "amqplib";
 
 /**
  * TODO:
@@ -32,50 +33,69 @@ export class InboxManager {
     private scores: number[] = [];
 
     async connectUser(user: IUser) {
-        await this.redis.set(user.id, JSON.stringify(user));
         this.handleIncomingMessages(user.id, user.socket);
     }
 
     async getUserInbox(id: string, take: number, skip: number) {
         const cacheKey = getSortedSetKey(id);
 
-        const cachedDMs = await this.redis.zrangebyscore(
+        // LRANGE "key" start "stop"
+        // Where start and stop are zero-based indexes. The stop index is inclusive, meaning the element at the stop index is included in the result.
+        const cachedDMs = await this.redis.lrange(
             cacheKey,
-            "-inf",
-            "+inf",
-            "LIMIT",
             skip,
-            take
+            skip + take - 1
         );
 
         if (cachedDMs.length > 0) {
-            return cachedDMs.map((dm) => JSON.parse(dm));
+            return cachedDMs.map((cachedDM) => JSON.parse(cachedDM));
         }
 
-        const dms = await this.prisma.directMessage.findMany({
-            where: { sentTo: { some: { id } } },
-            select: {
-                id: true,
-                latestMessage: {
-                    select: {
-                        id: true,
-                        content: true,
-                        sentAt: true,
-                        contentType: true,
+        const Dms = await prisma.directMessage.findMany({
+            where: {
+                sentTo: {
+                    some: {
+                        id,
                     },
                 },
             },
-            orderBy: { latestMessage: { sentAt: "desc" } },
+            select: {
+                id: true,
+                read: true,
+                latestMessage: {
+                    select: {
+                        content: true,
+                        contentType: true,
+                        sentAt: true,
+                        sentBy: {
+                            select: {
+                                id: true,
+                                fullName: true,
+                                profilePic: true,
+                            },
+                        },
+                    },
+                },
+            },
+            orderBy: {
+                latestMessage: {
+                    sentAt: "desc",
+                },
+            },
+            take,
+            skip,
         });
 
-        if (dms.length > 0) {
-            this.scores = dms.map((_, index) => index);
-            await this.redis.zadd(
-                cacheKey,
-                ...this.scores.map((score) => JSON.stringify({ ...dms, score }))
-            );
+        const stringifiedDms = Dms.map((dm) => JSON.stringify(dm));
+
+        if (stringifiedDms.length > 0) {
+            // Push the new messages to the head of the list
+            await this.redis.lpush(cacheKey, ...stringifiedDms);
+            // Trim the list to keep only the most recent 100 messages
+            await this.redis.ltrim(cacheKey, 0, 99);
         }
-        return dms;
+
+        return Dms;
     }
 
     handleNewMessage(message: IMessage) {
@@ -89,11 +109,11 @@ export class InboxManager {
     getDMs(socket: WebSocket, id: string, message: IMessage) {
         const DMLimit = message.payload.take;
         const DMOffset = message.payload.skip;
-        const inbox = this.getUserInbox(id, DMLimit, DMOffset);
+        const Dms = this.getUserInbox(id, DMLimit, DMOffset);
         socket.send(
             JSON.stringify({
                 type: GET_DM,
-                payload: inbox,
+                payload: Dms,
             })
         );
     }

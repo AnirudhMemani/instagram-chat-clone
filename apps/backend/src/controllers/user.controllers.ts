@@ -70,6 +70,8 @@ export const UserLoginController = expressAsyncHandler(async (req, res) => {
         res.status(200).json(response);
         return;
     }
+
+    new InternalServerError();
 });
 
 const uploadToCloudinary = async (profilePic: Buffer): Promise<string> => {

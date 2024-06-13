@@ -19,10 +19,9 @@ import {
     SUCCESS,
 } from "@instachat/messages/messages";
 import { IMessage } from "@instachat/messages/types";
-import { useRecoilState, useRecoilValue } from "recoil";
+import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { chatRoomAtom, groupAtom } from "@/state/chat";
 import { Button } from "@/components/ui/button";
-import { userIdAtom } from "@/state/user";
 import { EditModal } from "@/components/EditModal";
 import { useToast } from "@/components/ui/use-toast";
 import { DialogBox } from "@/components/DialogBox";
@@ -32,6 +31,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { userAtom } from "@/state/user";
+import { pageTypeAtom } from "@/state/global";
 
 export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     const [isEmojiPickerVisible, setIsEmojiPickerVisible] =
@@ -45,11 +46,12 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
     const [chatRoomState, setChatRoomState] = useRecoilState(chatRoomAtom);
     const [groupState, setGroupState] = useRecoilState(groupAtom);
-    const userId = useRecoilValue(userIdAtom);
+    const setPageType = useSetRecoilState(pageTypeAtom);
+    const user = useRecoilValue(userAtom);
 
     const [isAdmin, _setIsAdmin] = useState<boolean>(
         chatRoomState.isGroup
-            ? groupState.adminOf.some((admin) => admin.id === userId)
+            ? groupState.adminOf.some((admin) => admin.id === user.id)
             : false
     );
 
@@ -59,7 +61,9 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
     const chatRoomImage = chatRoomState.isGroup
         ? groupState.picture
-        : chatRoomState.participants[0].profilePic;
+        : chatRoomState.participants[0].profilePic !== user.profilePic
+          ? chatRoomState.participants[0].profilePic
+          : chatRoomState.participants[1].profilePic;
 
     const messageInputRef = useRef<HTMLInputElement | null>(null);
     const emojiPickerRef = useRef<HTMLDivElement | null>(null);
@@ -169,6 +173,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 setIsEditNameModalVisible(false);
                 setIsLoading(false);
             }
+        };
+
+        return () => {
+            setPageType("StartChatPrompt");
         };
     }, [socket]);
 
@@ -393,37 +401,45 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     <h1 className="p-6 border-b border-input text-2xl font-semibold">
                         Details
                     </h1>
-                    <div className="flex items-center justify-between p-6 border-b border-input">
-                        <p>Change group name</p>
-                        <EditModal
-                            title="Change group name"
-                            defaultValue={groupState.name}
-                            label="New group name"
-                            placeholder="Change name to..."
-                            description="Changing the name of a group chat changes it for everyone."
-                            value={newGroupName}
-                            onChange={(e) => setNewGroupName(e.target.value)}
-                            open={isEditNameModalVisible}
-                            setOpen={setIsEditNameModalVisible}
-                            onSubmit={handleChangeGroupName}
-                            submitLabel={isLoading ? "Saving..." : "Save"}
-                            disabled={isLoading}
-                        >
-                            <Button
-                                variant="outline"
-                                onClick={() =>
-                                    setIsEditNameModalVisible((p) => !p)
+                    {chatRoomState.isGroup && (
+                        <div className="flex items-center justify-between p-6 border-b border-input">
+                            <p>Change group name</p>
+                            <EditModal
+                                title="Change group name"
+                                defaultValue={groupState.name}
+                                label="New group name"
+                                placeholder="Change name to..."
+                                description="Changing the name of a group chat changes it for everyone."
+                                value={newGroupName}
+                                onChange={(e) =>
+                                    setNewGroupName(e.target.value)
                                 }
+                                open={isEditNameModalVisible}
+                                setOpen={setIsEditNameModalVisible}
+                                onSubmit={handleChangeGroupName}
+                                submitLabel={isLoading ? "Saving..." : "Save"}
+                                disabled={isLoading}
                             >
-                                Change
-                            </Button>
-                        </EditModal>
-                    </div>
+                                <Button
+                                    variant="outline"
+                                    onClick={() =>
+                                        setIsEditNameModalVisible((p) => !p)
+                                    }
+                                >
+                                    Change
+                                </Button>
+                            </EditModal>
+                        </div>
+                    )}
                     <div className="p-6 flex items-center justify-between">
-                        <p className="font-medium">Members</p>
+                        <p className="font-medium">
+                            {chatRoomState.participants.length > 2
+                                ? "Members"
+                                : "Member"}
+                        </p>
                         {chatRoomState.isGroup &&
                             groupState.adminOf.some(
-                                (admin) => admin.id === userId
+                                (admin) => admin.id === user.id
                             ) && (
                                 <p className="select-none text-blue-400 cursor-pointer active:scale-95 active:text-blue-700">
                                     Add people
@@ -432,28 +448,34 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     </div>
                     <div className="flex flex-grow w-full flex-col gap-4 overflow-y-auto px-6">
                         {chatRoomState.participants
-                            .map((members) => {
+                            .map((member) => {
                                 const isUserAdmin = groupState.adminOf.some(
-                                    (admin) => admin.id === members.id
+                                    (admin) => admin.id === member.id
                                 );
                                 const isUserSuperAdmin =
-                                    groupState.superAdminId === members.id;
+                                    groupState.superAdminId === member.id;
+                                if (
+                                    !chatRoomState.isGroup &&
+                                    member.id === user.id
+                                ) {
+                                    return;
+                                }
                                 return (
                                     <div className="flex justify-between items-center w-full">
                                         <div className="flex gap-3 items-center">
                                             <Avatar className="size-16">
                                                 <AvatarImage
-                                                    src={members.profilePic}
+                                                    src={member.profilePic}
                                                 />
                                                 <AvatarFallback>
-                                                    {members.fullName
+                                                    {member.fullName
                                                         .slice(0, 2)
                                                         .toUpperCase()}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="flex flex-col gap-1">
                                                 <p className="text-sm line-clamp-1 font-bold text-ellipsis">
-                                                    {members.username}
+                                                    {member.username}
                                                 </p>
                                                 <div className="flex text-xs items-center text-gray-400 font-bold">
                                                     {isUserAdmin && (
@@ -462,7 +484,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                                         </span>
                                                     )}
                                                     <p className="line-clamp-1 text-ellipsis">
-                                                        {members.fullName}
+                                                        {member.fullName}
                                                     </p>
                                                 </div>
                                             </div>
@@ -476,7 +498,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                                     <DropdownMenuItem asChild>
                                                         <DialogBox
                                                             title="Remove from the group?"
-                                                            description={`You are about to remove ${members.fullName} from the group`}
+                                                            description={`You are about to remove ${member.fullName} from the group`}
                                                             positiveTitle="Remove"
                                                             negativeTitle="Cancel"
                                                             PositiveButtonStyles="!bg-destructive dark:text-slate-200 text-black"
@@ -504,7 +526,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                                         }
                                                         onClick={() =>
                                                             handleAdminStatusChange(
-                                                                members.id,
+                                                                member.id,
                                                                 isUserAdmin
                                                                     ? "Remove as admin"
                                                                     : "Make admin"
@@ -523,44 +545,51 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             })
                             .reverse()}
                     </div>
+
                     <div className="flex justify-center flex-col border-t items-start border-input p-6 gap-4 w-full">
-                        <DialogBox
-                            positiveTitle="Leave"
-                            negativeTitle="Cancel"
-                            title="Leave chat"
-                            description="You won't be able to send or receive messages unless someone adds you back to the chat. No one will be notified that you left the chat."
-                            positiveOnClick={handleLeaveGroupChat}
-                            PositiveButtonStyles="!bg-destructive dark:text-slate-200 text-black"
-                        >
-                            <Button
-                                variant="ghost"
-                                className="text-destructive select-none p-0 cursor-pointer hover:!bg-transparent text-base"
-                            >
-                                Leave chat
-                            </Button>
-                        </DialogBox>
-                        <p>
-                            You won't be able to send or receive messages unless
-                            someone adds you back to the chat. No one will be
-                            notified that you left the chat.
-                        </p>
-                        {isAdmin && (
-                            <DialogBox
-                                positiveTitle="Delete"
-                                negativeTitle="Cancel"
-                                title="Permanently delete this chat?"
-                                description="This chat and all it's messages will be deleted forever."
-                                positiveOnClick={handleDeleteGroupChat}
-                                PositiveButtonStyles="!bg-destructive dark:text-slate-200 text-black"
-                            >
-                                <Button
-                                    variant="ghost"
-                                    className="text-destructive select-none cursor-pointer p-0 hover:!bg-transparent text-base"
+                        {chatRoomState.isGroup && (
+                            <>
+                                <DialogBox
+                                    positiveTitle="Leave"
+                                    negativeTitle="Cancel"
+                                    title="Leave chat"
+                                    description="You won't be able to send or receive messages unless someone adds you back to the chat. No one will be notified that you left the chat."
+                                    positiveOnClick={handleLeaveGroupChat}
+                                    PositiveButtonStyles="!bg-destructive dark:text-slate-200 text-black"
                                 >
-                                    Delete chat
-                                </Button>
-                            </DialogBox>
+                                    <Button
+                                        variant="ghost"
+                                        className="text-destructive select-none p-0 cursor-pointer hover:!bg-transparent text-base"
+                                    >
+                                        Leave chat
+                                    </Button>
+                                </DialogBox>
+                                <p>
+                                    You won't be able to send or receive
+                                    messages unless someone adds you back to the
+                                    chat. No one will be notified that you left
+                                    the chat.
+                                </p>
+                            </>
                         )}
+                        {isAdmin ||
+                            (!chatRoomState.isGroup && (
+                                <DialogBox
+                                    positiveTitle="Delete"
+                                    negativeTitle="Cancel"
+                                    title="Permanently delete this chat?"
+                                    description="This chat and all it's messages will be deleted forever."
+                                    positiveOnClick={handleDeleteGroupChat}
+                                    PositiveButtonStyles="!bg-destructive dark:text-slate-200 text-black"
+                                >
+                                    <Button
+                                        variant="ghost"
+                                        className="text-destructive select-none cursor-pointer p-0 hover:!bg-transparent text-base"
+                                    >
+                                        Delete chat
+                                    </Button>
+                                </DialogBox>
+                            ))}
                     </div>
                 </div>
             )}

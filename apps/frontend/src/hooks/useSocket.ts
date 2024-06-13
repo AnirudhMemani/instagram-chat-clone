@@ -21,8 +21,13 @@ export const useSocket = () => {
             setSocket(ws);
         };
 
-        ws.onclose = () => {
-            console.log("web socket closed");
+        ws.onclose = (ev) => {
+            console.log(
+                "\nweb socket closed because of this reason:",
+                ev.reason,
+                "with status code:",
+                ev.code
+            );
             setTimeout(() => connectToWs(), RECONNECT_INTERVAL);
             setSocket(null);
         };
@@ -31,7 +36,7 @@ export const useSocket = () => {
             ws.close();
         };
 
-        return () => ws.close();
+        return () => setSocket(null);
     };
 
     useEffect(() => {

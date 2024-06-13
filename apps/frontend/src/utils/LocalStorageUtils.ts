@@ -1,8 +1,8 @@
 import { AxiosResponse } from "axios";
 
-export class LocalStorageUtils {
+class LocalStorageUtils {
     setLoginResponse = (response: AxiosResponse) => {
-        const token = response.data.token as string;
+        const token = response.data.token;
         this.setToken(token);
     };
 
@@ -10,8 +10,8 @@ export class LocalStorageUtils {
         return localStorage.setItem(LocalStorageKeys.Token, token);
     }
 
-    getToken(): string {
-        return localStorage.getItem(LocalStorageKeys.Token) as string;
+    getToken() {
+        return localStorage.getItem(LocalStorageKeys.Token);
     }
 
     clearStore() {

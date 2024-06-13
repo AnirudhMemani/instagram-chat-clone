@@ -21,6 +21,7 @@ export const validateUser = async (credentials: string, password: string) => {
             profilePic: true,
             fullName: true,
             username: true,
+            email: true,
         },
     });
 
@@ -49,7 +50,7 @@ export const validateUser = async (credentials: string, password: string) => {
 
     const decodedToken = jwt.decode(token) as JwtPayload;
 
-    return { token, ...decodedToken };
+    return { token, ...decodedToken, email: userInfo.email };
 };
 
 export const saveUserInfo = async (
