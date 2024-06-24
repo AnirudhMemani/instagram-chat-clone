@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { localStorageUtils } from "@/utils/LocalStorageUtils";
 import { NavigationRoutes, StatusCodes } from "@/utils/constants";
 import axios from "axios";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Eye, EyeOff } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ClipLoader } from "react-spinners";
@@ -38,6 +38,7 @@ const Signup: React.FC = (): JSX.Element => {
     const [username, setUsername] = useState<string>("");
     const [email, setEmail] = useState<string>("");
     const [fullName, setFullName] = useState<string>("");
+    const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
 
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -168,7 +169,7 @@ const Signup: React.FC = (): JSX.Element => {
                             onChange={(e) => setUsername(e.target.value)}
                         />
                         <CustomInput
-                            type="password"
+                            type={isPasswordVisible ? "text" : "password"}
                             id="password"
                             placeholder="••••••••"
                             required
@@ -178,6 +179,10 @@ const Signup: React.FC = (): JSX.Element => {
                             label="Password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            rightIcon={isPasswordVisible ? EyeOff : Eye}
+                            rightIconOnClick={() =>
+                                setIsPasswordVisible((p) => !p)
+                            }
                         />
                         {preview && (
                             <img

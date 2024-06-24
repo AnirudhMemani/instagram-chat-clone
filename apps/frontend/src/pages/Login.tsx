@@ -5,12 +5,13 @@ import { cn } from "@/lib/utils";
 import { localStorageUtils } from "@/utils/LocalStorageUtils";
 import { NavigationRoutes, StatusCodes } from "@/utils/constants";
 import axios from "axios";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Eye, EyeOff } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useSetRecoilState } from "recoil";
 import { ClipLoader } from "react-spinners";
 import { userAtom } from "@/state/user";
+import { toast } from "sonner";
 
 const Login: React.FC = (): JSX.Element => {
     const token = localStorageUtils.getToken();
@@ -28,6 +29,7 @@ const Login: React.FC = (): JSX.Element => {
     const [password, setPassword] = useState<string>("");
     const [error, setError] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
 
     const setUser = useSetRecoilState(userAtom);
 
@@ -54,6 +56,7 @@ const Login: React.FC = (): JSX.Element => {
                     profilePic: response.data.profilePic,
                 });
                 navigate(NavigationRoutes.Inbox, { replace: true });
+                toast.success("Login successful");
             }
         } catch (error) {
             console.log(error);
@@ -106,7 +109,7 @@ const Login: React.FC = (): JSX.Element => {
                             value={credentials}
                         />
                         <CustomInput
-                            type="password"
+                            type={isPasswordVisible ? "text" : "password"}
                             id="password"
                             placeholder="••••••••"
                             label="Password"
@@ -116,10 +119,14 @@ const Login: React.FC = (): JSX.Element => {
                             minLength={8}
                             onChange={(e) => setPassword(e.target.value)}
                             value={password}
+                            rightIcon={isPasswordVisible ? EyeOff : Eye}
+                            rightIconOnClick={() =>
+                                setIsPasswordVisible((p) => !p)
+                            }
                         />
                         {error && (
                             <p
-                                className="font-medium text-destructive"
+                                className="font-medium text-destructive text-xs"
                                 id="error"
                             >
                                 {error}

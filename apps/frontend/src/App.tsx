@@ -5,7 +5,7 @@ import ProtectedRoutes from "./routes/ProtectedRoutes";
 import Inbox from "./pages/inbox/Inbox";
 import Signup from "./pages/Signup";
 import ImageCropProvider from "./components/image-editor/ImageCropProvider";
-import { Toaster } from "./components/ui/toaster";
+import { Toaster } from "sonner";
 
 const App: React.FC = (): JSX.Element => {
     return (
