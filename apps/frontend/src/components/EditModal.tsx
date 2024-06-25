@@ -21,7 +21,7 @@ type TEditModalProps = {
     placeholder2?: string;
     required?: boolean;
     required2?: boolean;
-    submitLabel?: string;
+    submitLabel?: React.ReactNode;
     onSubmit?: (e: FormEvent) => void;
     defaultValue?: string;
     onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -81,6 +81,7 @@ export const EditModal: React.FC<TEditModalProps> = ({
                                 defaultValue={defaultValue}
                                 onChange={onChange}
                                 value={value}
+                                disabled={disabled}
                             />
                         </div>
                         {label2 && (
@@ -96,6 +97,7 @@ export const EditModal: React.FC<TEditModalProps> = ({
                                     placeholder={placeholder2}
                                     className="col-span-3"
                                     required={required2}
+                                    disabled={disabled}
                                 />
                             </div>
                         )}

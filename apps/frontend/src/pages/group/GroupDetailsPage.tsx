@@ -11,8 +11,8 @@ import { pageTypeAtom } from "@/state/global";
 import { Button } from "@/components/ui/button";
 import { IMessage, IStartConvoMessage } from "@instachat/messages/types";
 import { CREATE_GROUP } from "@instachat/messages/messages";
-import { useToast } from "@/components/ui/use-toast";
 import { chatRoomAtom, groupAtom } from "@/state/chat";
+import { toast } from "sonner";
 
 const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
     socket,
@@ -39,7 +39,6 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
     const setPagetype = useSetRecoilState(pageTypeAtom);
 
     const { getProcessedImage, setImage, resetStates } = useImageCropContext();
-    const { toast } = useToast();
 
     useEffect(() => {
         if (!socket) {
@@ -53,15 +52,12 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                 const payload = message.payload;
 
                 if (payload.error) {
-                    toast({
-                        variant: "destructive",
-                        title: "Uh oh! Something went wrong.",
+                    toast.error("Uh oh! Something went wrong.", {
+                        richColors: true,
                         description: "Max 5 MB of file size allowed",
                     });
                     return;
                 }
-
-                const isGroup = Boolean(payload.groupDetails);
 
                 setChatRoomDetails(() => ({
                     id: payload.chatRoomId,
@@ -69,31 +65,19 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                     createdAt: payload.createdAt,
                     participants: payload.participants,
                     messages: payload.messageDetails,
-                    isGroup,
+                    isGroup: true,
                 }));
 
-                if (isGroup) {
-                    setGroupDetails(payload.groupDetails);
-                }
-
-                setChatRoomDetails((p) => {
-                    console.log("\n\nChat Room Details:", p);
-                    return p;
-                });
-
-                setGroupDetails((p) => {
-                    console.log("\n\nGroup Details:", p);
-                    return p;
-                });
+                setGroupDetails(payload.groupDetails);
 
                 setIsSubmitting(false);
                 setPagetype("ChatRoom");
+                setSelectedUsers([]);
             }
         };
 
         return () => {
             socket.onmessage = null;
-            setSelectedUsers([]);
         };
     }, [socket]);
 
@@ -168,6 +152,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                     <ArrowLeft
                         className="size-5 absolute left-0 cursor-pointer"
                         onClick={() => {
+                            if (isSubmitting) return;
                             setPagetype("StartChatPrompt");
                             setSelectedUsers([]);
                         }}

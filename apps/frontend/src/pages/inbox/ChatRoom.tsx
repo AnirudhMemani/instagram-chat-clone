@@ -23,7 +23,6 @@ import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { chatRoomAtom, groupAtom } from "@/state/chat";
 import { Button } from "@/components/ui/button";
 import { EditModal } from "@/components/EditModal";
-import { useToast } from "@/components/ui/use-toast";
 import { DialogBox } from "@/components/DialogBox";
 import {
     DropdownMenu,
@@ -32,20 +31,23 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { userAtom } from "@/state/user";
-import { pageTypeAtom } from "@/state/global";
+import { isChatModalVisibleAtom, pageTypeAtom } from "@/state/global";
+import { toast } from "sonner";
+import { ClipLoader } from "react-spinners";
 
 export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     const [isEmojiPickerVisible, setIsEmojiPickerVisible] =
         useState<boolean>(false);
     const [messageText, setMessageText] = useState<string>("");
     const [isRoomInfoVisible, setIsRoomInfoVisible] = useState<boolean>(false);
-    const [newGroupName, setNewGroupName] = useState<string>("");
     const [isEditNameModalVisible, setIsEditNameModalVisible] =
         useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const [chatRoomState, setChatRoomState] = useRecoilState(chatRoomAtom);
     const [groupState, setGroupState] = useRecoilState(groupAtom);
+    const [newGroupName, setNewGroupName] = useState<string>(groupState.name);
+    const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
     const setPageType = useSetRecoilState(pageTypeAtom);
     const user = useRecoilValue(userAtom);
 
@@ -69,7 +71,18 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     const emojiPickerRef = useRef<HTMLDivElement | null>(null);
 
     const { theme } = useTheme();
-    const { toast } = useToast();
+
+    const commonToastErrorMessage = ({
+        title,
+        description,
+    }: {
+        title?: string;
+        description?: string;
+    }) => {
+        toast.error(title ?? "Uh oh! Something went wrong", {
+            description,
+        });
+    };
 
     useEffect(() => {
         if (!socket) {
@@ -92,14 +105,13 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 name: messageText.payload.groupName,
                             });
                         } else if (messageText.payload.result === ERROR) {
-                            toast({
+                            commonToastErrorMessage({
                                 title: "Permission Denied",
                                 description:
                                     "Only a member of the group can change the group name",
                             });
                         } else {
-                            toast({
-                                title: "Uh oh! Something went wrong",
+                            commonToastErrorMessage({
                                 description:
                                     "There was an issue with your request. Please try again",
                             });
@@ -107,7 +119,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                         break;
                     case LEAVE_GROUP_CHAT:
                         if (messageText.payload.result === ERROR) {
-                            toast({
+                            commonToastErrorMessage({
                                 description:
                                     "You are not a part of this group chat",
                             });
@@ -126,8 +138,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 ),
                             });
                         } else {
-                            toast({
-                                title: "Uh oh! Something went wrong",
+                            commonToastErrorMessage({
                                 description:
                                     "There was an issue with your request. Please try again",
                             });
@@ -135,9 +146,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                         break;
                     case MAKE_ADMIN:
                         if (messageText.payload.result === ERROR) {
-                            toast({
-                                title: "Uh oh! Something went wrong.",
-                            });
+                            commonToastErrorMessage({});
                         } else {
                             const userDetails = messageText.payload.userDetails;
                             setGroupState({
@@ -148,9 +157,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                         break;
                     case REMOVE_AS_ADMIN:
                         if (messageText.payload.result === ERROR) {
-                            toast({
-                                title: "Uh oh! Something went wrong.",
-                            });
+                            commonToastErrorMessage({});
                         } else {
                             const adminId = messageText.payload.adminId;
                             setGroupState({
@@ -164,8 +171,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 }
             } catch (error) {
                 console.log(error);
-                toast({
-                    title: "Uh oh! Something went wrong",
+                commonToastErrorMessage({
                     description:
                         "There was an issue with your request. Please try again",
                 });
@@ -173,10 +179,6 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 setIsEditNameModalVisible(false);
                 setIsLoading(false);
             }
-        };
-
-        return () => {
-            setPageType("StartChatPrompt");
         };
     }, [socket]);
 
@@ -204,6 +206,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
         }
     };
 
+    const handleAddMembers = () => {
+        setIsChatModalVisible(true);
+    };
+
     const handleSendMessage = () => {
         if (messageText.length < 1) {
             return;
@@ -221,8 +227,14 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
         socket.send(JSON.stringify(newMessage));
     };
 
-    const handleChangeGroupName = (e: FormEvent) => {
+    const handleChangeGroupName = async (e: FormEvent) => {
         e.preventDefault();
+        if (newGroupName.trim() === groupState.name) {
+            setNewGroupName((p) => p.trim());
+            setIsEditNameModalVisible(false);
+            return;
+        }
+
         try {
             if (!socket) {
                 return;
@@ -241,7 +253,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             socket.send(JSON.stringify(changeGroupNameMessage));
         } catch (error) {
             console.error(error);
-            toast({
+            commonToastErrorMessage({
                 description:
                     "Could not process your request. Please try again!",
             });
@@ -268,8 +280,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
         } catch (error) {
             console.log(error);
             setIsLoading(false);
-            toast({
-                title: "Uh oh! Something went wrong",
+            commonToastErrorMessage({
                 description:
                     "There was an issue with your request. Please try again",
             });
@@ -406,7 +417,6 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             <p>Change group name</p>
                             <EditModal
                                 title="Change group name"
-                                defaultValue={groupState.name}
                                 label="New group name"
                                 placeholder="Change name to..."
                                 description="Changing the name of a group chat changes it for everyone."
@@ -417,8 +427,25 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 open={isEditNameModalVisible}
                                 setOpen={setIsEditNameModalVisible}
                                 onSubmit={handleChangeGroupName}
-                                submitLabel={isLoading ? "Saving..." : "Save"}
+                                submitLabel={
+                                    !isLoading ? (
+                                        "Save"
+                                    ) : (
+                                        <div
+                                            className={cn(
+                                                "flex items-center gap-2"
+                                            )}
+                                        >
+                                            <p>Saving...</p>
+                                            <ClipLoader
+                                                size={15}
+                                                color="#0F172A"
+                                            />
+                                        </div>
+                                    )
+                                }
                                 disabled={isLoading}
+                                required
                             >
                                 <Button
                                     variant="outline"
@@ -441,9 +468,13 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             groupState.adminOf.some(
                                 (admin) => admin.id === user.id
                             ) && (
-                                <p className="select-none text-blue-400 cursor-pointer active:scale-95 active:text-blue-700">
+                                <Button
+                                    variant="ghost"
+                                    className="text-blue-400 cursor-pointer active:scale-95 active:text-blue-700 !p-0 hover:!bg-transparent"
+                                    onClick={handleAddMembers}
+                                >
                                     Add people
-                                </p>
+                                </Button>
                             )}
                     </div>
                     <div className="flex flex-grow w-full flex-col gap-4 overflow-y-auto px-6">
@@ -572,24 +603,23 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 </p>
                             </>
                         )}
-                        {isAdmin ||
-                            (!chatRoomState.isGroup && (
-                                <DialogBox
-                                    positiveTitle="Delete"
-                                    negativeTitle="Cancel"
-                                    title="Permanently delete this chat?"
-                                    description="This chat and all it's messages will be deleted forever."
-                                    positiveOnClick={handleDeleteGroupChat}
-                                    PositiveButtonStyles="!bg-destructive dark:text-slate-200 text-black"
+                        {(isAdmin || !chatRoomState.isGroup) && (
+                            <DialogBox
+                                positiveTitle="Delete"
+                                negativeTitle="Cancel"
+                                title="Permanently delete this chat?"
+                                description="This chat and all it's messages will be deleted forever."
+                                positiveOnClick={handleDeleteGroupChat}
+                                PositiveButtonStyles="!bg-destructive dark:text-slate-200 text-black"
+                            >
+                                <Button
+                                    variant="ghost"
+                                    className="text-destructive select-none cursor-pointer p-0 hover:!bg-transparent text-base"
                                 >
-                                    <Button
-                                        variant="ghost"
-                                        className="text-destructive select-none cursor-pointer p-0 hover:!bg-transparent text-base"
-                                    >
-                                        Delete chat
-                                    </Button>
-                                </DialogBox>
-                            ))}
+                                    Delete chat
+                                </Button>
+                            </DialogBox>
+                        )}
                     </div>
                 </div>
             )}

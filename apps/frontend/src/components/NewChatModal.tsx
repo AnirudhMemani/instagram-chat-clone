@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
-import { useRecoilState, useSetRecoilState } from "recoil";
+import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { isChatModalVisibleAtom, pageTypeAtom } from "@/state/global";
 import { IUserBarsProps, UserBars } from "./UserBars";
 import { UserLoadingSkeleton } from "./UserLoadingSkeleton";
@@ -8,15 +8,26 @@ import { IMessage } from "@instachat/messages/types";
 import { FIND_USERS, ROOM_EXISTS } from "@instachat/messages/messages";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { selectedUsersAtom } from "@/state/user";
+import { selectedUsersAtom, userAtom } from "@/state/user";
 import { chatRoomAtom, groupAtom } from "@/state/chat";
-import { useToast } from "./ui/use-toast";
 import { ClipLoader } from "react-spinners";
+import { toast } from "sonner";
 
 export type TUsersSchema = {
     id: string;
     fullName: string;
     username: string;
+    profilePic: string;
+};
+
+type TAllUsersSchema = {
+    id: string;
+    username: string;
+    email: string;
+    fullName: string;
+    password: string;
+    createdAt: Date;
+    updatedAt: Date;
     profilePic: string;
 };
 
@@ -33,10 +44,10 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
     const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
     const [selectedUsers, setSelectedUsers] = useRecoilState(selectedUsersAtom);
     const setPagetype = useSetRecoilState(pageTypeAtom);
-    const setChatRoomDetails = useSetRecoilState(chatRoomAtom);
+    const [chatRoomDetails, setChatRoomDetails] = useRecoilState(chatRoomAtom);
     const setGroupDetails = useSetRecoilState(groupAtom);
+    const user = useRecoilValue(userAtom);
 
-    const { toast } = useToast();
     const modalContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -51,7 +62,14 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                 const payload = message.payload;
 
                 if (message.type === FIND_USERS) {
-                    setUsersData(payload);
+                    // wrong logic fix this. I should not see the participants of the group when trying to add new members
+                    const data = chatRoomDetails
+                        ? (payload as TAllUsersSchema[]).filter(
+                              (user) =>
+                                  !chatRoomDetails.participants.includes(user)
+                          )
+                        : payload;
+                    setUsersData(data);
                 }
 
                 if (message.type === ROOM_EXISTS) {
@@ -74,8 +92,8 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                             setGroupDetails(payload.groupDetails);
                         }
 
-                        setSelectedUsers([]);
                         setPagetype("ChatRoom");
+                        setSelectedUsers([]);
                     }
 
                     if (payload.result === "group") {
@@ -85,9 +103,8 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                     setIsChatModalVisible(false);
                 }
             } catch (error) {
-                toast({
-                    variant: "destructive",
-                    title: "Uh oh! Something went wrong.",
+                toast.error("Uh oh! Something went wrong.", {
+                    richColors: true,
                     description: "Your request could not be processed",
                 });
                 setSelectedUsers([]);
@@ -103,10 +120,6 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                 type: FIND_USERS,
             })
         );
-
-        return () => {
-            socket.onmessage = null;
-        };
     }, [socket]);
 
     useEffect(() => {
@@ -183,6 +196,15 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
         }
 
         setIsSubmitting(true);
+
+        setSelectedUsers((prevSelectedUsers) => [
+            ...prevSelectedUsers,
+            {
+                id: user.id,
+                fullName: user.fullName,
+                profilePic: user.profilePic,
+            },
+        ]);
 
         const message: IMessage = {
             type: ROOM_EXISTS,

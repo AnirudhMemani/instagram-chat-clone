@@ -18,7 +18,6 @@ import {
 import { IUser } from "./UserManager.js";
 import { getSortedSetKey } from "../utils/helper.js";
 import { IMessage, IStartConvoMessage } from "@instachat/messages/types";
-import fs from "fs/promises";
 import cloudinary from "cloudinary";
 import apqp from "amqplib";
 
@@ -160,8 +159,6 @@ export class InboxManager {
             upload_preset: process.env.CLOUDINARY_PRESET_NAME,
         });
 
-        participants.push({ fullName: "", id });
-
         const newChatRoom = await prisma.chatRoom.create({
             data: {
                 name,
@@ -228,7 +225,7 @@ export class InboxManager {
     async checkRoomExists(socket: WebSocket, id: string, message: IMessage) {
         const selectedUsers = message as IStartConvoMessage;
         const participants = selectedUsers.payload.userDetails;
-        const isGroup = participants.length > 1;
+        const isGroup = participants.length > 2;
 
         const existingChatRoom = await this.prisma.chatRoom.findFirst({
             where: {
@@ -266,23 +263,19 @@ export class InboxManager {
                     },
                 },
                 Group: {
-                    ...(isGroup
-                        ? {
-                              select: {
-                                  id: true,
-                                  name: true,
-                                  picture: true,
-                                  createdAt: true,
-                                  chatRoomId: true,
-                                  adminOf: {
-                                      select: {
-                                          id: true,
-                                      },
-                                  },
-                                  superAdminId: true,
-                              },
-                          }
-                        : {}),
+                    select: {
+                        id: true,
+                        name: true,
+                        picture: true,
+                        createdAt: true,
+                        chatRoomId: true,
+                        adminOf: {
+                            select: {
+                                id: true,
+                            },
+                        },
+                        superAdminId: true,
+                    },
                 },
             },
         });
@@ -317,11 +310,9 @@ export class InboxManager {
                     })
                 );
             } else {
-                participants.push({ id, fullName: "" });
                 const newChatRoom = await prisma.chatRoom.create({
                     data: {
                         name: participants[0].fullName,
-                        createdAt: new Date(Date.now()),
                         participants: {
                             connect: participants.map((user) => ({
                                 id: user.id,
