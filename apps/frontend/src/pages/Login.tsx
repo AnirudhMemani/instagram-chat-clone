@@ -12,6 +12,7 @@ import { useSetRecoilState } from "recoil";
 import { ClipLoader } from "react-spinners";
 import { userAtom } from "@/state/user";
 import { toast } from "sonner";
+import { isChatModalVisibleAtom } from "@/state/global";
 
 const Login: React.FC = (): JSX.Element => {
     const token = localStorageUtils.getToken();
@@ -25,6 +26,8 @@ const Login: React.FC = (): JSX.Element => {
         );
     }
 
+    const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
+    setIsChatModalVisible(false);
     const [credentials, setCredentials] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [error, setError] = useState<string>("");

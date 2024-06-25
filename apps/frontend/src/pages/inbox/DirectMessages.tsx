@@ -1,7 +1,7 @@
 import { Edit } from "lucide-react";
-import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
+import { useRecoilValue, useSetRecoilState } from "recoil";
 import { ChatPreviewBox, TChatPreviewBoxProps } from "./ChatPreviewBox";
-import { isChatModalVisibleAtom, isLoadingAtom } from "@/state/global";
+import { isChatModalVisibleAtom } from "@/state/global";
 import { UserLoadingSkeleton } from "@/components/UserLoadingSkeleton";
 import { useEffect, useState } from "react";
 import { GET_DM } from "@instachat/messages/messages";
@@ -31,7 +31,7 @@ interface IUserDms {
 const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({
     socket,
 }): JSX.Element => {
-    const [dm, setDm] = useState<IUserDms[]>();
+    const [dm, setDm] = useState<IUserDms[]>([]);
     const user = useRecoilValue(userAtom);
     // @ts-ignore
     const chatPreview: TChatPreviewBoxProps[] = [
@@ -213,19 +213,22 @@ const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({
     ];
 
     const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
-    const [isLoading, setIsLoading] = useRecoilState(isLoadingAtom);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
     useEffect(() => {
         if (!socket) {
-            console.log("DirectMessage() - Socket not found");
             return;
         }
 
         socket.onmessage = (event) => {
             const message = JSON.parse(event.data) as IMessage;
             if (message.type === GET_DM) {
-                setDm(message.payload);
                 setIsLoading(false);
+                if (!message.payload.DM) {
+                    setDm([]);
+                    return;
+                }
+                setDm(message.payload.DM);
             }
         };
 
@@ -237,8 +240,8 @@ const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({
             },
         };
 
-        setIsLoading(true);
         socket.send(JSON.stringify(getUserDM));
+        setIsLoading(true);
     }, [socket]);
 
     const getLatestMessage = (userDms: IUserDms) => {

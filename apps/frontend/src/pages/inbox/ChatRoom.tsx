@@ -12,6 +12,7 @@ import { useTheme } from "@/components/theme-provider";
 import {
     CHANGE_GROUP_NAME,
     ERROR,
+    CHATROOM_DETAILS_BY_ID,
     LEAVE_GROUP_CHAT,
     MAKE_ADMIN,
     NEW_MESSAGE,
@@ -31,46 +32,37 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { userAtom } from "@/state/user";
-import { isChatModalVisibleAtom, pageTypeAtom } from "@/state/global";
+import { isChatModalVisibleAtom } from "@/state/global";
 import { toast } from "sonner";
 import { ClipLoader } from "react-spinners";
+import { useNavigate, useParams } from "react-router-dom";
+import { NavigationRoutes } from "@/utils/constants";
 
 export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     const [isEmojiPickerVisible, setIsEmojiPickerVisible] =
         useState<boolean>(false);
-    const [messageText, setMessageText] = useState<string>("");
+    const [responseMessage, setMessageText] = useState<string>("");
     const [isRoomInfoVisible, setIsRoomInfoVisible] = useState<boolean>(false);
     const [isEditNameModalVisible, setIsEditNameModalVisible] =
         useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [chatRoomImage, setChatRoomImage] = useState<string>("");
+    const [chatRoomName, setChatRoomName] = useState<string>("");
 
     const [chatRoomState, setChatRoomState] = useRecoilState(chatRoomAtom);
     const [groupState, setGroupState] = useRecoilState(groupAtom);
-    const [newGroupName, setNewGroupName] = useState<string>(groupState.name);
+    const [newGroupName, setNewGroupName] = useState<string>("");
     const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
-    const setPageType = useSetRecoilState(pageTypeAtom);
     const user = useRecoilValue(userAtom);
 
-    const [isAdmin, _setIsAdmin] = useState<boolean>(
-        chatRoomState.isGroup
-            ? groupState.adminOf.some((admin) => admin.id === user.id)
-            : false
-    );
-
-    const chatRoomName = chatRoomState.isGroup
-        ? groupState.name
-        : chatRoomState.name;
-
-    const chatRoomImage = chatRoomState.isGroup
-        ? groupState.picture
-        : chatRoomState.participants[0].profilePic !== user.profilePic
-          ? chatRoomState.participants[0].profilePic
-          : chatRoomState.participants[1].profilePic;
+    const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
     const messageInputRef = useRef<HTMLInputElement | null>(null);
     const emojiPickerRef = useRef<HTMLDivElement | null>(null);
 
     const { theme } = useTheme();
+    const { id } = useParams();
+    const navigate = useNavigate();
 
     const commonToastErrorMessage = ({
         title,
@@ -85,89 +77,161 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     };
 
     useEffect(() => {
+        if (chatRoomState) {
+            setChatRoomName(groupState ? groupState.name : chatRoomState.name);
+            setChatRoomImage(
+                groupState
+                    ? groupState.picture
+                    : chatRoomState.participants[0].profilePic !==
+                        user.profilePic
+                      ? chatRoomState.participants[0].profilePic
+                      : chatRoomState.participants[1].profilePic
+            );
+            setIsAdmin(
+                groupState
+                    ? groupState.adminOf.some((admin) => admin.id === user.id)
+                    : false
+            );
+            if (groupState) {
+                setNewGroupName(groupState.name);
+            }
+        }
+    }, [chatRoomState]);
+
+    useEffect(() => {
         if (!socket) {
             return;
         }
 
+        if (!chatRoomState || id !== chatRoomState.id) {
+            const getChatRoomDetailsByIdMessage = {
+                type: CHATROOM_DETAILS_BY_ID,
+                payload: {
+                    chatRoomId: id,
+                    userId: user.id,
+                },
+            };
+
+            socket.send(JSON.stringify(getChatRoomDetailsByIdMessage));
+        }
+
         socket.onmessage = (event) => {
             try {
-                const messageText = JSON.parse(event.data) as IMessage;
+                const responseMessage = JSON.parse(event.data) as IMessage;
 
-                switch (messageText.type) {
-                    case CHANGE_GROUP_NAME:
-                        if (messageText.payload.result === SUCCESS) {
-                            setGroupState({
-                                ...groupState,
-                                name: messageText.payload.groupName,
-                            });
-                            setChatRoomState({
-                                ...chatRoomState,
-                                name: messageText.payload.groupName,
-                            });
-                        } else if (messageText.payload.result === ERROR) {
-                            commonToastErrorMessage({
-                                title: "Permission Denied",
-                                description:
-                                    "Only a member of the group can change the group name",
-                            });
-                        } else {
-                            commonToastErrorMessage({
-                                description:
-                                    "There was an issue with your request. Please try again",
-                            });
-                        }
-                        break;
-                    case LEAVE_GROUP_CHAT:
-                        if (messageText.payload.result === ERROR) {
-                            commonToastErrorMessage({
-                                description:
-                                    "You are not a part of this group chat",
-                            });
-                        } else if (messageText.payload.result === SUCCESS) {
-                            const id = messageText.payload.userId;
-                            setChatRoomState({
-                                ...chatRoomState,
-                                participants: chatRoomState.participants.filter(
-                                    (participant) => participant.id !== id
-                                ),
-                            });
-                            setGroupState({
-                                ...groupState,
-                                adminOf: groupState.adminOf.filter(
-                                    (admin) => admin.id !== id
-                                ),
-                            });
-                        } else {
-                            commonToastErrorMessage({
-                                description:
-                                    "There was an issue with your request. Please try again",
-                            });
-                        }
-                        break;
-                    case MAKE_ADMIN:
-                        if (messageText.payload.result === ERROR) {
-                            commonToastErrorMessage({});
-                        } else {
-                            const userDetails = messageText.payload.userDetails;
-                            setGroupState({
-                                ...groupState,
-                                adminOf: [...groupState.adminOf, userDetails],
-                            });
-                        }
-                        break;
-                    case REMOVE_AS_ADMIN:
-                        if (messageText.payload.result === ERROR) {
-                            commonToastErrorMessage({});
-                        } else {
-                            const adminId = messageText.payload.adminId;
-                            setGroupState({
-                                ...groupState,
-                                adminOf: groupState.adminOf.filter(
-                                    (admin) => admin.id !== adminId
-                                ),
-                            });
-                        }
-                        break;
+                if (responseMessage.type === CHATROOM_DETAILS_BY_ID) {
+                    if (responseMessage.payload.error) {
+                        navigate(NavigationRoutes.Inbox, {
+                            replace: true,
+                        });
+                        toast.error("This DM does not exists", {
+                            richColors: true,
+                        });
+                        return;
+                    }
+
+                    const isGroup = Boolean(
+                        responseMessage.payload.groupDetails
+                    );
+
+                    setChatRoomState({
+                        ...responseMessage.payload.chatRoomDetails,
+                        isGroup: isGroup,
+                    });
+
+                    if (isGroup) {
+                        setGroupState(responseMessage.payload.groupDetails);
+                    }
+                    return;
+                }
+
+                if (chatRoomState && groupState) {
+                    switch (responseMessage.type) {
+                        case CHANGE_GROUP_NAME:
+                            if (responseMessage.payload.result === SUCCESS) {
+                                setGroupState({
+                                    ...groupState,
+                                    name: responseMessage.payload.groupName,
+                                });
+                                setChatRoomState({
+                                    ...chatRoomState,
+                                    name: responseMessage.payload.groupName,
+                                });
+                            } else if (
+                                responseMessage.payload.result === ERROR
+                            ) {
+                                commonToastErrorMessage({
+                                    title: "Permission Denied",
+                                    description:
+                                        "Only a member of the group can change the group name",
+                                });
+                            } else {
+                                commonToastErrorMessage({
+                                    description:
+                                        "There was an issue with your request. Please try again",
+                                });
+                            }
+                            break;
+                        case LEAVE_GROUP_CHAT:
+                            if (responseMessage.payload.result === ERROR) {
+                                commonToastErrorMessage({
+                                    description:
+                                        "You are not a part of this group chat",
+                                });
+                            } else if (
+                                responseMessage.payload.result === SUCCESS
+                            ) {
+                                const id = responseMessage.payload.userId;
+                                setChatRoomState({
+                                    ...chatRoomState,
+                                    participants:
+                                        chatRoomState.participants.filter(
+                                            (participant) =>
+                                                participant.id !== id
+                                        ),
+                                });
+                                setGroupState({
+                                    ...groupState,
+                                    adminOf: groupState.adminOf.filter(
+                                        (admin) => admin.id !== id
+                                    ),
+                                });
+                            } else {
+                                commonToastErrorMessage({
+                                    description:
+                                        "There was an issue with your request. Please try again",
+                                });
+                            }
+                            break;
+                        case MAKE_ADMIN:
+                            if (responseMessage.payload.result === ERROR) {
+                                commonToastErrorMessage({});
+                            } else {
+                                const userDetails =
+                                    responseMessage.payload.userDetails;
+                                setGroupState({
+                                    ...groupState,
+                                    adminOf: [
+                                        ...groupState.adminOf,
+                                        userDetails,
+                                    ],
+                                });
+                            }
+                            break;
+                        case REMOVE_AS_ADMIN:
+                            if (responseMessage.payload.result === ERROR) {
+                                commonToastErrorMessage({});
+                            } else {
+                                const adminId = responseMessage.payload.adminId;
+                                setGroupState({
+                                    ...groupState,
+                                    adminOf: groupState.adminOf.filter(
+                                        (admin) => admin.id !== adminId
+                                    ),
+                                });
+                            }
+                            break;
+                    }
                 }
             } catch (error) {
                 console.log(error);
@@ -196,6 +260,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
         return () => {
             document.removeEventListener("mousedown", closeEmojiPicker);
+            setChatRoomState(null);
         };
     }, []);
 
@@ -211,7 +276,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     };
 
     const handleSendMessage = () => {
-        if (messageText.length < 1) {
+        if (responseMessage.length < 1) {
             return;
         }
 
@@ -229,6 +294,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
     const handleChangeGroupName = async (e: FormEvent) => {
         e.preventDefault();
+        if (!groupState) {
+            return;
+        }
+
         if (newGroupName.trim() === groupState.name) {
             setNewGroupName((p) => p.trim());
             setIsEditNameModalVisible(false);
@@ -245,7 +314,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             const changeGroupNameMessage: IMessage = {
                 type: CHANGE_GROUP_NAME,
                 payload: {
-                    chatRoomId: chatRoomState.id,
+                    chatRoomId: groupState.id,
                     groupName: newGroupName,
                 },
             };
@@ -268,10 +337,14 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 return;
             }
 
+            if (!groupState) {
+                return;
+            }
+
             const leaveGroupChatMessage: IMessage = {
                 type: LEAVE_GROUP_CHAT,
                 payload: {
-                    chatRoomId: chatRoomState.id,
+                    chatRoomId: groupState.id,
                 },
             };
 
@@ -297,6 +370,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     ) => {
         try {
             if (!socket) {
+                return;
+            }
+
+            if (!groupState) {
                 return;
             }
 
@@ -331,6 +408,17 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             setIsLoading(false);
         }
     };
+
+    if (!chatRoomState) {
+        return (
+            <div className="flex items-center justify-center h-dvh w-full bg-black/60">
+                <ClipLoader
+                    size={30}
+                    color="#9ca3af"
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="h-dvh w-full flex overflow-hidden">
@@ -389,16 +477,16 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     <input
                         className="bg-transparent border-none outline-none w-full text-lg"
                         type="text"
-                        id={"messageText"}
+                        id={"responseMessage"}
                         placeholder="Message..."
-                        value={messageText}
+                        value={responseMessage}
                         onChange={(e) => setMessageText(e.target.value)}
                         ref={messageInputRef}
                     />
                     <p
                         className={cn(
                             "text-gray-400 cursor-not-allowed select-none",
-                            messageText.length > 0 &&
+                            responseMessage.length > 0 &&
                                 "text-blue-400 cursor-pointer active:scale-95 active:text-blue-700"
                         )}
                         onClick={handleSendMessage}
@@ -464,7 +552,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 ? "Members"
                                 : "Member"}
                         </p>
-                        {chatRoomState.isGroup &&
+                        {groupState &&
                             groupState.adminOf.some(
                                 (admin) => admin.id === user.id
                             ) && (
@@ -480,10 +568,13 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     <div className="flex flex-grow w-full flex-col gap-4 overflow-y-auto px-6">
                         {chatRoomState.participants
                             .map((member) => {
-                                const isUserAdmin = groupState.adminOf.some(
-                                    (admin) => admin.id === member.id
-                                );
+                                const isUserAdmin =
+                                    groupState &&
+                                    groupState.adminOf.some(
+                                        (admin) => admin.id === member.id
+                                    );
                                 const isUserSuperAdmin =
+                                    groupState &&
                                     groupState.superAdminId === member.id;
                                 if (
                                     !chatRoomState.isGroup &&

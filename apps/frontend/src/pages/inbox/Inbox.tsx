@@ -1,17 +1,11 @@
-import { useSocket } from "@/hooks/useSocket";
-import { LargeScreenInbox } from "./LargeScreenInbox";
-import { isChatModalVisibleAtom } from "@/state/global";
-import { useRecoilValue } from "recoil";
-import { NewChatModal } from "@/components/NewChatModal";
+import { StartChatPrompt } from "./StartChatPrompt";
 
-const Inbox: React.FC = (): JSX.Element => {
-    const socket = useSocket();
-    const isChatModalVisible = useRecoilValue(isChatModalVisibleAtom);
-
+const Inbox = () => {
     return (
         <>
-            <LargeScreenInbox socket={socket} />
-            {isChatModalVisible && <NewChatModal socket={socket} />}
+            <div className="hidden lg:flex h-dvh w-full">
+                <StartChatPrompt />
+            </div>
         </>
     );
 };

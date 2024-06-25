@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import { isChatModalVisibleAtom } from "@/state/global";
 import { localStorageUtils } from "@/utils/LocalStorageUtils";
 import { NavigationRoutes, StatusCodes } from "@/utils/constants";
 import axios from "axios";
@@ -16,6 +17,7 @@ import { ArrowUpRight, Eye, EyeOff } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ClipLoader } from "react-spinners";
+import { useSetRecoilState } from "recoil";
 
 const Signup: React.FC = (): JSX.Element => {
     const token = localStorageUtils.getToken();
@@ -29,6 +31,8 @@ const Signup: React.FC = (): JSX.Element => {
         );
     }
 
+    const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
+    setIsChatModalVisible(false);
     const [error, setError] = useState<string>("");
     const [profilePic, setProfilePic] = useState<File | undefined>();
     const [password, setPassword] = useState<string>("");

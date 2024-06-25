@@ -7,12 +7,13 @@ import { useImageCropContext } from "@/components/image-editor/ImageCropProvider
 import { readFile } from "@/components/image-editor/helpers/cropImage";
 import { CropModal } from "@/components/image-editor/CropModal";
 import { cn } from "@/lib/utils";
-import { pageTypeAtom } from "@/state/global";
 import { Button } from "@/components/ui/button";
 import { IMessage, IStartConvoMessage } from "@instachat/messages/types";
 import { CREATE_GROUP } from "@instachat/messages/messages";
 import { chatRoomAtom, groupAtom } from "@/state/chat";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { NavigationRoutes } from "@/utils/constants";
 
 const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
     socket,
@@ -36,9 +37,10 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
     const [selectedUsers, setSelectedUsers] = useRecoilState(selectedUsersAtom);
     const setChatRoomDetails = useSetRecoilState(chatRoomAtom);
     const setGroupDetails = useSetRecoilState(groupAtom);
-    const setPagetype = useSetRecoilState(pageTypeAtom);
 
     const { getProcessedImage, setImage, resetStates } = useImageCropContext();
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (!socket) {
@@ -71,7 +73,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                 setGroupDetails(payload.groupDetails);
 
                 setIsSubmitting(false);
-                setPagetype("ChatRoom");
+                navigate(`/inbox/direct/${payload.chatRoomId}`);
                 setSelectedUsers([]);
             }
         };
@@ -153,7 +155,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                         className="size-5 absolute left-0 cursor-pointer"
                         onClick={() => {
                             if (isSubmitting) return;
-                            setPagetype("StartChatPrompt");
+                            navigate(NavigationRoutes.Inbox);
                             setSelectedUsers([]);
                         }}
                     />

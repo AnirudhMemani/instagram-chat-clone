@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
-import { isChatModalVisibleAtom, pageTypeAtom } from "@/state/global";
+import { isChatModalVisibleAtom } from "@/state/global";
 import { IUserBarsProps, UserBars } from "./UserBars";
 import { UserLoadingSkeleton } from "./UserLoadingSkeleton";
 import { IMessage } from "@instachat/messages/types";
@@ -12,6 +12,8 @@ import { selectedUsersAtom, userAtom } from "@/state/user";
 import { chatRoomAtom, groupAtom } from "@/state/chat";
 import { ClipLoader } from "react-spinners";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { NavigationRoutes } from "@/utils/constants";
 
 export type TUsersSchema = {
     id: string;
@@ -43,12 +45,13 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
 
     const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
     const [selectedUsers, setSelectedUsers] = useRecoilState(selectedUsersAtom);
-    const setPagetype = useSetRecoilState(pageTypeAtom);
     const [chatRoomDetails, setChatRoomDetails] = useRecoilState(chatRoomAtom);
     const setGroupDetails = useSetRecoilState(groupAtom);
     const user = useRecoilValue(userAtom);
 
     const modalContainerRef = useRef<HTMLDivElement>(null);
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (!socket) {
@@ -92,12 +95,12 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                             setGroupDetails(payload.groupDetails);
                         }
 
-                        setPagetype("ChatRoom");
                         setSelectedUsers([]);
+                        navigate(`/inbox/direct/${payload.chatRoomId}`);
                     }
 
                     if (payload.result === "group") {
-                        setPagetype("GroupDetailsPage");
+                        navigate(NavigationRoutes.CreateNewGroup);
                     }
 
                     setIsChatModalVisible(false);
@@ -138,7 +141,6 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
 
         return () => {
             document.removeEventListener("mousedown", handleModalClose);
-            console.log("exited modal");
         };
     }, []);
 
@@ -191,7 +193,6 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
 
     const initiateNewChat = () => {
         if (!socket) {
-            console.log("New chat initiation, socket not found");
             return;
         }
 

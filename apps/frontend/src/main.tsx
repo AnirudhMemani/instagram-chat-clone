@@ -5,6 +5,7 @@ import "./styles/index.css";
 import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { RecoilRoot } from "recoil";
+import { Toaster } from "sonner";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
@@ -12,6 +13,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <ThemeProvider>
                 <BrowserRouter>
                     <App />
+                    <Toaster />
                 </BrowserRouter>
             </ThemeProvider>
         </RecoilRoot>

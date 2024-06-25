@@ -46,6 +46,7 @@ type TGroupAtom = {
     chatRoomId: string;
 };
 
+// @ts-ignore
 const defaultChatRoomAtomValue: TChatRoomAtom = {
     id: "",
     name: "",
@@ -55,6 +56,7 @@ const defaultChatRoomAtomValue: TChatRoomAtom = {
     isGroup: false,
 };
 
+// @ts-ignore
 const defaultGroupAtomValue: TGroupAtom = {
     id: "",
     name: "",
@@ -65,12 +67,12 @@ const defaultGroupAtomValue: TGroupAtom = {
     chatRoomId: "",
 };
 
-export const chatRoomAtom = atom<TChatRoomAtom>({
+export const chatRoomAtom = atom<TChatRoomAtom | null>({
     key: "chatRoomAtom",
-    default: defaultChatRoomAtomValue,
+    default: null,
 });
 
-export const groupAtom = atom<TGroupAtom>({
+export const groupAtom = atom<TGroupAtom | null>({
     key: "groupAtom",
-    default: defaultGroupAtomValue,
+    default: null,
 });

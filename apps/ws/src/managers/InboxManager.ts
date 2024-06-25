@@ -14,6 +14,7 @@ import {
     LEAVE_GROUP_CHAT,
     MAKE_ADMIN,
     REMOVE_AS_ADMIN,
+    CHATROOM_DETAILS_BY_ID,
 } from "@instachat/messages/messages";
 import { IUser } from "./UserManager.js";
 import { getSortedSetKey } from "../utils/helper.js";
@@ -108,11 +109,13 @@ export class InboxManager {
     getDMs(socket: WebSocket, id: string, message: IMessage) {
         const DMLimit = message.payload.take;
         const DMOffset = message.payload.skip;
-        const Dms = this.getUserInbox(id, DMLimit, DMOffset);
+        const DM = this.getUserInbox(id, DMLimit, DMOffset);
         socket.send(
             JSON.stringify({
                 type: GET_DM,
-                payload: Dms,
+                payload: {
+                    DM,
+                },
             })
         );
     }
@@ -574,6 +577,97 @@ export class InboxManager {
         );
     }
 
+    async getChatRoomDetails(socket: WebSocket, id: string, message: IMessage) {
+        const payload = message.payload;
+
+        const chatRoomDetails = await this.prisma.chatRoom.findFirst({
+            where: {
+                id: payload.chatRoomId,
+                participants: {
+                    some: {
+                        id: payload.userId,
+                    },
+                },
+            },
+
+            select: {
+                id: true,
+                name: true,
+                createdAt: true,
+                participants: {
+                    select: {
+                        id: true,
+                        username: true,
+                        fullName: true,
+                        profilePic: true,
+                    },
+                },
+                messages: {
+                    select: {
+                        id: true,
+                        content: true,
+                        contentType: true,
+                        senderId: true,
+                        sentAt: true,
+                        editedAt: true,
+                        Attachments: true,
+                        readBy: {
+                            select: {
+                                id: true,
+                                username: true,
+                                fullName: true,
+                                profilePic: true,
+                            },
+                        },
+                        chatRoomId: true,
+                    },
+                },
+                Group: {
+                    select: {
+                        id: true,
+                        name: true,
+                        picture: true,
+                        createdAt: true,
+                        adminOf: {
+                            select: {
+                                id: true,
+                                username: true,
+                                fullName: true,
+                                profilePic: true,
+                            },
+                        },
+                        superAdminId: true,
+                        chatRoomId: true,
+                    },
+                },
+            },
+        });
+
+        if (!chatRoomDetails) {
+            socket.send(
+                JSON.stringify({
+                    type: CHATROOM_DETAILS_BY_ID,
+                    payload: {
+                        error: true,
+                    },
+                })
+            );
+            return;
+        }
+
+        socket.send(
+            JSON.stringify({
+                type: CHATROOM_DETAILS_BY_ID,
+                payload: {
+                    chatRoomDetails,
+                    ...(chatRoomDetails.Group && {
+                        groupDetails: chatRoomDetails.Group,
+                    }),
+                },
+            })
+        );
+    }
+
     async handleIncomingMessages(id: string, socket: WebSocket) {
         console.log("Inside handle incoming request");
         socket.on("message", async (data) => {
@@ -588,6 +682,9 @@ export class InboxManager {
                     break;
                 case ROOM_EXISTS:
                     this.checkRoomExists(socket, id, message);
+                    break;
+                case CHATROOM_DETAILS_BY_ID:
+                    this.getChatRoomDetails(socket, id, message);
                     break;
                 case CREATE_GROUP:
                     this.handleGroupConvo(socket, id, message);

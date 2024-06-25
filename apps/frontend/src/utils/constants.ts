@@ -6,7 +6,7 @@ export const NavigationRoutes = {
     Login: "/login",
     Signup: "/signup",
     Inbox: "/inbox",
-    DirectMessage: "/inbox/direct/:id",
+    DM: "/inbox/direct/:id",
     CreateNewGroup: "/inbox/group/create",
 } as const;
 
