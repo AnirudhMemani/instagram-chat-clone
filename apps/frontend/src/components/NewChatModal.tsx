@@ -82,6 +82,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                         payload.result === "created" ||
                         payload.result === "exists"
                     ) {
+                        console.log("\n\nROOM_EXISTS PAYLOAD:", payload);
                         setChatRoomDetails(() => ({
                             id: payload.chatRoomId,
                             name: payload.chatRoomName,

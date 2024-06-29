@@ -78,6 +78,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
     useEffect(() => {
         if (chatRoomState) {
+            console.log(
+                "chatRoomState found in chat room component:",
+                chatRoomState
+            );
             setChatRoomName(groupState ? groupState.name : chatRoomState.name);
             setChatRoomImage(
                 groupState
@@ -260,7 +264,6 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
         return () => {
             document.removeEventListener("mousedown", closeEmojiPicker);
-            setChatRoomState(null);
         };
     }, []);
 
