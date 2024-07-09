@@ -13,3 +13,4 @@ export const REMOVE_AS_ADMIN = "remove_as_admin";
 export const ADD_TO_CHAT = "add_to_chat";
 export const DELETE_GROUP_CHAT = "delete_group_chat";
 export const CHATROOM_DETAILS_BY_ID = "get_chatroom_details_by_id";
+export const MESSAGE_QUEUE = "message_queue";

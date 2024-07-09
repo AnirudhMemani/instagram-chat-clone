@@ -41,7 +41,7 @@ import { NavigationRoutes } from "@/utils/constants";
 export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     const [isEmojiPickerVisible, setIsEmojiPickerVisible] =
         useState<boolean>(false);
-    const [responseMessage, setMessageText] = useState<string>("");
+    const [message, setMessage] = useState<string>("");
     const [isRoomInfoVisible, setIsRoomInfoVisible] = useState<boolean>(false);
     const [isEditNameModalVisible, setIsEditNameModalVisible] =
         useState<boolean>(false);
@@ -235,6 +235,9 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 });
                             }
                             break;
+                        case NEW_MESSAGE:
+                            console.log("new message");
+                            break;
                     }
                 }
             } catch (error) {
@@ -268,7 +271,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     }, []);
 
     const handleEmojiClick = (e: EmojiClickData) => {
-        setMessageText((p) => p + e.emoji);
+        setMessage((p) => p + e.emoji);
         if (messageInputRef.current) {
             messageInputRef.current.focus();
         }
@@ -279,7 +282,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     };
 
     const handleSendMessage = () => {
-        if (responseMessage.length < 1) {
+        if (message.length < 1) {
             return;
         }
 
@@ -289,7 +292,11 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
         const newMessage: IMessage = {
             type: NEW_MESSAGE,
-            payload: {},
+            payload: {
+                content: message,
+                senderId: user.id,
+                chatRoomId: chatRoomState?.id,
+            },
         };
 
         socket.send(JSON.stringify(newMessage));
@@ -480,16 +487,16 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     <input
                         className="bg-transparent border-none outline-none w-full text-lg"
                         type="text"
-                        id={"responseMessage"}
+                        id={"message"}
                         placeholder="Message..."
-                        value={responseMessage}
-                        onChange={(e) => setMessageText(e.target.value)}
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
                         ref={messageInputRef}
                     />
                     <p
                         className={cn(
                             "text-gray-400 cursor-not-allowed select-none",
-                            responseMessage.length > 0 &&
+                            message.length > 0 &&
                                 "text-blue-400 cursor-pointer active:scale-95 active:text-blue-700"
                         )}
                         onClick={handleSendMessage}

@@ -15,12 +15,13 @@ import {
     MAKE_ADMIN,
     REMOVE_AS_ADMIN,
     CHATROOM_DETAILS_BY_ID,
+    MESSAGE_QUEUE,
 } from "@instachat/messages/messages";
 import { IUser } from "./UserManager.js";
 import { getSortedSetKey } from "../utils/helper.js";
 import { IMessage, IStartConvoMessage } from "@instachat/messages/types";
 import cloudinary from "cloudinary";
-import apqp from "amqplib";
+import amqp from "amqplib";
 
 /**
  * TODO:
@@ -30,7 +31,7 @@ import apqp from "amqplib";
 export class InboxManager {
     private redis: Redis = redis;
     private prisma: typeof prisma = prisma;
-    private scores: number[] = [];
+    private subscriber: Redis = redis.duplicate();
 
     async connectUser(user: IUser) {
         this.handleIncomingMessages(user.id, user.socket);
@@ -98,12 +99,46 @@ export class InboxManager {
         return Dms;
     }
 
-    handleNewMessage(message: IMessage) {
-        const { chatRoomId, content } = message.payload;
+    async handleNewMessage(socket: WebSocket, message: IMessage) {
+        const { chatRoomId, content, senderId } = message.payload;
 
-        this.scores.push(this.scores[this.scores.length - 1] + 1);
+        if (content.length < 1) {
+            socket.send(
+                JSON.stringify({
+                    type: NEW_MESSAGE,
+                    payload: {
+                        error: "Invalid message",
+                    },
+                })
+            );
+            return;
+        }
 
-        redis.publish(chatRoomId, JSON.stringify(content));
+        const chatRoomExists = await this.prisma.chatRoom.findUnique({
+            where: { id: chatRoomId },
+        });
+
+        if (!chatRoomExists) {
+            socket.send(
+                JSON.stringify({
+                    type: NEW_MESSAGE,
+                    payload: {
+                        error: "Chat room does not exists",
+                    },
+                })
+            );
+            return;
+        }
+
+        // fix this
+        const MQServerUrl = "amqp://localhost";
+
+        const conn = await amqp.connect(MQServerUrl);
+        const channel = await conn.createChannel();
+        await channel.assertQueue(MESSAGE_QUEUE);
+        channel.sendToQueue(MESSAGE_QUEUE, message.payload);
+
+        // await redis.publish(chatRoomId, JSON.stringify(content));
     }
 
     getDMs(socket: WebSocket, id: string, message: IMessage) {
@@ -332,6 +367,12 @@ export class InboxManager {
                             },
                         },
                     },
+                });
+                // fix this
+                this.subscriber.subscribe(newChatRoom.id);
+                this.subscriber.on("message", async (channel, message) => {
+                    console.log("\n\nchannel:", channel);
+                    console.log("\n\nmessage:", JSON.parse(message));
                 });
                 socket.send(
                     JSON.stringify({
@@ -690,7 +731,7 @@ export class InboxManager {
                     this.handleGroupConvo(socket, id, message);
                     break;
                 case NEW_MESSAGE:
-                    this.handleNewMessage(message);
+                    this.handleNewMessage(socket, message);
                     break;
                 case CHANGE_GROUP_NAME:
                     this.handleChangeGroupName(socket, id, message);
