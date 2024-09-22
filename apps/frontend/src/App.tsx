@@ -1,9 +1,9 @@
 import { Route, Routes } from "react-router-dom";
-import Login from "./pages/Login";
-import { NavigationRoutes } from "./utils/constants";
-import Signup from "./pages/Signup";
 import ImageCropProvider from "./components/image-editor/ImageCropProvider";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import AppRoutes from "./routes/AppRoutes";
+import { NavigationRoutes } from "./utils/constants";
 
 const App: React.FC = (): JSX.Element => {
     return (
