@@ -1,4 +1,7 @@
-cd app/frontend
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+cd apps/frontend
 npx lint-staged
 
 git add .
