@@ -1,3 +1,3 @@
 export type TWebSocket = {
-	socket: WebSocket | null;
+    socket: WebSocket | null;
 };

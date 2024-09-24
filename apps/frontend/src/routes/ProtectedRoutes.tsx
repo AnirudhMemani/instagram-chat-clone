@@ -1,58 +1,41 @@
-import { EndPoints, NavigationRoutes, StatusCodes } from "@/utils/constants";
-import { useEffect } from "react";
-import { Navigate, Routes } from "react-router-dom";
-import axios from "axios";
-import { localStorageUtils } from "@/utils/LocalStorageUtils";
-import { useRecoilState, useSetRecoilState } from "recoil";
-import { isAuthenticatedAtom } from "@/state/user";
-import { isLoadingAtom } from "@/state/global";
+import { NewChatModal } from "@/components/NewChatModal";
+import { useSocket } from "@/hooks/useSocket";
+import GroupDetailsPage from "@/pages/group/GroupDetailsPage";
+import { ChatRoom } from "@/pages/inbox/ChatRoom";
+import DirectMessage from "@/pages/inbox/DirectMessages";
+import Inbox from "@/pages/inbox/Inbox";
+import Sidebar from "@/pages/inbox/Sidebar";
+import { isChatModalVisibleAtom } from "@/state/global";
+import { NavigationRoutes } from "@/utils/constants";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { useRecoilValue } from "recoil";
 
-const ProtectedRoutes = ({ children }: { children?: React.ReactNode }) => {
-	const token = localStorageUtils.getToken();
+const ProtectedRoutes = () => {
+    const socket = useSocket();
+    const isChatModalVisible = useRecoilValue(isChatModalVisibleAtom);
 
-	const navigateToLoginScreen = () => {
-		return <Navigate to={NavigationRoutes.Login} replace />;
-	};
-
-	if (!token) {
-		navigateToLoginScreen();
-	}
-
-	const [isAuthenticated, setIsAuthenticated] =
-		useRecoilState(isAuthenticatedAtom);
-	const isLoading = useSetRecoilState(isLoadingAtom);
-
-	const authenticateUser = async () => {
-		try {
-			isLoading(true);
-			const response = await axios.post(EndPoints.Auth, null, {
-				headers: {
-					Authorization: "Bearer " + token,
-				},
-			});
-			if (response.status === StatusCodes.Ok) {
-				setIsAuthenticated(true);
-			} else {
-				localStorageUtils.clearStore();
-				setIsAuthenticated(false);
-			}
-		} catch (error) {
-			localStorageUtils.clearStore();
-			setIsAuthenticated(false);
-		} finally {
-			isLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		authenticateUser();
-	}, []);
-
-	return isAuthenticated ? (
-		<Routes>{children}</Routes>
-	) : (
-		navigateToLoginScreen()
-	);
+    return (
+        <div className="flex">
+            <Sidebar className="lg:block hidden" />
+            <DirectMessage socket={socket} />
+            <Routes>
+                <Route path={NavigationRoutes.Inbox} element={<Inbox />} />
+                <Route
+                    path={NavigationRoutes.DM}
+                    element={<ChatRoom socket={socket} />}
+                />
+                <Route
+                    path={NavigationRoutes.CreateNewGroup}
+                    element={<GroupDetailsPage socket={socket} />}
+                />
+                <Route
+                    path="*"
+                    element={<Navigate to={NavigationRoutes.Inbox} replace />}
+                />
+            </Routes>
+            {isChatModalVisible.visible && <NewChatModal socket={socket} />}
+        </div>
+    );
 };
 
 export default ProtectedRoutes;

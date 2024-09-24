@@ -16,12 +16,14 @@ import {
     REMOVE_AS_ADMIN,
     CHATROOM_DETAILS_BY_ID,
     MESSAGE_QUEUE,
+    ADD_TO_CHAT,
 } from "@instachat/messages/messages";
 import { IUser } from "./UserManager.js";
 import { getSortedSetKey } from "../utils/helper.js";
 import { IMessage, IStartConvoMessage } from "@instachat/messages/types";
 import cloudinary from "cloudinary";
 import amqp from "amqplib";
+import { printlogs } from "../utils/logs.js";
 
 /**
  * TODO:
@@ -160,6 +162,13 @@ export class InboxManager {
             where: {
                 NOT: { id },
             },
+            select: {
+                id: true,
+                fullName: true,
+                username: true,
+                profilePic: true,
+                email: true,
+            },
         });
         socket.send(
             JSON.stringify({
@@ -261,19 +270,49 @@ export class InboxManager {
     }
 
     async checkRoomExists(socket: WebSocket, id: string, message: IMessage) {
-        const selectedUsers = message as IStartConvoMessage;
-        const participants = selectedUsers.payload.userDetails;
-        const isGroup = participants.length > 2;
+        const participants = (message as IStartConvoMessage).payload
+            .userDetails;
 
-        const existingChatRoom = await this.prisma.chatRoom.findFirst({
+        printlogs("participants:", participants);
+
+        if (participants.length < 1) {
+            const payload = {
+                result: "error",
+                message:
+                    "Please select at least one person to start a chat with",
+            };
+            socket.send(JSON.stringify({ type: ROOM_EXISTS, payload }));
+            return;
+        }
+
+        if (participants.length === 1 && participants[0].id === id) {
+            const payload = {
+                result: "error",
+                message: "You cannot start a chat with yourself",
+            };
+            socket.send(JSON.stringify({ type: ROOM_EXISTS, payload }));
+            return;
+        }
+
+        const isGroup = participants.length > 2;
+        const participantsIds = participants.map((user) => user.id);
+
+        printlogs("participantsIds", participantsIds);
+
+        const potentialChatRooms = await this.prisma.chatRoom.findMany({
             where: {
-                AND: participants.map((user) => ({
-                    participants: {
-                        some: {
-                            id: user.id,
+                AND: [
+                    {
+                        participants: {
+                            every: { id: { in: participantsIds } },
                         },
                     },
-                })),
+                    {
+                        participants: {
+                            none: { id: { notIn: participantsIds } },
+                        },
+                    },
+                ],
             },
             include: {
                 messages: {
@@ -318,7 +357,15 @@ export class InboxManager {
             },
         });
 
-        if (existingChatRoom) {
+        printlogs("Potential chat room details:", potentialChatRooms);
+
+        const existingChatRoom = potentialChatRooms.find(
+            (room) => room.participants.length === participantsIds.length
+        );
+
+        printlogs("Existing chat room details:", existingChatRoom);
+
+        if (existingChatRoom?.id) {
             const payload = {
                 result: "exists",
                 chatRoomId: existingChatRoom.id,
@@ -350,7 +397,8 @@ export class InboxManager {
             } else {
                 const newChatRoom = await prisma.chatRoom.create({
                     data: {
-                        name: participants[0].fullName,
+                        name: participants.filter((user) => user.id !== id)[0]
+                            .fullName,
                         participants: {
                             connect: participants.map((user) => ({
                                 id: user.id,
@@ -709,6 +757,20 @@ export class InboxManager {
         );
     }
 
+    async addUserToChat(socket: WebSocket, id: string, message: IMessage) {
+        const chatRoomDetails = message.payload.chatRoomDetails;
+        const isGroup = chatRoomDetails.participants.length > 2;
+
+        if (!isGroup) {
+            const payload = {
+                result: "error",
+                message: "Cannot add members to a private DM",
+            };
+            socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
+            return;
+        }
+    }
+
     async handleIncomingMessages(id: string, socket: WebSocket) {
         console.log("Inside handle incoming request");
         socket.on("message", async (data) => {
@@ -744,6 +806,9 @@ export class InboxManager {
                     break;
                 case REMOVE_AS_ADMIN:
                     this.handleRemoveAdmin(socket, id, message);
+                    break;
+                case ADD_TO_CHAT:
+                    this.addUserToChat(socket, id, message);
                     break;
                 default:
                     break;

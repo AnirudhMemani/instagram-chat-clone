@@ -1,11 +1,19 @@
-import { LoaderCircle } from "lucide-react";
+import "../styles/loader.css";
 
-export const Loader: React.FC = (): JSX.Element => {
-	return (
-		<>
-			<div className="fixed w-full bg-[#000000e6] top-0 left-0 h-full flex items-center justify-center z-50">
-				<LoaderCircle className="h-16 w-16 text-blue-700 animate-spin" />
-			</div>
-		</>
-	);
+const bars = Array(12).fill(0);
+
+export const Loader = ({ visible }: { visible: boolean }) => {
+    if (visible)
+        return (
+            <div className="sonner-loading-wrapper" data-visible={visible}>
+                <div className="sonner-spinner">
+                    {bars.map((_, i) => (
+                        <div
+                            className={"sonner-loading-bar"}
+                            key={`spinner-bar-${i}`}
+                        />
+                    ))}
+                </div>
+            </div>
+        );
 };
