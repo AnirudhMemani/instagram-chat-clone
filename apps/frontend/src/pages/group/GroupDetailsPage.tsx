@@ -1,3 +1,4 @@
+import { Loader } from "@/components/Loader";
 import { CropModal } from "@/components/image-editor/CropModal";
 import { useImageCropContext } from "@/components/image-editor/ImageCropProvider";
 import { readFile } from "@/components/image-editor/helpers/cropImage";
@@ -14,7 +15,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRecoilState, useSetRecoilState } from "recoil";
 import { toast } from "sonner";
-import { Loader } from "@/components/Loader";
 
 const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
     socket,
@@ -218,6 +218,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                     className="w-full"
                     type="submit"
                     disabled={isSubmitting}
+                    variant="secondary"
                 >
                     {isSubmitting ? (
                         <Loader visible={isSubmitting} />

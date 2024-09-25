@@ -4,7 +4,11 @@ import { isChatModalVisibleAtom } from "@/state/global";
 import { selectedUsersAtom, userAtom } from "@/state/user";
 import { NavigationRoutes } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
-import { FIND_USERS, ROOM_EXISTS } from "@instachat/messages/messages";
+import {
+    ADD_TO_CHAT,
+    FIND_USERS,
+    ROOM_EXISTS,
+} from "@instachat/messages/messages";
 import { IMessage } from "@instachat/messages/types";
 import { X } from "lucide-react";
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
@@ -67,59 +71,177 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                 const message = JSON.parse(event.data) as IMessage;
                 const payload = message.payload;
 
-                if (message.type === FIND_USERS) {
-                    printlogs("chatRoomDetails", chatRoomDetails);
-                    printlogs("payload", payload);
-                    const data =
-                        chatRoomDetails?.participants.length &&
-                        isChatModalVisible.type === "ADD_USERS"
-                            ? (payload as TAllUsersSchema[]).filter((user) =>
-                                  chatRoomDetails.participants.every(
-                                      (participant) =>
-                                          participant.id !== user.id
+                switch (message.type) {
+                    case FIND_USERS:
+                        printlogs("chatRoomDetails", chatRoomDetails);
+                        printlogs("payload", payload);
+                        const data =
+                            chatRoomDetails?.participants.length &&
+                            isChatModalVisible.type === "ADD_USERS"
+                                ? (payload as TAllUsersSchema[]).filter(
+                                      (user) =>
+                                          chatRoomDetails.participants.every(
+                                              (participant) =>
+                                                  participant.id !== user.id
+                                          )
                                   )
-                              )
-                            : payload;
-                    printlogs("User data inside modal:", data);
-                    setUsersData(data);
-                }
+                                : payload;
+                        printlogs("User data inside modal:", data);
+                        setUsersData(data);
+                        break;
+                    case ROOM_EXISTS:
+                        const isGroup = Boolean(payload.groupDetails);
 
-                if (message.type === ROOM_EXISTS) {
-                    const isGroup = Boolean(payload.groupDetails);
-
-                    if (payload.result === "error") {
-                        toast.info(payload.message, { richColors: true });
-                        return;
-                    }
-
-                    if (
-                        payload.result === "created" ||
-                        payload.result === "exists"
-                    ) {
-                        console.log("\n\nROOM_EXISTS PAYLOAD:", payload);
-                        setChatRoomDetails(() => ({
-                            id: payload.chatRoomId,
-                            name: payload.chatRoomName,
-                            createdAt: payload.createdAt,
-                            participants: payload.participants,
-                            messages: payload.messageDetails,
-                            isGroup,
-                        }));
-
-                        if (isGroup) {
-                            setGroupDetails(payload.groupDetails);
+                        if (payload.result === "error") {
+                            toast.info(payload.message, {
+                                richColors: true,
+                            });
+                            return;
                         }
 
-                        setSelectedUsers([]);
-                        navigate(`/inbox/direct/${payload.chatRoomId}`);
-                    }
+                        if (
+                            payload.result === "created" ||
+                            payload.result === "exists"
+                        ) {
+                            console.log("\n\nROOM_EXISTS PAYLOAD:", payload);
+                            setChatRoomDetails(() => ({
+                                id: payload.chatRoomId,
+                                name: payload.chatRoomName,
+                                createdAt: payload.createdAt,
+                                participants: payload.participants,
+                                messages: payload.messageDetails,
+                                isGroup,
+                            }));
 
-                    if (payload.result === "group") {
-                        navigate(NavigationRoutes.CreateNewGroup);
-                    }
+                            if (isGroup) {
+                                setGroupDetails(payload.groupDetails);
+                            }
 
-                    setIsChatModalVisible({ visible: false });
+                            setSelectedUsers([]);
+                            navigate(`/inbox/direct/${payload.chatRoomId}`);
+                        }
+
+                        if (payload.result === "group") {
+                            navigate(NavigationRoutes.CreateNewGroup);
+                        }
+
+                        setIsChatModalVisible({ visible: false });
+                        break;
+                    case ADD_TO_CHAT:
+                        if (payload.result === "error") {
+                            switch (payload.statusCode) {
+                                case 400:
+                                    printlogs(
+                                        "Error trying to add new member",
+                                        payload.message
+                                    );
+                                    toast.error(
+                                        "Invalid request. Please contact the owner or the developer of this website"
+                                    );
+                                    break;
+                                case 409:
+                                    toast.error(payload.message);
+                                    break;
+                                case 403:
+                                    toast.error(payload.message);
+                                    break;
+                                case 404:
+                                    toast.error(payload.message);
+                                    break;
+                                default:
+                                    toast.error("An unknown error occurred");
+                                    break;
+                            }
+                            return;
+                        }
+
+                        if (payload.result === "success") {
+                            setChatRoomDetails((prev) => {
+                                printlogs("before adding new user:", prev);
+                                payload?.newUsersDetails?.length &&
+                                    payload?.newUsersDetails?.map((user: any) =>
+                                        prev?.participants.push({
+                                            id: user?.id,
+                                            username: user?.username,
+                                            fullName: user?.fullName,
+                                            profilePic: user?.profilePic,
+                                        })
+                                    );
+                                printlogs("after adding new user:", prev);
+                                return prev;
+                            });
+                        }
+                        break;
+                    default:
+                        break;
                 }
+
+                /**
+                 * prev?.participants.push({
+                                    id: payload.newUsersDetails?.id,
+                                    username: payload.newUsersDetails?.username,
+                                    fullName: payload.newUsersDetails?.fullName,
+                                    profilePic:
+                                        payload.newUsersDetails?.profilePic,
+                                });
+                                return prev;
+                 */
+
+                // if (message.type === FIND_USERS) {
+                //     printlogs("chatRoomDetails", chatRoomDetails);
+                //     printlogs("payload", payload);
+                //     const data =
+                //         chatRoomDetails?.participants.length &&
+                //         isChatModalVisible.type === "ADD_USERS"
+                //             ? (payload as TAllUsersSchema[]).filter((user) =>
+                //                   chatRoomDetails.participants.every(
+                //                       (participant) =>
+                //                           participant.id !== user.id
+                //                   )
+                //               )
+                //             : payload;
+                //     printlogs("User data inside modal:", data);
+                //     setUsersData(data);
+                //     return;
+                // }
+
+                // if (message.type === ROOM_EXISTS) {
+                //     const isGroup = Boolean(payload.groupDetails);
+
+                //     if (payload.result === "error") {
+                //         toast.info(payload.message, { richColors: true });
+                //         return;
+                //     }
+
+                //     if (
+                //         payload.result === "created" ||
+                //         payload.result === "exists"
+                //     ) {
+                //         console.log("\n\nROOM_EXISTS PAYLOAD:", payload);
+                //         setChatRoomDetails(() => ({
+                //             id: payload.chatRoomId,
+                //             name: payload.chatRoomName,
+                //             createdAt: payload.createdAt,
+                //             participants: payload.participants,
+                //             messages: payload.messageDetails,
+                //             isGroup,
+                //         }));
+
+                //         if (isGroup) {
+                //             setGroupDetails(payload.groupDetails);
+                //         }
+
+                //         setSelectedUsers([]);
+                //         navigate(`/inbox/direct/${payload.chatRoomId}`);
+                //     }
+
+                //     if (payload.result === "group") {
+                //         navigate(NavigationRoutes.CreateNewGroup);
+                //     }
+
+                //     setIsChatModalVisible({ visible: false });
+                //     return;
+                // }
             } catch (error) {
                 toast.error("Uh oh! Something went wrong.", {
                     description: "Your request could not be processed",
@@ -236,6 +358,24 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
         socket.send(JSON.stringify(message));
     };
 
+    const addNewUserToChatRoom = () => {
+        if (!socket) {
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        const message: IMessage = {
+            type: ADD_TO_CHAT,
+            payload: {
+                chatRoomDetails,
+                newUsersDetails: selectedUsers,
+            },
+        };
+
+        socket.send(JSON.stringify(message));
+    };
+
     return (
         <div className="h-dvh fixed top-0 left-0 right-0 w-full bg-[#00000080] flex items-center justify-center z-30">
             <div
@@ -327,7 +467,11 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                     <Button
                         className="w-full mx-6"
                         disabled={selectedUsers.length === 0 || isSubmitting}
-                        onClick={initiateNewChat}
+                        onClick={
+                            isChatModalVisible.type === "ADD_USERS"
+                                ? addNewUserToChatRoom
+                                : initiateNewChat
+                        }
                         variant="secondary"
                     >
                         {!isSubmitting ? (

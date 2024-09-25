@@ -1,29 +1,29 @@
-import WebSocket from "ws";
-import redis from "../redis/client.js";
 import { prisma } from "@instachat/db/client";
-import { Redis } from "ioredis";
 import {
+    ADD_TO_CHAT,
+    CHANGE_GROUP_NAME,
+    CHATROOM_DETAILS_BY_ID,
+    CREATE_GROUP,
+    ERROR,
     FIND_USERS,
     GET_DM,
-    NEW_MESSAGE,
-    ROOM_EXISTS,
-    CREATE_GROUP,
-    CHANGE_GROUP_NAME,
-    ERROR,
-    SUCCESS,
     LEAVE_GROUP_CHAT,
     MAKE_ADMIN,
-    REMOVE_AS_ADMIN,
-    CHATROOM_DETAILS_BY_ID,
     MESSAGE_QUEUE,
-    ADD_TO_CHAT,
+    NEW_MESSAGE,
+    REMOVE_AS_ADMIN,
+    ROOM_EXISTS,
+    SUCCESS,
 } from "@instachat/messages/messages";
-import { IUser } from "./UserManager.js";
-import { getSortedSetKey } from "../utils/helper.js";
 import { IMessage, IStartConvoMessage } from "@instachat/messages/types";
-import cloudinary from "cloudinary";
 import amqp from "amqplib";
+import cloudinary from "cloudinary";
+import { Redis } from "ioredis";
+import WebSocket from "ws";
+import redis from "../redis/client.js";
+import { getSortedSetKey } from "../utils/helper.js";
 import { printlogs } from "../utils/logs.js";
+import { IUser } from "./UserManager.js";
 
 /**
  * TODO:
@@ -188,7 +188,7 @@ export class InboxManager {
 
         const fileSize = Buffer.byteLength(profilePic);
 
-        console.log("fileSize:", fileSize);
+        printlogs("fileSize:", fileSize);
 
         if (fileSize > MAX_FILE_SIZE) {
             socket.send(
@@ -215,6 +215,7 @@ export class InboxManager {
                         id: user.id,
                     })),
                 },
+                isGroup: true,
                 Group: {
                     create: {
                         name,
@@ -404,6 +405,7 @@ export class InboxManager {
                                 id: user.id,
                             })),
                         },
+                        isGroup: false,
                     },
                     include: {
                         participants: {
@@ -759,16 +761,186 @@ export class InboxManager {
 
     async addUserToChat(socket: WebSocket, id: string, message: IMessage) {
         const chatRoomDetails = message.payload.chatRoomDetails;
-        const isGroup = chatRoomDetails.participants.length > 2;
+        const newUsersDetails: any[] = message.payload.newUsersDetails;
 
-        if (!isGroup) {
+        printlogs("user id:", id);
+
+        if (
+            !chatRoomDetails ||
+            !newUsersDetails?.length ||
+            !chatRoomDetails?.id
+        ) {
             const payload = {
                 result: "error",
-                message: "Cannot add members to a private DM",
+                message: "Invalid chat room or user details",
+                statusCode: 400,
             };
             socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
             return;
         }
+
+        const chatRoom = await this.prisma.chatRoom.findUnique({
+            where: { id: chatRoomDetails.id },
+            select: {
+                isGroup: true,
+            },
+        });
+
+        if (!chatRoom?.isGroup) {
+            const payload = {
+                result: "error",
+                message: "Cannot add members to a private DM",
+                statusCode: 400,
+            };
+            socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
+            return;
+        }
+
+        const hasPermission = await this.prisma.chatRoom.findFirst({
+            where: {
+                id: chatRoomDetails.id,
+                Group: {
+                    OR: [{ adminOf: { some: { id } } }, { superAdmin: { id } }],
+                },
+            },
+            select: { id: true },
+        });
+
+        printlogs("Has permission:", hasPermission);
+
+        if (!hasPermission?.id) {
+            const payload = {
+                result: "error",
+                message:
+                    "You do not have permission to add members to this group",
+                statusCode: 403,
+            };
+
+            socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
+            return;
+        }
+
+        const participantsIds = chatRoomDetails?.participants?.length
+            ? chatRoomDetails.participants.map((user: any) => user.id)
+            : [];
+
+        const potentialChatRooms = await this.prisma.chatRoom.findMany({
+            where: {
+                AND: [
+                    {
+                        participants: {
+                            every: { id: { in: participantsIds } },
+                        },
+                    },
+                    {
+                        participants: {
+                            none: { id: { notIn: participantsIds } },
+                        },
+                    },
+                ],
+            },
+            select: {
+                id: true,
+                participants: true,
+            },
+        });
+
+        printlogs("Potential chat room details:", potentialChatRooms);
+
+        const existingChatRoom = potentialChatRooms.find(
+            (room) => room.participants.length === participantsIds.length
+        );
+
+        if (existingChatRoom?.id) {
+            const payload = {
+                result: "error",
+                message: "A group with all the selected members already exists",
+                statusCode: 409,
+            };
+            socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
+            return;
+        }
+
+        const successfullyAddedUsers = [];
+
+        for (const newUserDetails of newUsersDetails) {
+            const isAlreadyInGroup = await this.prisma.chatRoom.findFirst({
+                where: {
+                    id: chatRoomDetails.id,
+                    participants: {
+                        some: {
+                            id: newUserDetails.id,
+                        },
+                    },
+                },
+                select: { id: true },
+            });
+
+            if (isAlreadyInGroup?.id) {
+                const payload = {
+                    result: "error",
+                    message: `User ${newUserDetails.username} is already in this group`,
+                    statusCode: 409,
+                };
+                socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
+                continue;
+            }
+
+            const updatedChatRoom = await this.prisma.chatRoom.update({
+                where: { id: chatRoomDetails.id },
+                data: {
+                    participants: {
+                        connect: {
+                            id: newUserDetails.id,
+                        },
+                    },
+                },
+                select: {
+                    participants: {
+                        where: {
+                            id: newUserDetails.id,
+                        },
+                        select: {
+                            id: true,
+                            username: true,
+                            email: true,
+                            profilePic: true,
+                            fullName: true,
+                        },
+                    },
+                },
+            });
+
+            if (!updatedChatRoom.participants.length) {
+                const payload = {
+                    result: "error",
+                    messsage: `User ${newUserDetails.username} does not exist`,
+                    statusCode: 404,
+                };
+                socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
+                continue;
+            }
+
+            successfullyAddedUsers.push(updatedChatRoom.participants[0]);
+        }
+
+        if (!successfullyAddedUsers.length) {
+            const payload = {
+                result: "error",
+                message: "No new users were added to the group",
+                statusCode: 400,
+            };
+            socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
+            return;
+        }
+
+        const payload = {
+            result: "success",
+            newUsersDetails: successfullyAddedUsers,
+            statusCode: 200,
+        };
+
+        socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
     }
 
     async handleIncomingMessages(id: string, socket: WebSocket) {
