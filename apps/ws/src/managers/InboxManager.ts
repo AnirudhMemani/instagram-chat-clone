@@ -90,7 +90,7 @@ export class InboxManager {
             skip,
         });
 
-        const stringifiedDms = Dms.map((dm) => JSON.stringify(dm));
+        const stringifiedDms = Dms.map((dm: any) => JSON.stringify(dm));
 
         if (stringifiedDms.length > 0) {
             // Push the new messages to the head of the list
@@ -362,7 +362,7 @@ export class InboxManager {
         printlogs("Potential chat room details:", potentialChatRooms);
 
         const existingChatRoom = potentialChatRooms.find(
-            (room) => room.participants.length === participantsIds.length
+            (room: any) => room.participants.length === participantsIds.length
         );
 
         printlogs("Existing chat room details:", existingChatRoom);
@@ -853,7 +853,7 @@ export class InboxManager {
         printlogs("Potential chat room details:", potentialChatRooms);
 
         const existingChatRoom = potentialChatRooms.find(
-            (room) => room.participants.length === participantsIds.length
+            (room: any) => room.participants.length === participantsIds.length
         );
 
         printlogs("existingChatRoom", existingChatRoom);
