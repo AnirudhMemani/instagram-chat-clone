@@ -13,7 +13,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <ThemeProvider>
                 <BrowserRouter>
                     <App />
-                    <Toaster />
+                    <Toaster richColors />
                 </BrowserRouter>
             </ThemeProvider>
         </RecoilRoot>

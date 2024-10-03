@@ -1,12 +1,10 @@
-import { WebSocketServer } from "ws";
-import url, { fileURLToPath } from "url";
-import { validateUser } from "./utils/helper.js";
-import { connectToRedis } from "./redis/client.js";
-import { IUser } from "./managers/UserManager.js";
-import { InboxManager } from "./managers/InboxManager.js";
-import express from "express";
-import path from "path";
 import cloudinary from "cloudinary";
+import url from "url";
+import { WebSocketServer } from "ws";
+import { InboxManager } from "./managers/InboxManager.js";
+import { IUser } from "./managers/UserManager.js";
+import { connectToRedis } from "./redis/client.js";
+import { validateUser } from "./utils/helper.js";
 
 // const app = express();
 
@@ -36,7 +34,7 @@ wss.on("connection", function connection(socket, req) {
     const token = url.parse(req.url as string, true).query.token as string;
 
     if (!token) {
-        socket.terminate();
+        socket.close(1007, "Token not found");
         return;
     }
 
@@ -58,5 +56,5 @@ wss.on("connection", function connection(socket, req) {
 
     inboxManager.connectUser(userInfo);
 
-    socket.on("close", () => socket.terminate());
+    socket.on("close", () => socket.close());
 });

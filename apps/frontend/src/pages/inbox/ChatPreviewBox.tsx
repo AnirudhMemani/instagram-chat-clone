@@ -22,9 +22,7 @@ export const ChatPreviewBox: React.FC<TChatPreviewBoxProps> = ({
             <div className="flex gap-3 items-center">
                 <Avatar className="size-14">
                     <AvatarImage src={profilePic} />
-                    <AvatarFallback>
-                        {fullName.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
+                    <AvatarFallback>{fullName.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col gap-2">
                     <p

@@ -8,13 +8,7 @@ export interface IUserBarsProps extends TUsersSchema {
     onClick: () => void;
 }
 
-export const UserBars: React.FC<IUserBarsProps> = ({
-    fullName,
-    profilePic,
-    username,
-    isSelected = false,
-    onClick,
-}) => {
+export const UserBars: React.FC<IUserBarsProps> = ({ fullName, profilePic, username, isSelected = false, onClick }) => {
     return (
         <div
             className="w-full px-6 flex items-center cursor-pointer hover:bg-[rgba(30,41,59,0.5)] active:scale-[0.98] py-2"
@@ -23,9 +17,7 @@ export const UserBars: React.FC<IUserBarsProps> = ({
             <div className="w-full flex items-center gap-3 flex-grow">
                 <Avatar className="size-12">
                     <AvatarImage src={profilePic} />
-                    <AvatarFallback>
-                        {fullName.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
+                    <AvatarFallback>{fullName.slice(0, 2).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="text-sm">
                     <p>{fullName}</p>
@@ -38,13 +30,7 @@ export const UserBars: React.FC<IUserBarsProps> = ({
                     !isSelected && "bg-transparent p-3"
                 )}
             >
-                <Check
-                    className={cn(
-                        isSelected
-                            ? "size-6 bg-secondary rounded-full border border-input"
-                            : "hidden"
-                    )}
-                />
+                <Check className={cn(isSelected ? "size-6 bg-secondary rounded-full border border-input" : "hidden")} />
             </div>
         </div>
     );

@@ -1,5 +1,5 @@
-import WebSocket from "ws";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import WebSocket from "ws";
 import { env } from "./constants.js";
 
 export const validateUser = (token: string, socket: WebSocket) => {
@@ -8,10 +8,10 @@ export const validateUser = (token: string, socket: WebSocket) => {
         if (decodedToken) {
             return decodedToken;
         }
-        socket.terminate();
+        socket.close(1007, "Couldn't verify the token");
     } catch (error) {
         console.error(error);
-        socket.terminate();
+        socket.close(1007, "Couldn't verify the token");
     }
 };
 

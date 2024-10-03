@@ -16,7 +16,7 @@ export const getMessageAge = (messageSentAt: string) => {
 
 export const env = {
     SERVER_URL: import.meta.env.VITE_PROD_URL || "http://localhost:3000",
-    WS_BACKEND_URL: import.meta.env.WS_BACKEND_URL || "ws://localhost:8080",
+    WS_BACKEND_URL: import.meta.env.VITE_WS_BACKEND_URL || "ws://localhost:8080",
 } as const;
 
 const attachUrl = (path: string) => {

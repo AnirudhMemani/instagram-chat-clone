@@ -9,9 +9,7 @@ const DarkModeToggle: React.FC = (): JSX.Element => {
             aria-haspopup="menu"
             aria-expanded="false"
             data-state="closed"
-            onClick={() =>
-                theme === "dark" ? setTheme("light") : setTheme("dark")
-            }
+            onClick={() => (theme === "dark" ? setTheme("light") : setTheme("dark"))}
         >
             <svg
                 width="15"

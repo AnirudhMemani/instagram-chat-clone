@@ -9,12 +9,9 @@ type ImageModalProps = {
 const Modal: React.FC<ImageModalProps> = ({ children, open }): JSX.Element => {
     return (
         <div
-            className={cn(
-                "fixed z-10 overflow-y-auto top-0 w-full left-0 dark:bg-slate-950",
-                {
-                    hidden: !open,
-                }
-            )}
+            className={cn("fixed z-10 overflow-y-auto top-0 w-full left-0 dark:bg-slate-950", {
+                hidden: !open,
+            })}
             id="modal"
         >
             <div className="flex items-center justify-center min-height-100vh pt-4 px-4 pb-20 text-center sm:block sm:p-0">

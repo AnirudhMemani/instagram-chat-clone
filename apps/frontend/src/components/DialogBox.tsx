@@ -38,19 +38,10 @@ export const DialogBox: React.FC<TDialogBoxProps> = ({
                 <AlertDialogHeader>
                     <AlertDialogTitle>{title}</AlertDialogTitle>
                 </AlertDialogHeader>
-                {description && (
-                    <AlertDialogDescription>
-                        {description}
-                    </AlertDialogDescription>
-                )}
+                {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
                 <AlertDialogFooter>
-                    <AlertDialogCancel onClick={negativeOnClick}>
-                        {negativeTitle}
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                        onClick={positiveOnClick}
-                        className={PositiveButtonStyles}
-                    >
+                    <AlertDialogCancel onClick={negativeOnClick}>{negativeTitle}</AlertDialogCancel>
+                    <AlertDialogAction onClick={positiveOnClick} className={PositiveButtonStyles}>
                         {positiveTitle}
                     </AlertDialogAction>
                 </AlertDialogFooter>

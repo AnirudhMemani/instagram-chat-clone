@@ -33,17 +33,13 @@ const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
                 <Home
                     className="size-10 cursor-pointer active:brightness-50 select-none"
                     aria-disabled={isLoading}
-                    onClick={() =>
-                        navigate(NavigationRoutes.Inbox, { replace: true })
-                    }
+                    onClick={() => navigate(NavigationRoutes.Inbox, { replace: true })}
                 />
                 <DropdownMenu>
                     <DropdownMenuTrigger disabled={isLoading}>
                         <Avatar className="select-none">
                             <AvatarImage src={user.profilePic} />
-                            <AvatarFallback>
-                                {user.username.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
+                            <AvatarFallback>{user.username.slice(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
@@ -53,9 +49,7 @@ const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
                             <DialogBox
                                 title="Are you sure you want to logout?"
                                 positiveTitle="Logout"
-                                positiveOnClick={() =>
-                                    handleUserLogout(navigate)
-                                }
+                                positiveOnClick={() => handleUserLogout(navigate)}
                             >
                                 <Button
                                     variant="outline"

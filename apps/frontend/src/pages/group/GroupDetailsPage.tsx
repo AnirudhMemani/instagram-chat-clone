@@ -16,13 +16,9 @@ import { useNavigate } from "react-router-dom";
 import { useRecoilState, useSetRecoilState } from "recoil";
 import { toast } from "sonner";
 
-const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
-    socket,
-}): JSX.Element => {
+const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): JSX.Element => {
     const defaultGroupImageFile = new File(
-        [
-            "https://res.cloudinary.com/dtbyy0w95/image/upload/v1716144011/default-group-image_eopbih.png",
-        ],
+        ["https://res.cloudinary.com/dtbyy0w95/image/upload/v1716144011/default-group-image_eopbih.png"],
         "default-group-image.png"
     );
 
@@ -31,8 +27,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
     const [previewImage, setPreviewImage] = useState<string>(
         "https://res.cloudinary.com/dtbyy0w95/image/upload/v1716144011/default-group-image_eopbih.png"
     );
-    const [isCropModalVisible, setIsCropModalVisible] =
-        useState<boolean>(false);
+    const [isCropModalVisible, setIsCropModalVisible] = useState<boolean>(false);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
     const [selectedUsers, setSelectedUsers] = useRecoilState(selectedUsersAtom);
@@ -84,9 +79,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
         };
     }, [socket]);
 
-    const handleGroupImageChange = async (
-        e: React.ChangeEvent<HTMLInputElement>
-    ) => {
+    const handleGroupImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.length) {
             return;
         }
@@ -170,10 +163,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                         className="absolute opacity-0 w-full h-full peer z-20 cursor-pointer"
                         disabled={isSubmitting}
                     />
-                    <img
-                        src={previewImage}
-                        className="object-cover object-center opacity-40"
-                    />
+                    <img src={previewImage} className="object-cover object-center opacity-40" />
                     <div
                         className={cn(
                             "absolute text-black hover:opacity-100 font-medium flex flex-col items-center justify-center",
@@ -207,24 +197,12 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({
                                 className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden flex justify-center items-center"
                                 key={user.id}
                             >
-                                <img
-                                    className="object-center object-cover"
-                                    src={user.profilePic}
-                                />
+                                <img className="object-center object-cover" src={user.profilePic} />
                             </div>
                         ))}
                 </div>
-                <Button
-                    className="w-full"
-                    type="submit"
-                    disabled={isSubmitting}
-                    variant="secondary"
-                >
-                    {isSubmitting ? (
-                        <Loader visible={isSubmitting} />
-                    ) : (
-                        "Create"
-                    )}
+                <Button className="w-full" type="submit" disabled={isSubmitting} variant="secondary">
+                    {isSubmitting ? <Loader visible={isSubmitting} /> : "Create"}
                 </Button>
             </form>
             <CropModal

@@ -14,14 +14,8 @@ export const CropModal: React.FC<TCropModalProps> = ({
     handleDone,
 }): JSX.Element => {
     return (
-        <Modal
-            open={isModalVisible}
-            handleClose={() => setIsModalVisible(false)}
-        >
-            <ImageCropModalContent
-                handleDone={handleDone}
-                handleClose={() => setIsModalVisible(false)}
-            />
+        <Modal open={isModalVisible} handleClose={() => setIsModalVisible(false)}>
+            <ImageCropModalContent handleDone={handleDone} handleClose={() => setIsModalVisible(false)} />
         </Modal>
     );
 };

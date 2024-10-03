@@ -91,11 +91,7 @@ export const EditModal: React.FC<TEditModalProps> = ({
                         )}
                     </div>
                     <DialogFooter>
-                        <Button
-                            type="submit"
-                            disabled={disabled}
-                            variant="secondary"
-                        >
+                        <Button type="submit" disabled={disabled} variant="secondary">
                             {submitLabel ?? "Save changes"}
                         </Button>
                     </DialogFooter>

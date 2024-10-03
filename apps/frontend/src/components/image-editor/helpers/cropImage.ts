@@ -26,12 +26,8 @@ export function rotateSize(width: number, height: number, rotation: number) {
     const rotRad = getRadianAngle(rotation);
 
     return {
-        width:
-            Math.abs(Math.cos(rotRad) * width) +
-            Math.abs(Math.sin(rotRad) * height),
-        height:
-            Math.abs(Math.sin(rotRad) * width) +
-            Math.abs(Math.cos(rotRad) * height),
+        width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
+        height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
     };
 }
 
@@ -64,11 +60,7 @@ const getCroppedImg: GetCroppedImgParams = async (
     const rotRad = getRadianAngle(rotation);
 
     // calculate bounding box of the rotated image
-    const { width: bBoxWidth, height: bBoxHeight } = rotateSize(
-        image.width,
-        image.height,
-        rotation
-    );
+    const { width: bBoxWidth, height: bBoxHeight } = rotateSize(image.width, image.height, rotation);
 
     // set canvas size to match the bounding box
     canvas.width = bBoxWidth;
@@ -85,12 +77,7 @@ const getCroppedImg: GetCroppedImgParams = async (
 
     // croppedAreaPixels values are bounding box relative
     // extract the cropped image using these values
-    const data = ctx.getImageData(
-        pixelCrop.x,
-        pixelCrop.y,
-        pixelCrop.width!,
-        pixelCrop.height!
-    );
+    const data = ctx.getImageData(pixelCrop.x, pixelCrop.y, pixelCrop.width!, pixelCrop.height!);
 
     // set canvas width to final desired crop size - this will clear existing context
     canvas.width = pixelCrop.width!;

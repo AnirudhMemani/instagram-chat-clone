@@ -20,9 +20,7 @@ const ImageCrop = () => {
 
     type ThandleFileChange = React.ChangeEvent<HTMLInputElement>;
 
-    const handleFileChange = async ({
-        target: { files },
-    }: ThandleFileChange) => {
+    const handleFileChange = async ({ target: { files } }: ThandleFileChange) => {
         const file = files && files[0];
         if (!file) {
             return;
@@ -34,28 +32,13 @@ const ImageCrop = () => {
 
     return (
         <div className="bg-gray-100 h-screen flex justify-center items-center">
-            <input
-                type="file"
-                onChange={handleFileChange}
-                className="hidden"
-                id="avatarInput"
-                accept="image/*"
-            />
+            <input type="file" onChange={handleFileChange} className="hidden" id="avatarInput" accept="image/*" />
             <label htmlFor="avatarInput" className="cursor-pointer">
-                <img
-                    src={preview}
-                    height={192}
-                    width={192}
-                    className="object-cover rounded-full h-48 w-48"
-                    alt=""
-                />
+                <img src={preview} height={192} width={192} className="object-cover rounded-full h-48 w-48" alt="" />
             </label>
 
             <Modal open={openModal} handleClose={() => setOpenModal(false)}>
-                <ImageCropModalContent
-                    handleDone={handleDone}
-                    handleClose={() => setOpenModal(false)}
-                />
+                <ImageCropModalContent handleDone={handleDone} handleClose={() => setOpenModal(false)} />
             </Modal>
         </div>
     );

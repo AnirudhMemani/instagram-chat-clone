@@ -9,17 +9,12 @@ type TImageCropModalContentProps = {
     handleClose: () => void;
 };
 
-const ImageCropModalContent: React.FC<TImageCropModalContentProps> = ({
-    handleDone,
-    handleClose,
-}) => {
+const ImageCropModalContent: React.FC<TImageCropModalContentProps> = ({ handleDone, handleClose }) => {
     const { setImage } = useImageCropContext();
 
     type ThandleFileChange = React.ChangeEvent<HTMLInputElement>;
 
-    const handleFileChange = async ({
-        target: { files },
-    }: ThandleFileChange) => {
+    const handleFileChange = async ({ target: { files } }: ThandleFileChange) => {
         const file = files && files[0];
         if (!file) {
             return;
@@ -30,9 +25,7 @@ const ImageCropModalContent: React.FC<TImageCropModalContentProps> = ({
 
     return (
         <div className="text-center relative">
-            <h5 className="text-gray-800 dark:text-white mb-4">
-                Edit profile picture
-            </h5>
+            <h5 className="text-gray-800 dark:text-white mb-4">Edit profile picture</h5>
             <div className="border dark:border-gray-700 border-white p-6 rounded-lg">
                 <div className="flex justify-center">
                     <div className="crop-container mb-4">
@@ -50,21 +43,14 @@ const ImageCropModalContent: React.FC<TImageCropModalContentProps> = ({
                     accept="image/*"
                 />
 
-                <Button
-                    variant="secondary"
-                    className="shadow w-full mb-4 hover:shadow-lg"
-                >
+                <Button variant="secondary" className="shadow w-full mb-4 hover:shadow-lg">
                     <label htmlFor="avatarInput">Upload Another Picture</label>
                 </Button>
                 <div className="flex gap-2">
                     <Button variant="destructive" onClick={handleClose}>
                         Cancel
                     </Button>
-                    <Button
-                        variant="secondary"
-                        className="w-full"
-                        onClick={handleDone}
-                    >
+                    <Button variant="secondary" className="w-full" onClick={handleDone}>
                         Done & Save
                     </Button>
                 </div>

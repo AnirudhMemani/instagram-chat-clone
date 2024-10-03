@@ -1,5 +1,6 @@
 import { processUserSignup } from "@/api/signup-api";
 import { CustomInput } from "@/components/CustomInput";
+import { Loader } from "@/components/Loader";
 import { CropModal } from "@/components/image-editor/CropModal";
 import { useImageCropContext } from "@/components/image-editor/ImageCropProvider";
 import { readFile } from "@/components/image-editor/helpers/cropImage";
@@ -17,7 +18,6 @@ import { ArrowUpRight, Eye, EyeOff } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useSetRecoilState } from "recoil";
-import { Loader } from "@/components/Loader";
 
 const Signup: React.FC = (): JSX.Element => {
     const token = localStorageUtils.getToken();
@@ -75,9 +75,7 @@ const Signup: React.FC = (): JSX.Element => {
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 if (error.response?.status === StatusCodes.BadRequest) {
-                    const message =
-                        JSON.parse(error.response?.data.message).pop()
-                            .message || "Bad Request!";
+                    const message = JSON.parse(error.response?.data.message).pop().message || "Bad Request!";
                     setError(message);
                 } else if (error.response?.status === StatusCodes.Conflict) {
                     setError("Username or Email already exists!");
@@ -102,9 +100,7 @@ const Signup: React.FC = (): JSX.Element => {
 
     type ThandleFileChange = React.ChangeEvent<HTMLInputElement>;
 
-    const handleFileChange = async ({
-        target: { files },
-    }: ThandleFileChange) => {
+    const handleFileChange = async ({ target: { files } }: ThandleFileChange) => {
         const file = files && files[0];
 
         if (!file) {
@@ -122,17 +118,10 @@ const Signup: React.FC = (): JSX.Element => {
             <div className="flex flex-col gap-8 justify-center py-10 px-16 border border-input rounded-lg">
                 <div className="flex flex-col space-y-3 items-center justify-center">
                     <img />
-                    <h1 className="text-bold text-3xl text-center">
-                        Sign up to get started
-                    </h1>
-                    <p className="text-sm text-[#6c6c89] text-center">
-                        Welcome! Please enter your details.
-                    </p>
+                    <h1 className="text-bold text-3xl text-center">Sign up to get started</h1>
+                    <p className="text-sm text-[#6c6c89] text-center">Welcome! Please enter your details.</p>
                 </div>
-                <form
-                    className="grid w-full max-w-sm items-center space-y-6"
-                    onSubmit={handleUserSignup}
-                >
+                <form className="grid w-full max-w-sm items-center space-y-6" onSubmit={handleUserSignup}>
                     <div className="grid w-full space-y-4 max-w-sm items-center">
                         <CustomInput
                             type="email"
@@ -166,6 +155,7 @@ const Signup: React.FC = (): JSX.Element => {
                             label="Username"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
+                            autoComplete="off"
                         />
                         <CustomInput
                             type={isPasswordVisible ? "text" : "password"}
@@ -179,16 +169,11 @@ const Signup: React.FC = (): JSX.Element => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             rightIcon={isPasswordVisible ? EyeOff : Eye}
-                            rightIconOnClick={() =>
-                                setIsPasswordVisible((p) => !p)
-                            }
+                            rightIconOnClick={() => setIsPasswordVisible((p) => !p)}
+                            autoComplete="new-password"
                         />
                         {preview && (
-                            <img
-                                src={preview}
-                                className="object-cover rounded-full h-32 w-32 mx-auto"
-                                alt=""
-                            />
+                            <img src={preview} className="object-cover rounded-full h-32 w-32 mx-auto" alt="" />
                         )}
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="picture">Profile Photo</Label>
@@ -207,10 +192,7 @@ const Signup: React.FC = (): JSX.Element => {
                             </div>
                         </div>
                         {error && (
-                            <p
-                                className="font-medium text-destructive"
-                                id="error"
-                            >
+                            <p className="font-medium text-destructive" id="error">
                                 {error}
                             </p>
                         )}
@@ -224,22 +206,12 @@ const Signup: React.FC = (): JSX.Element => {
                             Accept terms and conditions
                         </label>
                     </div>
-                    <Button
-                        type="submit"
-                        disabled={isLoading}
-                        variant="secondary"
-                    >
-                        {!isLoading ? (
-                            "Sign up"
-                        ) : (
-                            <Loader visible={isLoading} />
-                        )}
+                    <Button type="submit" disabled={isLoading} variant="secondary">
+                        {!isLoading ? "Sign up" : <Loader visible={isLoading} />}
                     </Button>
                 </form>
                 <div className="flex items-center justify-center gap-2">
-                    <p className="text-center text-sm">
-                        Already have an account?{" "}
-                    </p>
+                    <p className="text-center text-sm">Already have an account? </p>
                     <Link
                         to={NavigationRoutes.Login}
                         className={cn(
@@ -253,11 +225,7 @@ const Signup: React.FC = (): JSX.Element => {
                     </Link>
                 </div>
             </div>
-            <CropModal
-                handleDone={handleDone}
-                isModalVisible={isModalVisible}
-                setIsModalVisible={setIsModalVisible}
-            />
+            <CropModal handleDone={handleDone} isModalVisible={isModalVisible} setIsModalVisible={setIsModalVisible} />
         </section>
     );
 };

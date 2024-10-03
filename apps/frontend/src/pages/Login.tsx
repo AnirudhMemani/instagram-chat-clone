@@ -46,11 +46,7 @@ const Login: React.FC = (): JSX.Element => {
                 setError(messageArray?.[0].message || "");
                 return;
             }
-            const response = await processUserLogin(
-                credentials,
-                password,
-                navigate
-            );
+            const response = await processUserLogin(credentials, password, navigate);
             if (response) {
                 localStorageUtils.setLoginResponse(response);
                 setUser({
@@ -70,9 +66,7 @@ const Login: React.FC = (): JSX.Element => {
                     setError("Bad Request!");
                 } else if (error.response?.status === StatusCodes.NotFound) {
                     setError("Account does not exist. Please sign up");
-                } else if (
-                    error.response?.status === StatusCodes.Unauthorized
-                ) {
+                } else if (error.response?.status === StatusCodes.Unauthorized) {
                     setError("Invalid Credentials");
                 } else {
                     setError("Unknown error occured");
@@ -89,17 +83,10 @@ const Login: React.FC = (): JSX.Element => {
         <section className="h-dvh w-full flex items-center justify-center">
             <div className="flex flex-col gap-8 justify-center p-16 border border-input rounded-lg">
                 <div className="flex flex-col space-y-3 items-center justify-center">
-                    <h1 className="text-bold text-3xl text-center">
-                        Sign in to your account
-                    </h1>
-                    <p className="text-sm text-[#6c6c89] text-center">
-                        Welcome back! Please enter your details.
-                    </p>
+                    <h1 className="text-bold text-3xl text-center">Sign in to your account</h1>
+                    <p className="text-sm text-[#6c6c89] text-center">Welcome back! Please enter your details.</p>
                 </div>
-                <form
-                    onSubmit={handleUserLogin}
-                    className="grid w-full max-w-sm items-center space-y-6"
-                >
+                <form onSubmit={handleUserLogin} className="grid w-full max-w-sm items-center space-y-6">
                     <div className="grid w-full space-y-4 max-w-sm items-center">
                         <CustomInput
                             type="text"
@@ -124,35 +111,20 @@ const Login: React.FC = (): JSX.Element => {
                             onChange={(e) => setPassword(e.target.value)}
                             value={password}
                             rightIcon={isPasswordVisible ? EyeOff : Eye}
-                            rightIconOnClick={() =>
-                                setIsPasswordVisible((p) => !p)
-                            }
+                            rightIconOnClick={() => setIsPasswordVisible((p) => !p)}
                         />
                         {error && (
-                            <p
-                                className="font-medium text-destructive text-xs"
-                                id="error"
-                            >
+                            <p className="font-medium text-destructive text-xs" id="error">
                                 {error}
                             </p>
                         )}
                     </div>
-                    <Button
-                        variant="secondary"
-                        type="submit"
-                        disabled={isLoading}
-                    >
-                        {!isLoading ? (
-                            "Sign in"
-                        ) : (
-                            <Loader visible={isLoading} />
-                        )}
+                    <Button variant="secondary" type="submit" disabled={isLoading}>
+                        {!isLoading ? "Sign in" : <Loader visible={isLoading} />}
                     </Button>
                 </form>
                 <div className="flex items-center justify-center gap-2">
-                    <p className="text-center text-sm">
-                        Don't have an account?{" "}
-                    </p>
+                    <p className="text-center text-sm">Don't have an account? </p>
                     <Link
                         to={NavigationRoutes.Signup}
                         className={cn(

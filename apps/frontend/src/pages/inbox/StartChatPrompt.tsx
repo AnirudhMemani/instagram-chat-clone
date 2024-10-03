@@ -31,16 +31,10 @@ export const StartChatPrompt: React.FC<TChatProps> = (): JSX.Element => {
                         <div className="flex flex-col items-center justify-center gap-1">
                             <h1 className="text-xl">Your Messages</h1>
                             <p className="text-gray-400 text-sm">
-                                Send private photos and messages to a friend or
-                                group
+                                Send private photos and messages to a friend or group
                             </p>
                         </div>
-                        <Button
-                            variant="secondary"
-                            onClick={() =>
-                                setIsChatModalVisible({ visible: true })
-                            }
-                        >
+                        <Button variant="secondary" onClick={() => setIsChatModalVisible({ visible: true })}>
                             Send message
                         </Button>
                     </>

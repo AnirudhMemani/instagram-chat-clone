@@ -58,16 +58,11 @@ const ImageCropProvider: React.FC<ImageCropProviderProps> = ({
     const [crop, setCrop] = useState(defaultCrop);
     const [rotation, setRotation] = useState(defaultRotation);
     const [zoom, setZoom] = useState(defaultZoom);
-    const [croppedAreaPixels, setCroppedAreaPixels] = useState(
-        defaultCroppedAreaPixels
-    );
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState(defaultCroppedAreaPixels);
 
-    const onCropComplete = useCallback(
-        (_croppedArea: any, croppedAreaPixels: any) => {
-            setCroppedAreaPixels(croppedAreaPixels);
-        },
-        []
-    );
+    const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+    }, []);
 
     const handleZoomIn = () => {
         if (zoom < max_zoom) {
@@ -91,23 +86,15 @@ const ImageCropProvider: React.FC<ImageCropProviderProps> = ({
 
     const getProcessedImage = async () => {
         if (image && croppedAreaPixels) {
-            const croppedImage = await getCroppedImg(
-                image,
-                croppedAreaPixels,
-                rotation
-            );
+            const croppedImage = await getCroppedImg(image, croppedAreaPixels, rotation);
 
             if (!croppedImage?.file) {
                 return;
             }
 
-            const imageFile = new File(
-                [croppedImage.file],
-                `img-${Date.now()}.png`,
-                {
-                    type: "image/png",
-                }
-            );
+            const imageFile = new File([croppedImage.file], `img-${Date.now()}.png`, {
+                type: "image/png",
+            });
             return imageFile;
         }
     };

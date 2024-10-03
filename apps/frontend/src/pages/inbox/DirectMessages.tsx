@@ -28,9 +28,7 @@ interface IUserDms {
     latestMessage: ILatestMessage;
 }
 
-const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({
-    socket,
-}): JSX.Element => {
+const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({ socket }): JSX.Element => {
     const [dm, setDm] = useState<IUserDms[]>([]);
     const user = useRecoilValue(userAtom);
     // @ts-ignore

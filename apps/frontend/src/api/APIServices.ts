@@ -1,9 +1,5 @@
 import { env, handleUserLogout } from "@/utils/constants";
-import axios, {
-    Axios,
-    AxiosRequestConfig,
-    InternalAxiosRequestConfig,
-} from "axios";
+import axios, { Axios, AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
 import { NavigateFunction } from "react-router-dom";
 
 const API_TIMEOUT = 10 * 1000;
@@ -56,26 +52,15 @@ export class APIServices {
         return await this.axiosInstance.get(url, config);
     };
 
-    post = async (
-        url: string,
-        body?: any,
-        config?: AxiosRequestConfig<any> | undefined
-    ) => {
+    post = async (url: string, body?: any, config?: AxiosRequestConfig<any> | undefined) => {
         return await this.axiosInstance.post(url, body, config);
     };
 
-    delete = async (
-        url: string,
-        config?: AxiosRequestConfig<any> | undefined
-    ) => {
+    delete = async (url: string, config?: AxiosRequestConfig<any> | undefined) => {
         return await this.axiosInstance.delete(url, config);
     };
 
-    update = async (
-        url: string,
-        body?: any,
-        config?: AxiosRequestConfig<any> | undefined
-    ) => {
+    update = async (url: string, body?: any, config?: AxiosRequestConfig<any> | undefined) => {
         return await this.axiosInstance.put(url, body, config);
     };
 }

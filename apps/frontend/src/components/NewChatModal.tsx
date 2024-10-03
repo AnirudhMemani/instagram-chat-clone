@@ -4,11 +4,7 @@ import { isChatModalVisibleAtom } from "@/state/global";
 import { selectedUsersAtom, userAtom } from "@/state/user";
 import { NavigationRoutes } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
-import {
-    ADD_TO_CHAT,
-    FIND_USERS,
-    ROOM_EXISTS,
-} from "@instachat/messages/messages";
+import { ADD_TO_CHAT, FIND_USERS, ROOM_EXISTS } from "@instachat/messages/messages";
 import { IMessage } from "@instachat/messages/types";
 import { X } from "lucide-react";
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
@@ -38,19 +34,14 @@ type TAllUsersSchema = {
     profilePic: string;
 };
 
-export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
-    socket,
-}): JSX.Element => {
+export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket }): JSX.Element => {
     const [searchInput, setSearchInput] = useState<string>("");
     const [usersData, setUsersData] = useState<TUsersSchema[]>();
-    const [filteredUsers, setFilteredUsers] =
-        useState<Omit<IUserBarsProps, "onClick">[]>();
+    const [filteredUsers, setFilteredUsers] = useState<Omit<IUserBarsProps, "onClick">[]>();
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-    const [isChatModalVisible, setIsChatModalVisible] = useRecoilState(
-        isChatModalVisibleAtom
-    );
+    const [isChatModalVisible, setIsChatModalVisible] = useRecoilState(isChatModalVisibleAtom);
     const [selectedUsers, setSelectedUsers] = useRecoilState(selectedUsersAtom);
     const [chatRoomDetails, setChatRoomDetails] = useRecoilState(chatRoomAtom);
     const setGroupDetails = useSetRecoilState(groupAtom);
@@ -76,14 +67,9 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                         printlogs("chatRoomDetails", chatRoomDetails);
                         printlogs("payload", payload);
                         const data =
-                            chatRoomDetails?.participants.length &&
-                            isChatModalVisible.type === "ADD_USERS"
-                                ? (payload as TAllUsersSchema[]).filter(
-                                      (user) =>
-                                          chatRoomDetails.participants.every(
-                                              (participant) =>
-                                                  participant.id !== user.id
-                                          )
+                            chatRoomDetails?.participants.length && isChatModalVisible.type === "ADD_USERS"
+                                ? (payload as TAllUsersSchema[]).filter((user) =>
+                                      chatRoomDetails.participants.every((participant) => participant.id !== user.id)
                                   )
                                 : payload;
                         printlogs("User data inside modal:", data);
@@ -99,10 +85,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                             return;
                         }
 
-                        if (
-                            payload.result === "created" ||
-                            payload.result === "exists"
-                        ) {
+                        if (payload.result === "created" || payload.result === "exists") {
                             console.log("\n\nROOM_EXISTS PAYLOAD:", payload);
                             setChatRoomDetails(() => ({
                                 id: payload.chatRoomId,
@@ -131,10 +114,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                         if (payload.result === "error") {
                             switch (payload.statusCode) {
                                 case 400:
-                                    printlogs(
-                                        "Error trying to add new member",
-                                        payload.message
-                                    );
+                                    printlogs("Error trying to add new member", payload.message);
                                     toast.error(
                                         "Invalid request. Please contact the owner or the developer of this website"
                                     );
@@ -155,21 +135,21 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                             return;
                         }
 
-                        if (payload.result === "success") {
+                        if (payload.result === "success" && payload?.newUsersDetails?.length) {
                             setChatRoomDetails((prev) => {
-                                printlogs("before adding new user:", prev);
-                                payload?.newUsersDetails?.length &&
-                                    payload?.newUsersDetails?.map((user: any) =>
-                                        prev?.participants.push({
-                                            id: user?.id,
-                                            username: user?.username,
-                                            fullName: user?.fullName,
-                                            profilePic: user?.profilePic,
-                                        })
-                                    );
-                                printlogs("after adding new user:", prev);
+                                if (prev) {
+                                    const newUsersDetails = payload.newUsersDetails.map((user: any) => ({
+                                        id: user.id,
+                                        username: user.username,
+                                        fullName: user.fullName,
+                                        profilePic: user.profilePic,
+                                    }));
+                                    return { ...prev, participants: [...prev?.participants, ...newUsersDetails] };
+                                }
                                 return prev;
                             });
+
+                            setIsChatModalVisible({ visible: false });
                         }
                         break;
                     default:
@@ -264,10 +244,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
 
     useEffect(() => {
         const handleModalClose = (event: MouseEvent) => {
-            if (
-                modalContainerRef.current &&
-                !modalContainerRef.current.contains(event.target as Node)
-            ) {
+            if (modalContainerRef.current && !modalContainerRef.current.contains(event.target as Node)) {
                 setIsChatModalVisible({ visible: false });
                 setSearchInput("");
                 setSelectedUsers([]);
@@ -284,25 +261,19 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
     const filterUsers = (users: TUsersSchema[], searchQuery: string) => {
         const filteredUserData = users.filter(
             (user) =>
-                user.fullName
-                    .toLowerCase()
-                    .includes(searchQuery.toLowerCase()) ||
+                user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 user.username.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
         setFilteredUsers(
             filteredUserData.map((user) => ({
                 ...user,
-                isSelected: selectedUsers.some(
-                    (selectedUser) => user.id === selectedUser.id
-                ),
+                isSelected: selectedUsers.some((selectedUser) => user.id === selectedUser.id),
             }))
         );
     };
 
-    const searchInputChangeHandler = async (
-        e: ChangeEvent<HTMLInputElement>
-    ) => {
+    const searchInputChangeHandler = async (e: ChangeEvent<HTMLInputElement>) => {
         const searchQuery = e.target.value;
         setSearchInput(searchQuery);
 
@@ -311,15 +282,9 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
         }
     };
 
-    const handleUserSelection = (
-        id: string,
-        fullName: string,
-        profilePic: string
-    ) => {
+    const handleUserSelection = (id: string, fullName: string, profilePic: string) => {
         setSelectedUsers((p) =>
-            p.some((user) => user.id === id)
-                ? p.filter((user) => user.id !== id)
-                : [...p, { id, fullName, profilePic }]
+            p.some((user) => user.id === id) ? p.filter((user) => user.id !== id) : [...p, { id, fullName, profilePic }]
         );
         setSearchInput("");
     };
@@ -383,9 +348,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                 ref={modalContainerRef}
             >
                 <div className="flex items-center mb-3 justify-center">
-                    <h1 className="text-center flex-grow font-bold">
-                        New Message
-                    </h1>
+                    <h1 className="text-center flex-grow font-bold">New Message</h1>
                     <X
                         className="size-6 mr-6 cursor-pointer"
                         onClick={() => {
@@ -423,9 +386,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                 </div>
                 <div className="flex flex-col w-full gap-1 pt-5 flex-grow overflow-y-scroll scrollbar mb-4">
                     {searchInput ? (
-                        !isLoading &&
-                        filteredUsers &&
-                        filteredUsers.length > 0 ? (
+                        !isLoading && filteredUsers && filteredUsers.length > 0 ? (
                             filteredUsers.map((user) => (
                                 <React.Fragment key={user.id}>
                                     <UserBars
@@ -433,19 +394,12 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                                         fullName={user.fullName}
                                         username={user.username}
                                         profilePic={user.profilePic}
-                                        isSelected={selectedUsers.some(
-                                            (selectedUser) =>
-                                                selectedUser.id === user.id
-                                        )}
+                                        isSelected={selectedUsers.some((selectedUser) => selectedUser.id === user.id)}
                                         onClick={() => {
                                             if (isLoading) {
                                                 return;
                                             }
-                                            handleUserSelection(
-                                                user.id,
-                                                user.fullName,
-                                                user.profilePic
-                                            );
+                                            handleUserSelection(user.id, user.fullName, user.profilePic);
                                         }}
                                     />
                                 </React.Fragment>
@@ -467,18 +421,10 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({
                     <Button
                         className="w-full mx-6"
                         disabled={selectedUsers.length === 0 || isSubmitting}
-                        onClick={
-                            isChatModalVisible.type === "ADD_USERS"
-                                ? addNewUserToChatRoom
-                                : initiateNewChat
-                        }
+                        onClick={isChatModalVisible.type === "ADD_USERS" ? addNewUserToChatRoom : initiateNewChat}
                         variant="secondary"
                     >
-                        {!isSubmitting ? (
-                            "Chat"
-                        ) : (
-                            <Loader visible={isSubmitting} />
-                        )}
+                        {!isSubmitting ? "Chat" : <Loader visible={isSubmitting} />}
                     </Button>
                 </div>
             </div>

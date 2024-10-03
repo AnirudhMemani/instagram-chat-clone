@@ -20,18 +20,9 @@ const ProtectedRoutes = () => {
             <DirectMessage socket={socket} />
             <Routes>
                 <Route path={NavigationRoutes.Inbox} element={<Inbox />} />
-                <Route
-                    path={NavigationRoutes.DM}
-                    element={<ChatRoom socket={socket} />}
-                />
-                <Route
-                    path={NavigationRoutes.CreateNewGroup}
-                    element={<GroupDetailsPage socket={socket} />}
-                />
-                <Route
-                    path="*"
-                    element={<Navigate to={NavigationRoutes.Inbox} replace />}
-                />
+                <Route path={NavigationRoutes.DM} element={<ChatRoom socket={socket} />} />
+                <Route path={NavigationRoutes.CreateNewGroup} element={<GroupDetailsPage socket={socket} />} />
+                <Route path="*" element={<Navigate to={NavigationRoutes.Inbox} replace />} />
             </Routes>
             {isChatModalVisible.visible && <NewChatModal socket={socket} />}
         </div>

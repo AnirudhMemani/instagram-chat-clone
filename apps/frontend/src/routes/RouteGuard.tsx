@@ -19,8 +19,7 @@ const RouteGuard = ({ children }: { children?: React.ReactNode }) => {
         navigateToLoginScreen();
     }
 
-    const [isAuthenticated, setIsAuthenticated] =
-        useRecoilState(isAuthenticatedAtom);
+    const [isAuthenticated, setIsAuthenticated] = useRecoilState(isAuthenticatedAtom);
     const setIsLoading = useSetRecoilState(isLoadingAtom);
 
     const authenticateUser = async () => {
