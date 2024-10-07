@@ -1,4 +1,11 @@
 cd apps/frontend
 npx lint-staged
 
+cd ../backend
+npx lint-staged
+
+cd ../ws
+npx lint-staged
+
+cd ../..
 git add .

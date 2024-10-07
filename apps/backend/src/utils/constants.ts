@@ -31,8 +31,7 @@ export const HTTPStatusCode = {
     GatewayTiemout: 504,
 } as const;
 
-export type typeofHTTPStatusCode =
-    (typeof HTTPStatusCode)[keyof typeof HTTPStatusCode];
+export type typeofHTTPStatusCode = (typeof HTTPStatusCode)[keyof typeof HTTPStatusCode];
 
 export class HTTPMessages {
     static BAD_REQUEST = "Bad Request";

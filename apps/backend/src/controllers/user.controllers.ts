@@ -1,40 +1,20 @@
 import expressAsyncHandler from "express-async-handler";
 import z from "zod";
-import {
-    getAllUserData,
-    saveUserInfo,
-    validateUser,
-} from "../services/user.services.js";
-import {
-    BadRequestException,
-    InternalServerError,
-} from "../middlewares/GlobalErrorHandler.js";
+import { getAllUserData, saveUserInfo, validateUser } from "../services/user.services.js";
+import { BadRequestException, InternalServerError } from "../middlewares/GlobalErrorHandler.js";
 import cloudinary from "cloudinary";
 import { Readable } from "stream";
 
-const ACCEPTED_IMAGE_TYPES = [
-    "image/jpeg",
-    "image/jpg",
-    "image/png",
-    "image/webp",
-];
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 const fileSchema = z
     .any()
-    .refine(
-        (file) => ACCEPTED_IMAGE_TYPES.includes(file.mimetype),
-        ".jpg .jpeg .png or .webp files are accepted."
-    );
+    .refine((file) => ACCEPTED_IMAGE_TYPES.includes(file.mimetype), ".jpg .jpeg .png or .webp files are accepted.");
 
-const passwordSchema = z
-    .string()
-    .min(8, "Password must be minimum 8 characters");
+const passwordSchema = z.string().min(8, "Password must be minimum 8 characters");
 
 const loginSchema = z.object({
-    credentials: z.union([
-        z.string().email().min(1, "Email is required"),
-        z.string().min(1, "Username is required"),
-    ]),
+    credentials: z.union([z.string().email().min(1, "Email is required"), z.string().min(1, "Username is required")]),
     password: passwordSchema,
 });
 
@@ -76,23 +56,16 @@ export const UserLoginController = expressAsyncHandler(async (req, res) => {
 
 const uploadToCloudinary = async (profilePic: Buffer): Promise<string> => {
     return await new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.v2.uploader.upload_stream(
-            { resource_type: "auto" },
-            (error, result) => {
-                if (error) {
-                    console.error(error);
-                    reject(error);
-                } else if (result) {
-                    resolve(result.secure_url);
-                } else {
-                    reject(
-                        new InternalServerError(
-                            "Could not upload your profile picture"
-                        )
-                    );
-                }
+        const uploadStream = cloudinary.v2.uploader.upload_stream({ resource_type: "auto" }, (error, result) => {
+            if (error) {
+                console.error(error);
+                reject(error);
+            } else if (result) {
+                resolve(result.secure_url);
+            } else {
+                reject(new InternalServerError("Could not upload your profile picture"));
             }
-        );
+        });
 
         const bufferStream = Readable.from(profilePic);
         bufferStream.pipe(uploadStream);
@@ -110,11 +83,9 @@ export const userSignupController = expressAsyncHandler(async (req, res) => {
         return;
     }
 
-    const { username, email, password, profilePic, fullName } =
-        result.data as UserSignupRequest;
+    const { username, email, password, profilePic, fullName } = result.data as UserSignupRequest;
 
-    let filePath =
-        "https://res.cloudinary.com/dtbyy0w95/image/upload/v1716151086/anonymous-avatar_dmiw3j.webp";
+    let filePath = "https://res.cloudinary.com/dtbyy0w95/image/upload/v1716151086/anonymous-avatar_dmiw3j.webp";
 
     if (profilePic) {
         try {
@@ -125,13 +96,7 @@ export const userSignupController = expressAsyncHandler(async (req, res) => {
         }
     }
 
-    const response = await saveUserInfo(
-        email,
-        fullName,
-        username,
-        password,
-        filePath
-    );
+    const response = await saveUserInfo(email, fullName, username, password, filePath);
 
     if (response) {
         res.status(200).json({

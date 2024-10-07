@@ -1,9 +1,5 @@
 import { prisma } from "@instachat/db/client";
-import {
-    ConflictException,
-    ResourceNotFoundError,
-    UnauthorizedError,
-} from "../middlewares/GlobalErrorHandler.js";
+import { ConflictException, ResourceNotFoundError, UnauthorizedError } from "../middlewares/GlobalErrorHandler.js";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { env } from "../utils/constants.js";
 import bcrypt from "bcrypt";

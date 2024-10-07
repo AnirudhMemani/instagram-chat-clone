@@ -1,9 +1,5 @@
 import { Router } from "express";
-import {
-    AllUserDataController,
-    UserLoginController,
-    userSignupController,
-} from "../controllers/user.controllers.js";
+import { AllUserDataController, UserLoginController, userSignupController } from "../controllers/user.controllers.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import multer from "multer";
 
@@ -21,8 +17,6 @@ router.post("/login", UserLoginController);
 
 router.get("/get-all", AllUserDataController);
 
-router.post("/auth", authMiddleware, (_, res) =>
-    res.status(200).json("success")
-);
+router.post("/auth", authMiddleware, (_, res) => res.status(200).json("success"));
 
 export default router;

@@ -29,5 +29,5 @@ export const authMiddleware = expressAsyncHandler((req, res, next) => {
 
 const validateTokenPattern = (token: string): string | null => {
     const result = token.startsWith("Bearer ");
-    return result ? token.split(" ").pop() ?? null : null;
+    return result ? (token.split(" ").pop() ?? null) : null;
 };

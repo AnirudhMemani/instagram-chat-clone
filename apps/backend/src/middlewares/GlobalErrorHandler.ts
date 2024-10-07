@@ -54,12 +54,7 @@ export class EnvironmentVariableNotDefinedException {
     }
 }
 
-const GlobalErrorHandler: ErrorRequestHandler = (
-    err: IHTTPError,
-    req: Request,
-    res: Response,
-    next: NextFunction
-) => {
+const GlobalErrorHandler: ErrorRequestHandler = (err: IHTTPError, req: Request, res: Response, next: NextFunction) => {
     const statusCode = err.statusCode || HTTPStatusCode.InternalServerError;
     const message: string = err.message || HTTPMessages.INTERNAL_SERVER_ERROR;
     const stack = err.stack;
