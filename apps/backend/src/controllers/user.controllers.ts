@@ -1,9 +1,9 @@
-import expressAsyncHandler from "express-async-handler";
-import z from "zod";
-import { getAllUserData, saveUserInfo, validateUser } from "../services/user.services.js";
-import { BadRequestException, InternalServerError } from "../middlewares/GlobalErrorHandler.js";
 import cloudinary from "cloudinary";
+import expressAsyncHandler from "express-async-handler";
 import { Readable } from "stream";
+import z from "zod";
+import { BadRequestException, InternalServerError } from "../middlewares/GlobalErrorHandler.js";
+import { getAllUserData, saveUserInfo, validateUser } from "../services/user.services.js";
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
