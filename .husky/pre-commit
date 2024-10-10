@@ -4,7 +4,7 @@ npx lint-staged
 cd ../backend
 npx lint-staged
 
-cd ../ws
+cd ../websocket
 npx lint-staged
 
 cd ../..

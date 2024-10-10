@@ -48,7 +48,7 @@ export class InboxManager {
     const cachedDMs = await this.redis.lrange(cacheKey, skip, skip + take - 1);
 
     if (cachedDMs.length > 0) {
-      return cachedDMs.map((cachedDM) => JSON.parse(cachedDM));
+      return cachedDMs.map((cachedDM: any) => JSON.parse(cachedDM));
     }
 
     const Dms = await prisma.directMessage.findMany({
@@ -208,7 +208,7 @@ export class InboxManager {
         name,
         createdAt: new Date(Date.now()),
         participants: {
-          connect: participants.map((user) => ({
+          connect: participants.map((user: any) => ({
             id: user.id,
           })),
         },
@@ -221,7 +221,7 @@ export class InboxManager {
             adminOf: { connect: { id } },
             createdAt: new Date(Date.now()),
             members: {
-              connect: participants.map((user) => ({
+              connect: participants.map((user: any) => ({
                 id: user.id,
               })),
             },
@@ -291,7 +291,7 @@ export class InboxManager {
     }
 
     const isGroup = participants.length > 2;
-    const participantsIds = participants.map((user) => user.id);
+    const participantsIds = participants.map((user: any) => user.id);
 
     printlogs("participantsIds", participantsIds);
 
@@ -395,7 +395,7 @@ export class InboxManager {
           data: {
             name: participants.filter((user) => user.id !== id)[0].fullName,
             participants: {
-              connect: participants.map((user) => ({
+              connect: participants.map((user: any) => ({
                 id: user.id,
               })),
             },
@@ -807,7 +807,7 @@ export class InboxManager {
       ? chatRoomDetails.participants.map((user: any) => user.id)
       : [];
 
-    newUsersDetails.map((newUser) => participantsIds.push(newUser?.id));
+    newUsersDetails.map((newUser: any) => participantsIds.push(newUser?.id));
 
     printlogs("participantsIds", participantsIds);
 

@@ -1,5 +1,5 @@
 {
-    "name": "websockets",
+    "name": "backend",
     "version": "1.0.0",
     "description": "",
     "main": "./dist/index.js",
@@ -7,7 +7,7 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "build": "tsc",
-        "start": "tsc && node dist/index.js",
+        "start": "node dist/index.js",
         "dev": "nodemon --exec node --loader ts-node/esm src/index.ts",
         "prepare": "husky install"
     },

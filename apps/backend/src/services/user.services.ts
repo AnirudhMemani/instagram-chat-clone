@@ -1,8 +1,8 @@
-import { prisma } from "@instachat/db/client";
-import { ConflictException, ResourceNotFoundError, UnauthorizedError } from "../middlewares/GlobalErrorHandler.js";
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { env } from "../utils/constants.js";
 import bcrypt from "bcrypt";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import { ConflictException, ResourceNotFoundError, UnauthorizedError } from "../middlewares/GlobalErrorHandler.js";
+import { env } from "../utils/constants.js";
+import { prisma } from "@instachat/db/client";
 
 const salt = 10;
 

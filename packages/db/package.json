@@ -2,13 +2,21 @@
     "name": "@instachat/db",
     "version": "1.0.0",
     "description": "",
-    "main": "index.js",
     "type": "module",
     "scripts": {
-        "db:generate": "prisma generate",
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "db:generate": "npx prisma generate",
         "db:push": "prisma db push --skip-generate",
         "test": "echo \"Error: no test specified\" && exit 1",
-        "db:dev": "npx prisma migrate dev && npx prisma generate"
+        "db:dev": "npx prisma migrate dev && npx prisma generate",
+        "postinstall": "npm run db:generate"
+    },
+    "exports": {
+        "./client": {
+            "types": "./src/index.ts",
+            "default": "./dist/index.js"
+        }
     },
     "keywords": [],
     "author": "",
@@ -17,7 +25,9 @@
         "@prisma/client": "^5.12.1",
         "prisma": "^5.12.0"
     },
-    "exports": {
-        "./client": "./src/index.ts"
+    "devDependencies": {
+        "@types/express": "^5.0.0",
+        "@types/node": "^22.7.5",
+        "typescript": "^5.6.3"
     }
 }
