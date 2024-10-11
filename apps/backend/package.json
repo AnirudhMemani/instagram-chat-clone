@@ -11,11 +11,6 @@
         "dev": "nodemon --exec node --loader ts-node/esm api/index.ts",
         "prepare": "husky install"
     },
-    "lint-staged": {
-        "*.{ts,tsx,js,json,css,html}": [
-            "prettier . --write"
-        ]
-    },
     "keywords": [],
     "author": "",
     "license": "ISC",

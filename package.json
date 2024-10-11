@@ -8,6 +8,11 @@
         "format": "prettier --write \"**/*.{ts,tsx,md}\"",
         "prepare": "husky install"
     },
+    "lint-staged": {
+        "*.{ts,tsx,js,json,css,html}": [
+            "prettier . --write"
+        ]
+    },
     "devDependencies": {
         "@repo/eslint-config": "*",
         "@repo/typescript-config": "*",
