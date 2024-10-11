@@ -1,7 +1,12 @@
 import { Redis } from "ioredis";
 
 const getRedisClient = () => {
-    return new Redis();
+    const port = process.env.REDIS_PORT || 6379;
+    return new Redis({
+        host: process.env.REDIS_HOST,
+        port: Number(port),
+        password: process.env.REDIS_PASSWORD,
+    });
 };
 
 const redis = getRedisClient();

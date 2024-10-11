@@ -19,9 +19,9 @@ import {
 import { IMessage, IStartConvoMessage } from "@instachat/messages/types";
 import amqp from "amqplib";
 import cloudinary from "cloudinary";
-// import { Redis } from "ioredis";
+import { Redis } from "ioredis";
 import WebSocket from "ws";
-// import redis from "../redis/client.js";
+import redis from "../redis/client.js";
 import { getSortedSetKey } from "../utils/helper.js";
 import { printlogs } from "../utils/logs.js";
 import { IUser } from "./UserManager.js";
@@ -32,9 +32,9 @@ import { IUser } from "./UserManager.js";
  */
 
 export class InboxManager {
-    //   private redis: Redis = redis;
+    private redis: Redis = redis;
     private prisma: typeof prisma = prisma;
-    //   private subscriber: Redis = redis.duplicate();
+    private subscriber: Redis = redis.duplicate();
 
     async connectUser(user: IUser) {
         this.handleIncomingMessages(user.id, user.socket);
@@ -45,11 +45,11 @@ export class InboxManager {
 
         // LRANGE "key" start "stop"
         // Where start and stop are zero-based indexes. The stop index is inclusive, meaning the element at the stop index is included in the result.
-        // const cachedDMs = await this.redis.lrange(cacheKey, skip, skip + take - 1);
+        const cachedDMs = await this.redis.lrange(cacheKey, skip, skip + take - 1);
 
-        // if (cachedDMs.length > 0) {
-        //   return cachedDMs.map((cachedDM: any) => JSON.parse(cachedDM));
-        // }
+        if (cachedDMs.length > 0) {
+            return cachedDMs.map((cachedDM: any) => JSON.parse(cachedDM));
+        }
 
         const Dms = await prisma.directMessage.findMany({
             where: {
@@ -90,9 +90,9 @@ export class InboxManager {
 
         if (stringifiedDms.length > 0) {
             // Push the new messages to the head of the list
-            //   await this.redis.lpush(cacheKey, ...stringifiedDms);
+            await this.redis.lpush(cacheKey, ...stringifiedDms);
             // Trim the list to keep only the most recent 100 messages
-            //   await this.redis.ltrim(cacheKey, 0, 99);
+            await this.redis.ltrim(cacheKey, 0, 99);
         }
 
         return Dms;
@@ -413,11 +413,11 @@ export class InboxManager {
                     },
                 });
                 // fix this
-                // this.subscriber.subscribe(newChatRoom.id);
-                // this.subscriber.on("message", async (channel, message) => {
-                //   console.log("\n\nchannel:", channel);
-                //   console.log("\n\nmessage:", JSON.parse(message));
-                // });
+                this.subscriber.subscribe(newChatRoom.id);
+                this.subscriber.on("message", async (channel, message) => {
+                    console.log("\n\nchannel:", channel);
+                    console.log("\n\nmessage:", JSON.parse(message));
+                });
                 socket.send(
                     JSON.stringify({
                         type: ROOM_EXISTS,

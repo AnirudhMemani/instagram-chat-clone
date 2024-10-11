@@ -3,7 +3,7 @@ import url from "url";
 import { WebSocketServer } from "ws";
 import { InboxManager } from "./managers/InboxManager.js";
 import { IUser } from "./managers/UserManager.js";
-// import { connectToRedis } from "./redis/client.js";
+import { connectToRedis } from "./redis/client.js";
 import { validateUser } from "./utils/helper.js";
 
 // const app = express();
@@ -22,7 +22,7 @@ cloudinary.v2.config({
     api_secret: process.env.CLOUDINARY_SECRET,
 });
 
-// connectToRedis();
+connectToRedis();
 
 const inboxManager = new InboxManager();
 

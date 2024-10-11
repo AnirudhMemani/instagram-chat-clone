@@ -1,6 +1,6 @@
 import { Redis } from "ioredis";
 import WebSocket from "ws";
-// import redis from "../redis/client.js";
+import redis from "../redis/client.js";
 
 export interface IUser {
     id: string;
@@ -10,7 +10,7 @@ export interface IUser {
 }
 
 export class UserManager {
-    //   private redis: Redis = redis;
+    private redis: Redis = redis;
     constructor(id: string, fullName: string, profilePic: string, socket: WebSocket) {
         const userInfo = {
             id,
@@ -18,6 +18,6 @@ export class UserManager {
             profilePic,
             socket,
         };
-        // this.redis.hset(id, "userInfo", JSON.stringify(userInfo));
+        this.redis.hset(id, "userInfo", JSON.stringify(userInfo));
     }
 }
