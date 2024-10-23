@@ -1,8 +1,6 @@
-import { Home } from "lucide-react";
-import { useRecoilValue } from "recoil";
+import DarkModeToggle from "@/components/DarkModeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useNavigate } from "react-router-dom";
-import { NAVIGATION_ROUTES, handleUserLogout } from "@/utils/constants";
+import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -10,12 +8,13 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DialogBox } from "@/components/AlertModal";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { isLoadingAtom } from "@/state/global";
-import DarkModeToggle from "@/components/DarkModeToggle";
+import { alertModalAtom, isLoadingAtom } from "@/state/global";
 import { userAtom } from "@/state/user";
+import { NAVIGATION_ROUTES, handleUserLogout } from "@/utils/constants";
+import { Home } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useRecoilValue, useSetRecoilState } from "recoil";
 
 type TSidebarProps = {
     className?: string;
@@ -24,6 +23,8 @@ type TSidebarProps = {
 const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
     const user = useRecoilValue(userAtom);
     const isLoading = useRecoilValue(isLoadingAtom);
+
+    const setAlertModalMetadata = useSetRecoilState(alertModalAtom);
 
     const navigate = useNavigate();
 
@@ -46,19 +47,21 @@ const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
                         <DropdownMenuItem>Profile</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem asChild>
-                            <DialogBox
-                                title="Are you sure you want to logout?"
-                                positiveTitle="Logout"
-                                positiveOnClick={() => handleUserLogout(navigate)}
+                            <Button
+                                variant="outline"
+                                className="w-full justify-start border-0 px-2 text-sm"
+                                disabled={isLoading}
+                                onClick={() =>
+                                    setAlertModalMetadata({
+                                        visible: true,
+                                        title: "Are you sure you want to logout?",
+                                        positiveTitle: "Logout",
+                                        positiveOnClick: () => handleUserLogout(navigate),
+                                    })
+                                }
                             >
-                                <Button
-                                    variant="outline"
-                                    className="w-full justify-start border-0 px-2 text-sm"
-                                    disabled={isLoading}
-                                >
-                                    Logout
-                                </Button>
-                            </DialogBox>
+                                Logout
+                            </Button>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
