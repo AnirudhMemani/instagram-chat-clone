@@ -89,6 +89,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 type: TRANSFER_SUPER_ADMIN,
                 payload: {
                     newSuperAdminId: id,
+                    chatRoomId: chatRoomDetails?.id,
                 },
             };
 
@@ -219,7 +220,6 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 });
                             }
                             break;
-                        // continue from here! Make a super admin transfer controller in backend and handle the response
                         case LEAVE_GROUP_CHAT:
                             if (responseMessage?.status === StatusCodes.Forbidden) {
                                 switch (responseMessage?.payload?.action) {
@@ -258,10 +258,52 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             } else if (responseMessage.status === StatusCodes.Ok) {
                                 removeMemberById(user.id);
                                 toast.success("You have left this group chat");
+                                navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
                             } else {
                                 commonToastErrorMessage({
                                     description: "There was an issue with your request. Please try again!",
                                 });
+                            }
+                            break;
+                        case TRANSFER_SUPER_ADMIN:
+                            if (responseMessage.success === false) {
+                                switch (responseMessage.status) {
+                                    case StatusCodes.NotFound:
+                                        setChatRoomDetails(null);
+                                        navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
+                                        break;
+                                    case StatusCodes.Forbidden:
+                                        toast.error("You do not have enough permissions to perform this action");
+                                        break;
+                                    case StatusCodes.BadRequest:
+                                        toast.error("Only members of this group chat can be made super admin");
+                                        break;
+                                    default:
+                                        toast.error("There was an issue with your request. Please try again later!");
+                                        break;
+                                }
+                                setShowAdminSelectionModal(false);
+                                setAlertModalMetadata({ visible: false });
+                            } else if (responseMessage.success === true) {
+                                if (responseMessage.status === StatusCodes.Ok && chatRoomDetails.isGroup === true) {
+                                    const updatedChatRoomDetails = {
+                                        ...chatRoomDetails,
+                                        admins: chatRoomDetails.admins.filter((admin) => admin.id !== user.id),
+                                        superAdmin: { ...responseMessage?.payload?.newSuperAdmin },
+                                        participants: chatRoomDetails.participants.filter(
+                                            (member) => member.id !== user.id
+                                        ),
+                                    } satisfies TChatRoomAtom;
+
+                                    setChatRoomDetails(updatedChatRoomDetails);
+
+                                    toast.success("You have left this group chat");
+                                    navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
+                                }
+                                setShowAdminSelectionModal(false);
+                                setAlertModalMetadata({ visible: false });
+                            } else {
+                                toast.error("Our servers are busy. Please try again later!");
                             }
                             break;
                         case MAKE_ADMIN:
@@ -638,89 +680,88 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                         )}
                     </div>
                     <div className="flex w-full flex-grow flex-col gap-4 overflow-y-auto px-6">
-                        {chatRoomDetails.participants
-                            .map((member) => {
-                                const isUserAdmin =
-                                    chatRoomDetails &&
-                                    chatRoomDetails.isGroup &&
-                                    chatRoomDetails.admins.some((admin) => admin.id === member.id);
-                                const isUserSuperAdmin =
-                                    chatRoomDetails &&
-                                    chatRoomDetails.isGroup &&
-                                    chatRoomDetails.superAdmin.id === member.id;
-                                if (!chatRoomDetails.isGroup && member.id === user.id) {
-                                    return;
-                                }
-                                return (
-                                    <div className="flex w-full items-center justify-between" key={member.id}>
-                                        <div className="flex items-center gap-3">
-                                            <Avatar className="size-16">
-                                                <AvatarImage src={member.profilePic} />
-                                                <AvatarFallback>
-                                                    {member.fullName.slice(0, 2).toUpperCase()}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex flex-col gap-1">
-                                                <p className="line-clamp-1 text-ellipsis text-sm font-bold">
-                                                    {member.username}
-                                                </p>
-                                                <div className="flex items-center text-xs font-bold text-gray-400">
-                                                    {isUserAdmin && (
-                                                        <span className="after:px-1 after:text-gray-400 after:content-['·']">
-                                                            Admin
-                                                        </span>
-                                                    )}
-                                                    <p className="line-clamp-1 text-ellipsis">{member.fullName}</p>
+                        {chatRoomDetails &&
+                            chatRoomDetails.participants.length &&
+                            chatRoomDetails.participants
+                                .map((member) => {
+                                    const isUserAdmin =
+                                        chatRoomDetails.isGroup &&
+                                        chatRoomDetails.admins.some((admin) => admin.id === member.id);
+                                    const isUserSuperAdmin =
+                                        chatRoomDetails.isGroup && chatRoomDetails?.superAdmin?.id === member?.id;
+                                    if (!chatRoomDetails.isGroup && member?.id === user?.id) {
+                                        return;
+                                    }
+                                    return (
+                                        <div className="flex w-full items-center justify-between" key={member.id}>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="size-16">
+                                                    <AvatarImage src={member.profilePic} />
+                                                    <AvatarFallback>
+                                                        {member.fullName.slice(0, 2).toUpperCase()}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex flex-col gap-1">
+                                                    <p className="line-clamp-1 text-ellipsis text-sm font-bold">
+                                                        {member.username}
+                                                    </p>
+                                                    <div className="flex items-center text-xs font-bold text-gray-400">
+                                                        {isUserAdmin && (
+                                                            <span className="after:px-1 after:text-gray-400 after:content-['·']">
+                                                                Admin
+                                                            </span>
+                                                        )}
+                                                        <p className="line-clamp-1 text-ellipsis">{member.fullName}</p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        {isAdmin && !isUserSuperAdmin && (
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger>
-                                                    <EllipsisVertical className="size-5 cursor-pointer select-none active:brightness-50" />
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent>
-                                                    <DropdownMenuItem asChild>
-                                                        <Button
-                                                            variant="outline"
-                                                            className="text-destructive rounde-sm w-full justify-start gap-2 border-0 px-2 text-sm"
-                                                            disabled={isLoading}
+                                            {isAdmin && !isUserSuperAdmin && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger>
+                                                        <EllipsisVertical className="size-5 cursor-pointer select-none active:brightness-50" />
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent>
+                                                        <DropdownMenuItem asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                className="text-destructive rounde-sm w-full justify-start gap-2 border-0 px-2 text-sm"
+                                                                disabled={isLoading}
+                                                                onClick={() =>
+                                                                    setAlertModalMetadata({
+                                                                        visible: true,
+                                                                        title: "Remove from the group?",
+                                                                        description: `You are about to remove ${member.fullName} from the group`,
+                                                                        positiveTitle: "Remove",
+                                                                        negativeTitle: "Cancel",
+                                                                        PositiveButtonStyles:
+                                                                            "!bg-destructive dark:text-slate-200 text-black",
+                                                                        positiveOnClick: () =>
+                                                                            handleRemoveUserFromGroup(member.id),
+                                                                    })
+                                                                }
+                                                            >
+                                                                Remove from the group
+                                                                <Loader visible={isLoading} />
+                                                            </Button>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            className={isUserAdmin ? "text-destructive" : ""}
                                                             onClick={() =>
-                                                                setAlertModalMetadata({
-                                                                    visible: true,
-                                                                    title: "Remove from the group?",
-                                                                    description: `You are about to remove ${member.fullName} from the group`,
-                                                                    positiveTitle: "Remove",
-                                                                    negativeTitle: "Cancel",
-                                                                    PositiveButtonStyles:
-                                                                        "!bg-destructive dark:text-slate-200 text-black",
-                                                                    positiveOnClick: () =>
-                                                                        handleRemoveUserFromGroup(member.id),
-                                                                })
+                                                                handleAdminStatusChange(
+                                                                    member.id,
+                                                                    isUserAdmin ? "Remove as admin" : "Make admin"
+                                                                )
                                                             }
                                                         >
-                                                            Remove from the group
-                                                            <Loader visible={isLoading} />
-                                                        </Button>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        className={isUserAdmin ? "text-destructive" : ""}
-                                                        onClick={() =>
-                                                            handleAdminStatusChange(
-                                                                member.id,
-                                                                isUserAdmin ? "Remove as admin" : "Make admin"
-                                                            )
-                                                        }
-                                                    >
-                                                        {isUserAdmin ? "Remove as admin" : "Make admin"}
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        )}
-                                    </div>
-                                );
-                            })
-                            .reverse()}
+                                                            {isUserAdmin ? "Remove as admin" : "Make admin"}
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                                .reverse()}
                     </div>
 
                     <div className="border-input flex w-full flex-col items-start justify-center gap-4 border-t p-6">

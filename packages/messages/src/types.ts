@@ -42,3 +42,9 @@ export interface ILeaveGroupChat
     extends IMessage<{
         chatRoomId: string;
     }> {}
+
+export interface ITransferSuperAdminAndLeaveGroupChat
+    extends IMessage<{
+        newSuperAdminId: string;
+        chatRoomId: string;
+    }> {}

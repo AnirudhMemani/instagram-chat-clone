@@ -2,11 +2,9 @@ import { usePotentialSuperAdmins } from "@/hooks/usePotentialSuperAdmins";
 import { showAdminSelectionModalAtom } from "@/state/global";
 import { printlogs } from "@/utils/logs";
 import { TRANSFER_SUPER_ADMIN } from "@instachat/messages/messages";
-import { IMessage } from "@instachat/messages/types";
 import { X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { useSetRecoilState } from "recoil";
-import { Loader } from "./Loader";
 import { UserBars } from "./UserBars";
 
 type TAdminSelectionModalProps = {
@@ -16,30 +14,8 @@ type TAdminSelectionModalProps = {
 const AdminSelectionModal: React.FC<TAdminSelectionModalProps> = ({ socket }): JSX.Element => {
     const setShowAdminSelectionModal = useSetRecoilState(showAdminSelectionModalAtom);
     const potentialSuperAdmins = usePotentialSuperAdmins();
-    const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const modalContainerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (!socket) {
-            return;
-        }
-
-        socket.onmessage = (event) => {
-            const message = JSON.parse(event.data) as IMessage;
-
-            const payload = message.payload;
-            const status = message.status;
-            const isSuccess = message.payload;
-
-            switch (message.type) {
-                case TRANSFER_SUPER_ADMIN:
-                    break;
-                default:
-                    break;
-            }
-        };
-    }, [socket]);
 
     const handleSuperAdminSelection = (id: string) => {
         try {
@@ -54,10 +30,8 @@ const AdminSelectionModal: React.FC<TAdminSelectionModalProps> = ({ socket }): J
                 },
             };
 
-            setIsLoading(true);
             socket.send(JSON.stringify(transferSuperAdminMessage));
         } catch (error) {
-            setIsLoading(false);
             printlogs("ERROR inside handleSuperAdminSelection()", error);
         }
     };
@@ -80,28 +54,25 @@ const AdminSelectionModal: React.FC<TAdminSelectionModalProps> = ({ socket }): J
                         }}
                     />
                 </div>
-                {isLoading ? (
-                    <Loader visible={isLoading} />
-                ) : (
-                    <div className="scrollbar mb-4 flex w-full flex-grow flex-col gap-1 overflow-y-scroll pt-5">
-                        {potentialSuperAdmins.length ? (
-                            potentialSuperAdmins.map((member, index) => (
-                                <UserBars
-                                    key={`${member.id}${index}`}
-                                    fullName={member.fullName}
-                                    id={member.id}
-                                    username={member.username}
-                                    profilePic={member.username}
-                                    onClick={() => handleSuperAdminSelection(member.id)}
-                                />
-                            ))
-                        ) : (
-                            <div className="flex h-full w-full items-center justify-center">
-                                <span>No group members to show</span>
-                            </div>
-                        )}
-                    </div>
-                )}
+
+                <div className="scrollbar mb-4 flex w-full flex-grow flex-col gap-1 overflow-y-scroll pt-5">
+                    {potentialSuperAdmins.length ? (
+                        potentialSuperAdmins.map((member, index) => (
+                            <UserBars
+                                key={`${member.id}${index}`}
+                                fullName={member.fullName}
+                                id={member.id}
+                                username={member.username}
+                                profilePic={member.username}
+                                onClick={() => handleSuperAdminSelection(member.id)}
+                            />
+                        ))
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                            <span>No group members to show</span>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

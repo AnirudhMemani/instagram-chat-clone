@@ -15,12 +15,14 @@ import {
     REMOVE_FROM_CHAT,
     ROOM_EXISTS,
     SUCCESS,
+    TRANSFER_SUPER_ADMIN,
 } from "@instachat/messages/messages";
 import {
     IGetChatRoomById,
     ILeaveGroupChat,
     IMessage,
     IRoomExistsRequest,
+    ITransferSuperAdminAndLeaveGroupChat,
     IUpdateChatRoomName,
 } from "@instachat/messages/types";
 import amqp from "amqplib";
@@ -179,6 +181,7 @@ export class InboxManager {
         const groups = await prisma.chatRoom.findMany({
             where: {
                 roomType: "GROUP",
+                participants: { some: { id } },
             },
             select: {
                 id: true,
@@ -562,6 +565,86 @@ export class InboxManager {
         } catch (error) {
             printlogs("ERROR in handleLeaveGroupChat()", error);
             this.res.error(LEAVE_GROUP_CHAT, "An error occurred while trying to leave the group chat");
+        }
+    }
+
+    async handleSuperAdminTranferAndLeaveGroupChat(id: string, message: ITransferSuperAdminAndLeaveGroupChat) {
+        try {
+            const newSuperAdminId = message.payload.newSuperAdminId;
+            const chatRoomId = message.payload.chatRoomId;
+
+            const chatRoom = await this.prisma.chatRoom.findFirst({
+                where: { id: chatRoomId, participants: { some: { id } } },
+                select: {
+                    id: true,
+                    superAdminId: true,
+                    participants: { select: { id: true, fullName: true, profilePic: true, username: true } },
+                },
+            });
+
+            if (!chatRoom || !chatRoom.id) {
+                this.res.error(TRANSFER_SUPER_ADMIN, "This chat room does not exists", STATUS_CODE.NOT_FOUND);
+                return;
+            }
+
+            const isSuperAdmin = chatRoom.superAdminId === id;
+
+            if (!isSuperAdmin) {
+                this.res.error(
+                    TRANSFER_SUPER_ADMIN,
+                    "You do not have enough permissions to perform this action",
+                    STATUS_CODE.FORBIDDEN
+                );
+                return;
+            }
+
+            const isMember = chatRoom.participants.find((member) => member.id === newSuperAdminId);
+
+            if (!isMember) {
+                this.res.error(
+                    TRANSFER_SUPER_ADMIN,
+                    "Only members of the group chat can be made super admin",
+                    STATUS_CODE.BAD_REQUEST
+                );
+                return;
+            }
+
+            await this.prisma.chatRoom.update({
+                where: { id: chatRoomId },
+                data: {
+                    superAdmin: {
+                        disconnect: {
+                            id,
+                        },
+                        connect: {
+                            id: newSuperAdminId,
+                        },
+                    },
+                    participants: {
+                        disconnect: {
+                            id,
+                        },
+                    },
+                    admins: {
+                        disconnect: {
+                            id,
+                        },
+                    },
+                },
+                select: {
+                    id: true,
+                },
+            });
+
+            const newSuperAdmin = chatRoom.participants.find((member) => member.id === newSuperAdminId);
+
+            this.res.json(TRANSFER_SUPER_ADMIN, { message: "success", newSuperAdmin, leaveGroupMemberId: id });
+        } catch (error) {
+            printlogs("ERROR inside ", error);
+            this.res.error(
+                TRANSFER_SUPER_ADMIN,
+                "An error occurred while trying to transfer super admin and leave the group chat"
+            );
         }
     }
 
@@ -1021,12 +1104,15 @@ export class InboxManager {
                 case FIND_CHATS:
                     this.getChats(id);
                     break;
-                // start the frontend synchronization from here
                 case ROOM_EXISTS:
                     this.handleChatRoomCreation(id, message);
                     break;
+                // start the frontend synchronization from here
                 case CHATROOM_DETAILS_BY_ID:
                     this.getChatRoomDetails(message);
+                    break;
+                case TRANSFER_SUPER_ADMIN:
+                    this.handleSuperAdminTranferAndLeaveGroupChat(id, message);
                     break;
                 // start the backend from here
                 case CREATE_GROUP:

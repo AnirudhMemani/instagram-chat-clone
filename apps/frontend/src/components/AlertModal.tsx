@@ -35,7 +35,12 @@ export const AlertModal = () => {
                         {alertModalMetadata.negativeTitle}
                     </AlertDialogCancel>
                     <AlertDialogAction
-                        onClick={alertModalMetadata.positiveOnClick}
+                        onClick={() => {
+                            if (alertModalMetadata.positiveOnClick) {
+                                alertModalMetadata.positiveOnClick();
+                                setAlertModalMetadata({ visible: false });
+                            }
+                        }}
                         className={alertModalMetadata.PositiveButtonStyles}
                     >
                         {alertModalMetadata.positiveTitle}
