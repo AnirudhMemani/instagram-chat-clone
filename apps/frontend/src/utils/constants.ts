@@ -2,12 +2,12 @@ import { NavigateFunction } from "react-router-dom";
 import { localStorageUtils } from "./LocalStorageUtils";
 import { formatDistanceToNow } from "date-fns";
 
-export const NavigationRoutes = {
-    Login: "/login",
-    Signup: "/signup",
-    Inbox: "/inbox",
+export const NAVIGATION_ROUTES = {
+    LOGIN: "/login",
+    SIGNUP: "/signup",
+    INBOX: "/inbox",
     DM: "/inbox/direct/:id",
-    CreateNewGroup: "/inbox/group/create",
+    CREATE_NEW_GROUP: "/inbox/group/create",
 } as const;
 
 export const getMessageAge = (messageSentAt: string) => {
@@ -25,7 +25,7 @@ const attachUrl = (path: string) => {
 
 export const handleUserLogout = (navigate: NavigateFunction) => {
     localStorageUtils.clearStore();
-    navigate(NavigationRoutes.Login, { replace: true });
+    navigate(NAVIGATION_ROUTES.LOGIN, { replace: true });
 };
 
 export const EndPoints = {

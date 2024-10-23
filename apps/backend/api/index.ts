@@ -1,12 +1,12 @@
-import express from "express";
-import UserRouter from "./routers/user.routers.js";
-import GlobalErrorHandler from "./middlewares/GlobalErrorHandler.js";
-import cors from "cors";
 import cloudinary from "cloudinary";
+import cors from "cors";
+import express from "express";
+import GlobalErrorHandler from "./middlewares/GlobalErrorHandler.js";
+import UserRouter from "./routers/user.routers.js";
 import { env } from "./utils/constants.js";
 
 const app = express();
-const port = env.PORT;
+const port = env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -22,6 +22,6 @@ app.use("/user", UserRouter);
 
 app.use(GlobalErrorHandler);
 
-app.listen(env.PORT, () => {
+app.listen(port, () => {
     console.log(new Date(), "Server is listening on port", port);
 });

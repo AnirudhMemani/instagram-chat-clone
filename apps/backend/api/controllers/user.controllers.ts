@@ -38,8 +38,7 @@ export const UserLoginController = expressAsyncHandler(async (req, res) => {
     const result = loginSchema.safeParse(req.body);
 
     if (!result.success) {
-        new BadRequestException(result.error.message);
-        return;
+        throw new BadRequestException(result.error.message);
     }
 
     const { credentials, password } = result.data;
@@ -51,7 +50,7 @@ export const UserLoginController = expressAsyncHandler(async (req, res) => {
         return;
     }
 
-    new InternalServerError();
+    throw new InternalServerError();
 });
 
 const uploadToCloudinary = async (profilePic: Buffer): Promise<string> => {
@@ -79,8 +78,7 @@ export const userSignupController = expressAsyncHandler(async (req, res) => {
     });
 
     if (!result.success) {
-        new BadRequestException(result.error.message);
-        return;
+        throw new BadRequestException(result.error.message);
     }
 
     const { username, email, password, profilePic, fullName } = result.data as UserSignupRequest;
@@ -92,7 +90,7 @@ export const userSignupController = expressAsyncHandler(async (req, res) => {
             const secure_url = await uploadToCloudinary(profilePic.buffer);
             filePath = secure_url;
         } catch (error) {
-            new InternalServerError("Failed to process profile picture");
+            throw new InternalServerError("Failed to process profile picture");
         }
     }
 
@@ -105,7 +103,7 @@ export const userSignupController = expressAsyncHandler(async (req, res) => {
         return;
     }
 
-    new InternalServerError();
+    throw new InternalServerError();
 });
 
 export const AllUserDataController = expressAsyncHandler(async (req, res) => {
@@ -118,5 +116,5 @@ export const AllUserDataController = expressAsyncHandler(async (req, res) => {
         return;
     }
 
-    new InternalServerError();
+    throw new InternalServerError();
 });

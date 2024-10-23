@@ -18,13 +18,13 @@ export const CustomInput: React.FC<CustomInputProps> = ({
     ...props
 }) => {
     return (
-        <div className="flex flex-col gap-2 relative">
+        <div className="relative flex flex-col gap-2">
             <Label htmlFor={htmlFor}>{label}</Label>
             <div className="relative">
                 <Input {...props} />
                 {RightIcon && (
                     <RightIcon
-                        className="absolute right-3 top-1/2 -translate-y-1/2 size-4 cursor-pointer"
+                        className="absolute right-3 top-1/2 size-4 -translate-y-1/2 cursor-pointer"
                         onClick={rightIconOnClick}
                     />
                 )}

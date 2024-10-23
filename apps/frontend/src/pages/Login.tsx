@@ -7,7 +7,7 @@ import { LoginFormSchema } from "@/schema/auth/Login";
 import { isChatModalVisibleAtom } from "@/state/global";
 import { userAtom } from "@/state/user";
 import { localStorageUtils } from "@/utils/LocalStorageUtils";
-import { NavigationRoutes, StatusCodes } from "@/utils/constants";
+import { NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import axios from "axios";
 import { ArrowUpRight, Eye, EyeOff } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
@@ -21,7 +21,7 @@ const Login: React.FC = (): JSX.Element => {
 
     useEffect(() => {
         if (token) {
-            navigate(NavigationRoutes.Inbox, { replace: true });
+            navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
         }
     }, [token]);
 
@@ -56,7 +56,7 @@ const Login: React.FC = (): JSX.Element => {
                     fullName: response.data.fullName,
                     profilePic: response.data.profilePic,
                 });
-                navigate(NavigationRoutes.Inbox, { replace: true });
+                navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
                 toast.success("Login successful");
             }
         } catch (error) {
@@ -80,14 +80,14 @@ const Login: React.FC = (): JSX.Element => {
     };
 
     return (
-        <section className="h-dvh w-full flex items-center justify-center">
-            <div className="flex flex-col gap-8 justify-center p-16 border border-input rounded-lg">
-                <div className="flex flex-col space-y-3 items-center justify-center">
-                    <h1 className="text-bold text-3xl text-center">Sign in to your account</h1>
-                    <p className="text-sm text-[#6c6c89] text-center">Welcome back! Please enter your details.</p>
+        <section className="flex h-dvh w-full items-center justify-center">
+            <div className="border-input flex flex-col justify-center gap-8 rounded-lg border p-16">
+                <div className="flex flex-col items-center justify-center space-y-3">
+                    <h1 className="text-bold text-center text-3xl">Sign in to your account</h1>
+                    <p className="text-center text-sm text-[#6c6c89]">Welcome back! Please enter your details.</p>
                 </div>
                 <form onSubmit={handleUserLogin} className="grid w-full max-w-sm items-center space-y-6">
-                    <div className="grid w-full space-y-4 max-w-sm items-center">
+                    <div className="grid w-full max-w-sm items-center space-y-4">
                         <CustomInput
                             type="text"
                             id="email"
@@ -114,7 +114,7 @@ const Login: React.FC = (): JSX.Element => {
                             rightIconOnClick={() => setIsPasswordVisible((p) => !p)}
                         />
                         {error && (
-                            <p className="font-medium text-destructive text-xs" id="error">
+                            <p className="text-destructive text-xs font-medium" id="error">
                                 {error}
                             </p>
                         )}
@@ -126,9 +126,9 @@ const Login: React.FC = (): JSX.Element => {
                 <div className="flex items-center justify-center gap-2">
                     <p className="text-center text-sm">Don't have an account? </p>
                     <Link
-                        to={NavigationRoutes.Signup}
+                        to={NAVIGATION_ROUTES.SIGNUP}
                         className={cn(
-                            "text-muted-foreground flex items-center underline text-sm",
+                            "text-muted-foreground flex items-center text-sm underline",
                             isLoading && "pointer-events-none opacity-50"
                         )}
                     >

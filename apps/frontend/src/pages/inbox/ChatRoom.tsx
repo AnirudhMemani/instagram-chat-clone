@@ -1,4 +1,3 @@
-import { DialogBox } from "@/components/DialogBox";
 import { EditModal } from "@/components/EditModal";
 import { Loader } from "@/components/Loader";
 import { useTheme } from "@/components/theme-provider";
@@ -11,10 +10,10 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { chatRoomAtom, groupAtom } from "@/state/chat";
-import { isChatModalVisibleAtom } from "@/state/global";
+import { chatRoomAtom, potentialSuperAdminsAtom, TChatRoomAtom, TParticipant } from "@/state/chat";
+import { alertModalAtom, isChatModalVisibleAtom, showAdminSelectionModalAtom } from "@/state/global";
 import { userAtom } from "@/state/user";
-import { NavigationRoutes } from "@/utils/constants";
+import { NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
 import { TWebSocket } from "@/utils/types";
 import {
@@ -27,6 +26,7 @@ import {
     REMOVE_AS_ADMIN,
     REMOVE_FROM_CHAT,
     SUCCESS,
+    TRANSFER_SUPER_ADMIN,
 } from "@instachat/messages/messages";
 import { IMessage } from "@instachat/messages/types";
 import EmojiPicker, { EmojiClickData, SuggestionMode, Theme } from "emoji-picker-react";
@@ -37,26 +37,29 @@ import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { toast } from "sonner";
 
 export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
-    const [isEmojiPickerVisible, setIsEmojiPickerVisible] = useState<boolean>(false);
     const [message, setMessage] = useState<string>("");
-    const [isRoomInfoVisible, setIsRoomInfoVisible] = useState<boolean>(false);
-    const [isEditNameModalVisible, setIsEditNameModalVisible] = useState<boolean>(false);
+    const [isAdmin, setIsAdmin] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [chatRoomImage, setChatRoomImage] = useState<string>("");
     const [chatRoomName, setChatRoomName] = useState<string>("");
-    const [chatRoomDetails, setChatRoomDetails] = useRecoilState(chatRoomAtom);
-    const [groupState, setGroupState] = useRecoilState(groupAtom);
     const [newGroupName, setNewGroupName] = useState<string>("");
-    const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
+    const [chatRoomImage, setChatRoomImage] = useState<string | undefined>(undefined);
+    const [isRoomInfoVisible, setIsRoomInfoVisible] = useState<boolean>(false);
+    const [isEmojiPickerVisible, setIsEmojiPickerVisible] = useState<boolean>(false);
+    const [isEditNameModalVisible, setIsEditNameModalVisible] = useState<boolean>(false);
+
     const user = useRecoilValue(userAtom);
 
-    const [isAdmin, setIsAdmin] = useState<boolean>(false);
+    const setAlertModalMetadata = useSetRecoilState(alertModalAtom);
+    const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
+    const [chatRoomDetails, setChatRoomDetails] = useRecoilState(chatRoomAtom);
+    const setPotentialSuperAdmins = useSetRecoilState(potentialSuperAdminsAtom);
+    const setShowAdminSelectionModal = useSetRecoilState(showAdminSelectionModalAtom);
 
-    const messageInputRef = useRef<HTMLInputElement | null>(null);
     const emojiPickerRef = useRef<HTMLDivElement | null>(null);
+    const messageInputRef = useRef<HTMLInputElement | null>(null);
 
-    const { theme } = useTheme();
     const { id } = useParams();
+    const { theme } = useTheme();
     const navigate = useNavigate();
 
     const commonToastErrorMessage = ({ title, description }: { title?: string; description?: string }) => {
@@ -65,18 +68,58 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
         });
     };
 
+    const removeMemberById = (id: string) => {
+        if (chatRoomDetails && chatRoomDetails.isGroup === true) {
+            const modifiedChatRoomDetails = {
+                ...chatRoomDetails,
+                participants: chatRoomDetails.participants.filter((member) => member.id !== id),
+                admins: chatRoomDetails.admins.filter((admin) => admin.id !== id),
+            } satisfies TChatRoomAtom;
+            setChatRoomDetails(modifiedChatRoomDetails);
+        }
+    };
+
+    const handleSuperAdminSelection = (id: string) => {
+        try {
+            if (!socket) {
+                return;
+            }
+
+            const transferSuperAdminMessage = {
+                type: TRANSFER_SUPER_ADMIN,
+                payload: {
+                    newSuperAdminId: id,
+                },
+            };
+
+            setIsLoading(true);
+            socket.send(JSON.stringify(transferSuperAdminMessage));
+        } catch (error) {
+            setIsLoading(false);
+            printlogs("ERROR inside handleSuperAdminSelection()", error);
+        }
+    };
+
     useEffect(() => {
         if (chatRoomDetails) {
-            console.log("chatRoomDetails found in chat room component:", chatRoomDetails);
-            setChatRoomName(groupState ? groupState.name : chatRoomDetails.name);
+            printlogs("Chat room details inside chat room component:", chatRoomDetails);
+
+            setChatRoomName(
+                chatRoomDetails.isGroup
+                    ? chatRoomDetails.name
+                    : chatRoomDetails.participants.find((member) => member.id !== user.id)?.username || ""
+            );
             setChatRoomImage(
-                groupState
-                    ? groupState.picture
-                    : chatRoomDetails.participants[0].profilePic !== user.profilePic
+                chatRoomDetails.isGroup
+                    ? chatRoomDetails.picture
+                    : chatRoomDetails.participants[0].id !== user.id
                       ? chatRoomDetails.participants[0].profilePic
                       : chatRoomDetails.participants[1].profilePic
             );
-            setIsAdmin(groupState ? groupState.adminOf.some((admin) => admin.id === user.id) : false);
+            setIsAdmin(
+                (chatRoomDetails.isGroup ? chatRoomDetails.admins?.some((admin) => admin.id === user.id) : false) ||
+                    false
+            );
         }
 
         if (!socket) {
@@ -88,7 +131,6 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 type: CHATROOM_DETAILS_BY_ID,
                 payload: {
                     chatRoomId: id,
-                    userId: user.id,
                 },
             };
 
@@ -97,8 +139,8 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     }, [chatRoomDetails, socket]);
 
     useEffect(() => {
-        if (isEditNameModalVisible && groupState) {
-            setNewGroupName(groupState.name);
+        if (isEditNameModalVisible && chatRoomDetails?.isGroup) {
+            setNewGroupName(chatRoomDetails?.name);
         }
     }, [isEditNameModalVisible]);
 
@@ -111,77 +153,114 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             try {
                 const responseMessage = JSON.parse(event.data) as IMessage;
 
-                if (responseMessage.type === CHATROOM_DETAILS_BY_ID) {
-                    if (responseMessage.payload.error) {
-                        navigate(NavigationRoutes.Inbox, {
+                if (responseMessage?.type === CHATROOM_DETAILS_BY_ID) {
+                    if (responseMessage.status === 404) {
+                        navigate(NAVIGATION_ROUTES.INBOX, {
                             replace: true,
                         });
-                        toast.error("This DM does not exists", {
-                            richColors: true,
-                        });
+                        toast.error(responseMessage?.payload?.message);
                         return;
                     }
 
-                    const isGroup = Boolean(responseMessage.payload?.groupDetails?.id);
-
-                    setChatRoomDetails({
-                        ...responseMessage.payload.chatRoomDetails,
-                        isGroup: isGroup,
-                    });
-
-                    if (isGroup) {
-                        setGroupState(responseMessage.payload.groupDetails);
+                    if (responseMessage.status === 500) {
+                        navigate(NAVIGATION_ROUTES.INBOX, {
+                            replace: true,
+                        });
+                        toast.error("An unknown error occurred. Try again!");
+                        return;
                     }
-                    return;
+
+                    if (responseMessage?.payload?.isGroup === true) {
+                        const chatRoomDetails = {
+                            isGroup: true,
+                            id: responseMessage?.payload?.id,
+                            name: responseMessage?.payload?.name,
+                            admins: responseMessage?.payload?.admins,
+                            picture: responseMessage?.payload?.picture,
+                            messages: responseMessage?.payload?.messages,
+                            createdAt: responseMessage?.payload?.createdAt,
+                            createdBy: responseMessage?.payload?.createdBy,
+                            superAdmin: responseMessage?.payload?.superAdmin,
+                            participants: responseMessage?.payload?.participants,
+                            nameUpdatedAt: responseMessage?.payload?.nameUpdatedAt,
+                            pictureUpdatedAt: responseMessage?.payload?.pictureUpdatedAt,
+                        } satisfies TChatRoomAtom;
+
+                        setChatRoomDetails(chatRoomDetails);
+                    } else if (responseMessage?.payload?.isGroup === false) {
+                        const chatRoomDetails = {
+                            isGroup: false,
+                            id: responseMessage?.payload?.id,
+                            messages: responseMessage?.payload?.messages,
+                            createdAt: responseMessage?.payload?.createdAt,
+                            participants: responseMessage?.payload?.participants,
+                        } satisfies TChatRoomAtom;
+
+                        setChatRoomDetails(chatRoomDetails);
+                    }
                 }
 
-                printlogs("useEffect hit");
-                printlogs("chatRoomDetails", chatRoomDetails);
-                printlogs("groupState", groupState);
-
-                if (chatRoomDetails?.id && groupState?.id) {
-                    switch (responseMessage.type) {
+                if (chatRoomDetails?.id) {
+                    switch (responseMessage?.type) {
                         case CHANGE_GROUP_NAME:
-                            if (responseMessage.payload.result === SUCCESS) {
-                                setGroupState({
-                                    ...groupState,
-                                    name: responseMessage.payload.groupName,
-                                });
-                                setChatRoomDetails({
-                                    ...chatRoomDetails,
-                                    name: responseMessage.payload.groupName,
-                                });
-                            } else if (responseMessage.payload.result === ERROR) {
+                            if (responseMessage.status === 403) {
                                 commonToastErrorMessage({
                                     title: "Permission Denied",
                                     description: "Only a member of the group can change the group name",
                                 });
+                            } else if (responseMessage.status === 200) {
+                                const updatedChatRoomName = responseMessage.payload?.updatedGroupName;
+
+                                setChatRoomDetails((prev) => (prev ? { ...prev, name: updatedChatRoomName } : prev));
+                                setChatRoomName(updatedChatRoomName);
                             } else {
                                 commonToastErrorMessage({
-                                    description: "There was an issue with your request. Please try again",
+                                    description: "An unknown error occurred. Please try again!",
                                 });
                             }
                             break;
+                        // continue from here! Make a super admin transfer controller in backend and handle the response
                         case LEAVE_GROUP_CHAT:
-                            if (responseMessage.payload.result === ERROR) {
-                                commonToastErrorMessage({
-                                    description: "You are not a part of this group chat",
-                                });
-                            } else if (responseMessage.payload.result === SUCCESS) {
-                                const id = responseMessage.payload.userId;
-                                setChatRoomDetails({
-                                    ...chatRoomDetails,
-                                    participants: chatRoomDetails.participants.filter(
-                                        (participant) => participant.id !== id
-                                    ),
-                                });
-                                setGroupState({
-                                    ...groupState,
-                                    adminOf: groupState.adminOf.filter((admin) => admin.id !== id),
-                                });
+                            if (responseMessage?.status === StatusCodes.Forbidden) {
+                                switch (responseMessage?.payload?.action) {
+                                    case "not-member":
+                                        removeMemberById(user.id);
+                                        toast.error(responseMessage?.payload?.message);
+                                        break;
+                                    case "select-superadmin":
+                                        toast.info(responseMessage?.payload?.message);
+                                        const potentialSuperAdmins = responseMessage?.payload
+                                            ?.participants as TParticipant[];
+                                        const filteredSuperAdmins =
+                                            (potentialSuperAdmins &&
+                                                potentialSuperAdmins?.length &&
+                                                potentialSuperAdmins.filter((member) => member.id !== user.id)) ||
+                                            [];
+                                        setPotentialSuperAdmins(filteredSuperAdmins);
+                                        setShowAdminSelectionModal(true);
+                                        break;
+                                    case "auto-superadmin":
+                                        const newSuperAdmin = (
+                                            responseMessage?.payload?.participants as TParticipant[]
+                                        )?.filter((member) => member.id !== user.id);
+                                        setAlertModalMetadata({
+                                            visible: true,
+                                            title: `Are you sure you want to make ${newSuperAdmin[0].username} the super admin of this group`,
+                                            description: `If you leave this group, you will have to transfer the super admin role to ${newSuperAdmin[0].username}. This action cannot be reverted!`,
+                                            positiveOnClick: () => handleSuperAdminSelection(newSuperAdmin[0].id),
+                                            positiveTitle: "Confirm and leave",
+                                            PositiveButtonStyles: "!bg-destructive dark:text-slate-200 text-black",
+                                        });
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            } else if (responseMessage.status === StatusCodes.Ok) {
+                                removeMemberById(user.id);
+                                toast.success("You have left this group chat");
                             } else {
                                 commonToastErrorMessage({
-                                    description: "There was an issue with your request. Please try again",
+                                    description: "There was an issue with your request. Please try again!",
                                 });
                             }
                             break;
@@ -190,10 +269,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 commonToastErrorMessage({});
                             } else {
                                 const userDetails = responseMessage.payload.userDetails;
-                                setGroupState({
-                                    ...groupState,
-                                    adminOf: [...groupState.adminOf, userDetails],
-                                });
+                                // setGroupState({
+                                //     ...groupState,
+                                //     adminOf: [...groupState.adminOf, userDetails],
+                                // });
                             }
                             break;
                         case REMOVE_AS_ADMIN:
@@ -201,10 +280,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 commonToastErrorMessage({});
                             } else {
                                 const adminId = responseMessage.payload.adminId;
-                                setGroupState({
-                                    ...groupState,
-                                    adminOf: groupState.adminOf.filter((admin) => admin.id !== adminId),
-                                });
+                                // setGroupState({
+                                //     ...groupState,
+                                //     adminOf: groupState.adminOf.filter((admin) => admin.id !== adminId),
+                                // });
                             }
                             break;
                         case REMOVE_FROM_CHAT:
@@ -215,9 +294,6 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             } else if (responseMessage.payload.result === SUCCESS) {
                                 const removedMemberId = responseMessage.payload.data.removedMemberId;
                                 const chatRoomId = responseMessage.payload.data.chatRoomId;
-
-                                printlogs("removedMemberId", removedMemberId);
-                                printlogs("chatRoomId", chatRoomId);
 
                                 toast.success(
                                     `${chatRoomDetails.participants.find((member) => member.id === removedMemberId)?.fullName} removed successfully`
@@ -242,7 +318,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     }
                 }
             } catch (error) {
-                console.log(error);
+                printlogs("ERROR inside socket event listner useEffect", error);
                 commonToastErrorMessage({
                     description: "There was an issue with your request. Please try again",
                 });
@@ -301,22 +377,22 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
     const handleChangeGroupName = async (e: FormEvent) => {
         e.preventDefault();
-        if (!groupState) {
-            return;
-        }
-
-        if (newGroupName.trim() === groupState.name) {
-            setIsLoading(true);
-            const ARTIFICIAL_API_CALL_TIMEOUT = 1 * 1000;
-            setTimeout(() => {
-                setNewGroupName((p) => p.trim());
-                setIsEditNameModalVisible(false);
-                setIsLoading(false);
-            }, ARTIFICIAL_API_CALL_TIMEOUT);
-            return;
-        }
-
         try {
+            if (!chatRoomDetails || chatRoomDetails?.isGroup === false) {
+                return;
+            }
+
+            if (newGroupName.trim() === chatRoomDetails.name.trim()) {
+                setIsLoading(true);
+                const ARTIFICIAL_API_CALL_TIMEOUT = 1 * 1000;
+                setTimeout(() => {
+                    setNewGroupName((p) => p.trim());
+                    setIsEditNameModalVisible(false);
+                    setIsLoading(false);
+                }, ARTIFICIAL_API_CALL_TIMEOUT);
+                return;
+            }
+
             if (!socket) {
                 return;
             }
@@ -326,14 +402,14 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             const changeGroupNameMessage: IMessage = {
                 type: CHANGE_GROUP_NAME,
                 payload: {
-                    chatRoomId: groupState.id,
+                    chatRoomId: chatRoomDetails.id,
                     groupName: newGroupName,
                 },
             };
 
             socket.send(JSON.stringify(changeGroupNameMessage));
         } catch (error) {
-            console.error(error);
+            printlogs("ERROR inside handleChangeGroupName()", error);
             commonToastErrorMessage({
                 description: "Could not process your request. Please try again!",
             });
@@ -348,21 +424,21 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 return;
             }
 
-            if (!groupState) {
+            if (!chatRoomDetails || chatRoomDetails?.isGroup === false) {
                 return;
             }
 
             const leaveGroupChatMessage: IMessage = {
                 type: LEAVE_GROUP_CHAT,
                 payload: {
-                    chatRoomId: groupState.id,
+                    chatRoomId: chatRoomDetails.id,
                 },
             };
 
             setIsLoading(true);
             socket.send(JSON.stringify(leaveGroupChatMessage));
         } catch (error) {
-            console.log(error);
+            printlogs("ERROR in handleLeaveGroupChat()", error);
             setIsLoading(false);
             commonToastErrorMessage({
                 description: "There was an issue with your request. Please try again",
@@ -402,61 +478,57 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     };
 
     const handleAdminStatusChange = (userId: string, action: "Make admin" | "Remove as admin") => {
-        try {
-            if (!socket) {
-                return;
-            }
-
-            if (!groupState) {
-                return;
-            }
-
-            setIsLoading(true);
-
-            if (action === "Make admin") {
-                socket.send(
-                    JSON.stringify({
-                        type: MAKE_ADMIN,
-                        payload: {
-                            userId,
-                            groupId: groupState.id,
-                        },
-                    })
-                );
-                return;
-            }
-
-            if (action === "Remove as admin") {
-                socket.send(
-                    JSON.stringify({
-                        type: REMOVE_AS_ADMIN,
-                        payload: {
-                            userId,
-                            groupId: groupState.id,
-                        },
-                    })
-                );
-            }
-        } catch (error) {
-            console.log(error);
-            setIsLoading(false);
-        }
+        // try {
+        //     if (!socket) {
+        //         return;
+        //     }
+        //     if (!groupState) {
+        //         return;
+        //     }
+        //     setIsLoading(true);
+        //     if (action === "Make admin") {
+        //         socket.send(
+        //             JSON.stringify({
+        //                 type: MAKE_ADMIN,
+        //                 payload: {
+        //                     userId,
+        //                     groupId: groupState.id,
+        //                 },
+        //             })
+        //         );
+        //         return;
+        //     }
+        //     if (action === "Remove as admin") {
+        //         socket.send(
+        //             JSON.stringify({
+        //                 type: REMOVE_AS_ADMIN,
+        //                 payload: {
+        //                     userId,
+        //                     groupId: groupState.id,
+        //                 },
+        //             })
+        //         );
+        //     }
+        // } catch (error) {
+        //     console.log(error);
+        //     setIsLoading(false);
+        // }
     };
 
     if (!chatRoomDetails) {
         return (
-            <div className="flex items-center justify-center h-dvh w-full bg-black/60">
+            <div className="flex h-dvh w-full items-center justify-center bg-black/60">
                 <Loader visible={!chatRoomDetails} />
             </div>
         );
     }
 
     return (
-        <div className="h-dvh w-full flex overflow-hidden">
-            <div className="h-full w-full flex flex-col items-center overflow-hidden">
+        <div className="flex h-dvh w-full overflow-hidden">
+            <div className="flex h-full w-full flex-col items-center overflow-hidden">
                 {/* header */}
-                <div className="flex items-center w-full justify-between p-4 border-b border-input">
-                    <div className="flex gap-3 items-center">
+                <div className="border-input flex w-full items-center justify-between border-b p-4">
+                    <div className="flex items-center gap-3">
                         <Avatar
                             className="size-12 cursor-pointer select-none"
                             onClick={() => setIsRoomInfoVisible((p) => !p)}
@@ -465,7 +537,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             <AvatarFallback>{chatRoomName.slice(0, 2).toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <h1
-                            className="font-semibold cursor-pointer select-none"
+                            className="cursor-pointer select-none font-semibold"
                             onClick={() => setIsRoomInfoVisible((p) => !p)}
                         >
                             {chatRoomName}
@@ -480,8 +552,8 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     />
                 </div>
                 {/* messages */}
-                <div className="flex-grow w-full overflow-y-scroll scrollbar"></div>
-                <div className="w-[98%] flex items-center rounded-full border border-input py-2 pl-4 pr-6 my-4 gap-4">
+                <div className="scrollbar w-full flex-grow overflow-y-scroll"></div>
+                <div className="border-input my-4 flex w-[98%] items-center gap-4 rounded-full border py-2 pl-4 pr-6">
                     <div ref={emojiPickerRef} className="relative">
                         <EmojiPicker
                             open={isEmojiPickerVisible}
@@ -493,23 +565,24 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             height={400}
                         />
                         <Smile
-                            className="size-7 active:brightness-50 cursor-pointer"
+                            className="size-7 cursor-pointer active:brightness-50"
                             onClick={() => setIsEmojiPickerVisible((p) => !p)}
                         />
                     </div>
                     <input
-                        className="bg-transparent border-none outline-none w-full text-lg"
+                        className="w-full border-none bg-transparent text-lg outline-none"
                         type="text"
                         id={"message"}
                         placeholder="Message..."
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         ref={messageInputRef}
+                        autoComplete="off"
                     />
                     <p
                         className={cn(
-                            "text-gray-400 cursor-not-allowed select-none",
-                            message.length > 0 && "text-blue-400 cursor-pointer active:scale-95 active:text-blue-700"
+                            "cursor-not-allowed select-none text-gray-400",
+                            message.length > 0 && "cursor-pointer text-blue-400 active:scale-95 active:text-blue-700"
                         )}
                         onClick={handleSendMessage}
                     >
@@ -518,10 +591,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 </div>
             </div>
             {isRoomInfoVisible && (
-                <div className="w-[550px] h-full flex flex-col border-l border-input ml-[1px]">
-                    <h1 className="p-6 border-b border-input text-2xl font-semibold">Details</h1>
+                <div className="border-input ml-[1px] flex h-full w-[550px] flex-col border-l">
+                    <h1 className="border-input border-b p-6 text-2xl font-semibold">Details</h1>
                     {chatRoomDetails.isGroup && (
-                        <div className="flex items-center justify-between p-6 border-b border-input">
+                        <div className="border-input flex items-center justify-between border-b p-6">
                             <p>Change group name</p>
                             <EditModal
                                 title="Change group name"
@@ -552,30 +625,35 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             </EditModal>
                         </div>
                     )}
-                    <div className="p-6 flex items-center justify-between">
+                    <div className="flex items-center justify-between p-6">
                         <p className="font-medium">{chatRoomDetails.participants.length > 2 ? "Members" : "Member"}</p>
-                        {groupState && groupState.adminOf.some((admin) => admin.id === user.id) && (
+                        {chatRoomDetails.isGroup && chatRoomDetails.admins.some((admin) => admin.id === user.id) && (
                             <Button
                                 variant="ghost"
-                                className="text-blue-400 cursor-pointer active:scale-95 active:text-blue-700 !p-0 hover:!bg-transparent"
+                                className="cursor-pointer !p-0 text-blue-400 hover:!bg-transparent active:scale-95 active:text-blue-700"
                                 onClick={handleAddMembers}
                             >
                                 Add people
                             </Button>
                         )}
                     </div>
-                    <div className="flex flex-grow w-full flex-col gap-4 overflow-y-auto px-6">
+                    <div className="flex w-full flex-grow flex-col gap-4 overflow-y-auto px-6">
                         {chatRoomDetails.participants
                             .map((member) => {
                                 const isUserAdmin =
-                                    groupState && groupState.adminOf.some((admin) => admin.id === member.id);
-                                const isUserSuperAdmin = groupState && groupState.superAdminId === member.id;
+                                    chatRoomDetails &&
+                                    chatRoomDetails.isGroup &&
+                                    chatRoomDetails.admins.some((admin) => admin.id === member.id);
+                                const isUserSuperAdmin =
+                                    chatRoomDetails &&
+                                    chatRoomDetails.isGroup &&
+                                    chatRoomDetails.superAdmin.id === member.id;
                                 if (!chatRoomDetails.isGroup && member.id === user.id) {
                                     return;
                                 }
                                 return (
-                                    <div className="flex justify-between items-center w-full" key={member.id}>
-                                        <div className="flex gap-3 items-center">
+                                    <div className="flex w-full items-center justify-between" key={member.id}>
+                                        <div className="flex items-center gap-3">
                                             <Avatar className="size-16">
                                                 <AvatarImage src={member.profilePic} />
                                                 <AvatarFallback>
@@ -583,10 +661,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="flex flex-col gap-1">
-                                                <p className="text-sm line-clamp-1 font-bold text-ellipsis">
+                                                <p className="line-clamp-1 text-ellipsis text-sm font-bold">
                                                     {member.username}
                                                 </p>
-                                                <div className="flex text-xs items-center text-gray-400 font-bold">
+                                                <div className="flex items-center text-xs font-bold text-gray-400">
                                                     {isUserAdmin && (
                                                         <span className="after:px-1 after:text-gray-400 after:content-['·']">
                                                             Admin
@@ -599,27 +677,31 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                         {isAdmin && !isUserSuperAdmin && (
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger>
-                                                    <EllipsisVertical className="size-5 cursor-pointer active:brightness-50 select-none" />
+                                                    <EllipsisVertical className="size-5 cursor-pointer select-none active:brightness-50" />
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent>
                                                     <DropdownMenuItem asChild>
-                                                        <DialogBox
-                                                            title="Remove from the group?"
-                                                            description={`You are about to remove ${member.fullName} from the group`}
-                                                            positiveTitle="Remove"
-                                                            negativeTitle="Cancel"
-                                                            PositiveButtonStyles="!bg-destructive dark:text-slate-200 text-black"
-                                                            positiveOnClick={() => handleRemoveUserFromGroup(member.id)}
+                                                        <Button
+                                                            variant="outline"
+                                                            className="text-destructive rounde-sm w-full justify-start gap-2 border-0 px-2 text-sm"
+                                                            disabled={isLoading}
+                                                            onClick={() =>
+                                                                setAlertModalMetadata({
+                                                                    visible: true,
+                                                                    title: "Remove from the group?",
+                                                                    description: `You are about to remove ${member.fullName} from the group`,
+                                                                    positiveTitle: "Remove",
+                                                                    negativeTitle: "Cancel",
+                                                                    PositiveButtonStyles:
+                                                                        "!bg-destructive dark:text-slate-200 text-black",
+                                                                    positiveOnClick: () =>
+                                                                        handleRemoveUserFromGroup(member.id),
+                                                                })
+                                                            }
                                                         >
-                                                            <Button
-                                                                variant="outline"
-                                                                className="w-full text-destructive justify-start border-0 text-sm px-2 rounde-sm gap-2"
-                                                                disabled={isLoading}
-                                                            >
-                                                                Remove from the group
-                                                                <Loader visible={isLoading} />
-                                                            </Button>
-                                                        </DialogBox>
+                                                            Remove from the group
+                                                            <Loader visible={isLoading} />
+                                                        </Button>
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
                                                         className={isUserAdmin ? "text-destructive" : ""}
@@ -641,24 +723,28 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             .reverse()}
                     </div>
 
-                    <div className="flex justify-center flex-col border-t items-start border-input p-6 gap-4 w-full">
+                    <div className="border-input flex w-full flex-col items-start justify-center gap-4 border-t p-6">
                         {chatRoomDetails.isGroup && (
                             <>
-                                <DialogBox
-                                    positiveTitle="Leave"
-                                    negativeTitle="Cancel"
-                                    title="Leave chat"
-                                    description="You won't be able to send or receive messages unless someone adds you back to the chat. No one will be notified that you left the chat."
-                                    positiveOnClick={handleLeaveGroupChat}
-                                    PositiveButtonStyles="!bg-destructive dark:text-slate-200 text-black"
+                                <Button
+                                    variant="ghost"
+                                    className="text-destructive cursor-pointer select-none p-0 text-base hover:!bg-transparent"
+                                    onClick={() =>
+                                        setAlertModalMetadata({
+                                            visible: true,
+                                            positiveTitle: "Leave",
+                                            negativeTitle: "Cancel",
+                                            title: "Leave chat",
+                                            description:
+                                                "You won't be able to send or receive messages unless someone adds you back to the chat. No one will be notified that you left the chat.",
+                                            positiveOnClick: () => handleLeaveGroupChat(),
+                                            PositiveButtonStyles: "!bg-destructive dark:text-slate-200 text-black",
+                                        })
+                                    }
                                 >
-                                    <Button
-                                        variant="ghost"
-                                        className="text-destructive select-none p-0 cursor-pointer hover:!bg-transparent text-base"
-                                    >
-                                        Leave chat
-                                    </Button>
-                                </DialogBox>
+                                    Leave chat
+                                </Button>
+
                                 <p>
                                     You won't be able to send or receive messages unless someone adds you back to the
                                     chat. No one will be notified that you left the chat.
@@ -666,21 +752,23 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             </>
                         )}
                         {(isAdmin || !chatRoomDetails.isGroup) && (
-                            <DialogBox
-                                positiveTitle="Delete"
-                                negativeTitle="Cancel"
-                                title="Permanently delete this chat?"
-                                description="This chat and all it's messages will be deleted forever."
-                                positiveOnClick={handleDeleteGroupChat}
-                                PositiveButtonStyles="!bg-destructive dark:text-slate-200 text-black"
+                            <Button
+                                variant="ghost"
+                                className="text-destructive cursor-pointer select-none p-0 text-base hover:!bg-transparent"
+                                onClick={() =>
+                                    setAlertModalMetadata({
+                                        visible: true,
+                                        positiveTitle: "Delete",
+                                        negativeTitle: "Cancel",
+                                        title: "Permanently delete this chat?",
+                                        description: "This chat and all it's messages will be deleted forever.",
+                                        positiveOnClick: () => handleDeleteGroupChat(),
+                                        PositiveButtonStyles: "!bg-destructive dark:text-slate-200 text-black",
+                                    })
+                                }
                             >
-                                <Button
-                                    variant="ghost"
-                                    className="text-destructive select-none cursor-pointer p-0 hover:!bg-transparent text-base"
-                                >
-                                    Delete chat
-                                </Button>
-                            </DialogBox>
+                                Delete chat
+                            </Button>
                         )}
                     </div>
                 </div>

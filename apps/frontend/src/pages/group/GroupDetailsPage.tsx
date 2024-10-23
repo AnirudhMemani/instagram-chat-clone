@@ -5,11 +5,11 @@ import { readFile } from "@/components/image-editor/helpers/cropImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { chatRoomAtom, groupAtom } from "@/state/chat";
+import { chatRoomAtom } from "@/state/chat";
 import { selectedUsersAtom } from "@/state/user";
-import { NavigationRoutes } from "@/utils/constants";
+import { NAVIGATION_ROUTES } from "@/utils/constants";
 import { CREATE_GROUP } from "@instachat/messages/messages";
-import { IMessage, IStartConvoMessage } from "@instachat/messages/types";
+import { IMessage } from "@instachat/messages/types";
 import { ArrowLeft, Camera } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +32,6 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): J
 
     const [selectedUsers, setSelectedUsers] = useRecoilState(selectedUsersAtom);
     const setChatRoomDetails = useSetRecoilState(chatRoomAtom);
-    const setGroupDetails = useSetRecoilState(groupAtom);
 
     const { getProcessedImage, setImage, resetStates } = useImageCropContext();
 
@@ -66,7 +65,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): J
                     isGroup: true,
                 }));
 
-                setGroupDetails(payload.groupDetails);
+                // setGroupDetails(payload.groupDetails);
 
                 setIsSubmitting(false);
                 navigate(`/inbox/direct/${payload.chatRoomId}`);
@@ -120,56 +119,56 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): J
 
             console.log(imageData);
 
-            const message: IStartConvoMessage = {
-                type: CREATE_GROUP,
-                payload: {
-                    userDetails: selectedUsers,
-                    groupDetails: {
-                        name: groupName,
-                        profilePic: imageData,
-                        pictureName: groupImage.name,
-                    },
-                },
-            };
+            // const message: IStartConvoMessageRequest = {
+            //     type: CREATE_GROUP,
+            //     payload: {
+            //         userDetails: selectedUsers,
+            //         groupDetails: {
+            //             name: groupName,
+            //             profilePic: imageData,
+            //             pictureName: groupImage.name,
+            //         },
+            //     },
+            // };
 
-            socket.send(JSON.stringify(message));
+            // socket.send(JSON.stringify(message));
         };
 
         reader.readAsDataURL(groupImage);
     };
 
     return (
-        <div className="flex items-center justify-center h-dvh w-full">
+        <div className="flex h-dvh w-full items-center justify-center">
             <form
-                className="flex items-center justify-center flex-col gap-6 border border-input p-10 rounded-lg w-[400px] overflow-hidden"
+                className="border-input flex w-[400px] flex-col items-center justify-center gap-6 overflow-hidden rounded-lg border p-10"
                 onSubmit={handleGroupCreation}
             >
-                <div className="flex items-center relative gap-1 justify-center w-full">
+                <div className="relative flex w-full items-center justify-center gap-1">
                     <ArrowLeft
-                        className="size-5 absolute left-0 cursor-pointer"
+                        className="absolute left-0 size-5 cursor-pointer"
                         onClick={() => {
                             if (isSubmitting) return;
-                            navigate(NavigationRoutes.Inbox);
+                            navigate(NAVIGATION_ROUTES.INBOX);
                             setSelectedUsers([]);
                         }}
                     />
                     <h1 className="text-lg font-medium">New Group</h1>
                 </div>
-                <div className="relative h-40 w-40 overflow-hidden bg-gray-200 rounded-full flex items-center justify-center">
+                <div className="relative flex h-40 w-40 items-center justify-center overflow-hidden rounded-full bg-gray-200">
                     <Input
                         type="file"
                         onChange={handleGroupImageChange}
                         accept=".jpg, .png, .jpeg, .webp"
-                        className="absolute opacity-0 w-full h-full peer z-20 cursor-pointer"
+                        className="peer absolute z-20 h-full w-full cursor-pointer opacity-0"
                         disabled={isSubmitting}
                     />
                     <img src={previewImage} className="object-cover object-center opacity-40" />
                     <div
                         className={cn(
-                            "absolute text-black hover:opacity-100 font-medium flex flex-col items-center justify-center",
+                            "absolute flex flex-col items-center justify-center font-medium text-black hover:opacity-100",
                             previewImage !==
                                 "https://res.cloudinary.com/dtbyy0w95/image/upload/v1716144011/default-group-image_eopbih.png" &&
-                                "peer-hover:opacity-100 opacity-0 transition-opacity duration-300 ease-in-out"
+                                "opacity-0 transition-opacity duration-300 ease-in-out peer-hover:opacity-100"
                         )}
                     >
                         <Camera className="size-10" />
@@ -190,14 +189,14 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): J
                     disabled={isSubmitting}
                 />
                 <h1 className="mr-auto">Members</h1>
-                <div className="overflow-y-auto flex-grow flex-wrap flex gap-3 w-full max-h-24">
+                <div className="flex max-h-24 w-full flex-grow flex-wrap gap-3 overflow-y-auto">
                     {selectedUsers.length > 0 &&
                         selectedUsers.map((user) => (
                             <div
-                                className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden flex justify-center items-center"
+                                className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gray-200"
                                 key={user.id}
                             >
-                                <img className="object-center object-cover" src={user.profilePic} />
+                                <img className="object-cover object-center" src={user.profilePic} />
                             </div>
                         ))}
                 </div>

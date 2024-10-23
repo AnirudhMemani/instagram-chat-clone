@@ -1,6 +1,6 @@
-export const GET_DM = "get_dm";
+export const GET_INBOX = "get_inbox";
 export const NEW_MESSAGE = "new_message";
-export const FIND_USERS = "find_users";
+export const FIND_CHATS = "find_chats";
 export const CREATE_GROUP = "create_group";
 export const ROOM_EXISTS = "room_exists";
 export const CHANGE_GROUP_NAME = "change_group_name";
@@ -14,3 +14,4 @@ export const ADD_TO_CHAT = "add_to_chat";
 export const DELETE_GROUP_CHAT = "delete_group_chat";
 export const CHATROOM_DETAILS_BY_ID = "get_chatroom_details_by_id";
 export const MESSAGE_QUEUE = "message_queue";
+export const TRANSFER_SUPER_ADMIN = "transfer_super_admin";

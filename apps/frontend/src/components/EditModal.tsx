@@ -58,7 +58,7 @@ export const EditModal: React.FC<TEditModalProps> = ({
                     <DialogTitle className="text-center">{title}</DialogTitle>
                     <DialogDescription>{description}</DialogDescription>
                 </DialogHeader>
-                <form className="py-2 grid gap-8" onSubmit={onSubmit}>
+                <form className="grid gap-8 py-2" onSubmit={onSubmit}>
                     <div className="grid gap-4">
                         <div className="flex flex-col items-start gap-4">
                             <Label htmlFor={label} className="text-right">

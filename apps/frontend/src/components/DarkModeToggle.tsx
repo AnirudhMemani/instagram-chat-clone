@@ -4,7 +4,7 @@ const DarkModeToggle: React.FC = (): JSX.Element => {
     const { setTheme, theme } = useTheme();
     return (
         <button
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring active:ring-1 active:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 py-2 w-9 px-0"
+            className="focus-visible:ring-ring active:ring-ring hover:bg-accent hover:text-accent-foreground inline-flex h-9 w-9 items-center justify-center whitespace-nowrap rounded-md px-0 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 active:ring-1 disabled:pointer-events-none disabled:opacity-50"
             type="button"
             aria-haspopup="menu"
             aria-expanded="false"

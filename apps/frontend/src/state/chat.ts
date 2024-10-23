@@ -1,70 +1,93 @@
 import { atom } from "recoil";
 
-type TParticipants = {
+// type TAttachments = {
+//     id: string;
+//     url: string;
+//     contentType: string;
+//     size: number;
+//     sentAt: Date;
+// };
+
+// type TGroupAtom = {
+//     id: string;
+//     name: string;
+//     picture: string;
+//     createdAt: Date;
+//     adminOf: Pick<TParticipant, "id">[];
+//     superAdminId: string;
+//     chatRoomId: string;
+// };
+
+// const defaultChatRoomAtomValue: TChatRoomAtom = {
+//     id: "",
+//     name: "",
+//     createdAt: new Date(),
+//     participants: [],
+//     messages: [],
+//     isGroup: false,
+// };
+
+// const defaultGroupAtomValue: TGroupAtom = {
+//     id: "",
+//     name: "",
+//     picture: "",
+//     createdAt: new Date(),
+//     adminOf: [],
+//     superAdminId: "",
+//     chatRoomId: "",
+// };
+
+export type TParticipant = {
     id: string;
     username: string;
     fullName: string;
     profilePic: string;
 };
 
-type TAttachments = {
-    id: string;
-    url: string;
-    contentType: string;
-    size: number;
-    sentAt: Date;
-};
-
 type TMessage = {
     id: string;
     content: string;
-    contentType: string;
-    senderId: string;
     sentAt: Date;
     editedAt: Date;
-    Attachments: TAttachments[];
-    readBy: TParticipants[];
+    readBy: TParticipant[];
+    isEdited: boolean;
+    sentBy: TParticipant;
     chatRoomId: string;
+    receivedBy: TParticipant[];
+    recipients: TParticipant[];
 };
 
-type TChatRoomAtom = {
-    id: string;
-    name: string;
-    createdAt: Date;
-    participants: TParticipants[];
-    messages: TMessage[];
-    isGroup: boolean;
-};
+export type TChatRoomAtom =
+    | {
+          isGroup: true;
+          id: string;
+          createdAt: Date;
+          name: string;
+          picture: string;
+          createdBy: TParticipant;
+          admins: TParticipant[];
+          participants: TParticipant[];
+          messages: TMessage[];
+          superAdmin: TParticipant;
+          pictureUpdatedAt: Date;
+          nameUpdatedAt: Date;
+      }
+    | { isGroup: false; id: string; createdAt: Date; participants: TParticipant[]; messages?: TMessage[] };
 
-type TGroupAtom = {
+export type TExistingGroupsAtom = {
     id: string;
     name: string;
     picture: string;
-    createdAt: Date;
-    adminOf: Pick<TParticipants, "id">[];
-    superAdminId: string;
-    chatRoomId: string;
-};
-
-// @ts-ignore
-const defaultChatRoomAtomValue: TChatRoomAtom = {
-    id: "",
-    name: "",
-    createdAt: new Date(),
-    participants: [],
-    messages: [],
-    isGroup: false,
-};
-
-// @ts-ignore
-const defaultGroupAtomValue: TGroupAtom = {
-    id: "",
-    name: "",
-    picture: "",
-    createdAt: new Date(),
-    adminOf: [],
-    superAdminId: "",
-    chatRoomId: "",
+    createdBy: {
+        id: string;
+        username: string;
+    };
+    participants: {
+        id: string;
+        fullName: string;
+        username: string;
+        profilePic: string;
+    }[];
 };
 
 export const chatRoomAtom = atom<TChatRoomAtom | null>({
@@ -72,7 +95,12 @@ export const chatRoomAtom = atom<TChatRoomAtom | null>({
     default: null,
 });
 
-export const groupAtom = atom<TGroupAtom | null>({
-    key: "groupAtom",
-    default: null,
+export const existingGroupsAtom = atom<TExistingGroupsAtom[]>({
+    key: "existingGroupsAtom",
+    default: [],
+});
+
+export const potentialSuperAdminsAtom = atom<TParticipant[]>({
+    key: "potentialSuperAdminsAtom",
+    default: [],
 });

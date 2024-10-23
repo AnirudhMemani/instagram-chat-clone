@@ -24,8 +24,6 @@ cloudinary.v2.config({
 
 connectToRedis();
 
-const inboxManager = new InboxManager();
-
 wss.on("connection", function connection(socket, req) {
     console.log("Connection Established");
 
@@ -41,6 +39,7 @@ wss.on("connection", function connection(socket, req) {
     const { id, fullName, profilePic } = validateUser(token, socket) as Omit<IUser, "socket">;
 
     if (!id || !fullName || !profilePic) {
+        socket.close(1007, "Invalid token");
         return;
     }
 
@@ -50,6 +49,8 @@ wss.on("connection", function connection(socket, req) {
         profilePic,
         socket,
     };
+
+    const inboxManager = new InboxManager(socket);
 
     inboxManager.connectUser(userInfo);
 

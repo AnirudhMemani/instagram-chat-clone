@@ -1,7 +1,7 @@
 import { Router } from "express";
+import multer from "multer";
 import { AllUserDataController, UserLoginController, userSignupController } from "../controllers/user.controllers.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
-import multer from "multer";
 
 const router = Router();
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB

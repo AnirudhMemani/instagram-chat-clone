@@ -1,7 +1,7 @@
 import { isLoadingAtom } from "@/state/global";
 import { isAuthenticatedAtom } from "@/state/user";
 import { localStorageUtils } from "@/utils/LocalStorageUtils";
-import { EndPoints, NavigationRoutes, StatusCodes } from "@/utils/constants";
+import { EndPoints, NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
 import axios from "axios";
 import { useEffect } from "react";
@@ -9,7 +9,7 @@ import { Navigate } from "react-router-dom";
 import { useRecoilState, useSetRecoilState } from "recoil";
 
 const navigateToLoginScreen = () => {
-    return <Navigate to={NavigationRoutes.Login} replace />;
+    return <Navigate to={NAVIGATION_ROUTES.LOGIN} replace />;
 };
 
 const RouteGuard = ({ children }: { children?: React.ReactNode }) => {

@@ -31,10 +31,10 @@ const ImageCrop = () => {
     };
 
     return (
-        <div className="bg-gray-100 h-screen flex justify-center items-center">
+        <div className="flex h-screen items-center justify-center bg-gray-100">
             <input type="file" onChange={handleFileChange} className="hidden" id="avatarInput" accept="image/*" />
             <label htmlFor="avatarInput" className="cursor-pointer">
-                <img src={preview} height={192} width={192} className="object-cover rounded-full h-48 w-48" alt="" />
+                <img src={preview} height={192} width={192} className="h-48 w-48 rounded-full object-cover" alt="" />
             </label>
 
             <Modal open={openModal} handleClose={() => setOpenModal(false)}>

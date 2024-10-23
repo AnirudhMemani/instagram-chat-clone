@@ -10,8 +10,8 @@ export const StartChatPrompt: React.FC<TChatProps> = (): JSX.Element => {
     const isLoading = useRecoilValue(isLoadingAtom);
 
     return (
-        <div className="h-dvh w-full lg:block hidden">
-            <div className="flex flex-col items-center justify-center gap-5 h-full w-full">
+        <div className="hidden h-dvh w-full lg:block">
+            <div className="flex h-full w-full flex-col items-center justify-center gap-5">
                 {isLoading ? (
                     <StartChatPromptSkeleton />
                 ) : (
@@ -30,7 +30,7 @@ export const StartChatPrompt: React.FC<TChatProps> = (): JSX.Element => {
                         </svg>
                         <div className="flex flex-col items-center justify-center gap-1">
                             <h1 className="text-xl">Your Messages</h1>
-                            <p className="text-gray-400 text-sm">
+                            <p className="text-sm text-gray-400">
                                 Send private photos and messages to a friend or group
                             </p>
                         </div>

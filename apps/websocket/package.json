@@ -17,6 +17,7 @@
     "dependencies": {
         "@instachat/db": "*",
         "@instachat/messages": "*",
+        "@instachat/common": "*",
         "amqplib": "^0.10.4",
         "cloudinary": "^2.2.0",
         "copyfiles": "^2.4.1",

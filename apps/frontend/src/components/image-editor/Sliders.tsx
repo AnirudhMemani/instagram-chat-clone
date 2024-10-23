@@ -8,7 +8,7 @@ export const ZoomSlider = ({ className }: { className: string }) => {
     return (
         <div className={cn(className, "flex items-center justify-center gap-2")}>
             <button className="p-1" onClick={handleZoomOut}>
-                <MinusIcon className="text-gray-400 w-4" />
+                <MinusIcon className="w-4 text-gray-400" />
             </button>
             <input
                 type="range"
@@ -22,7 +22,7 @@ export const ZoomSlider = ({ className }: { className: string }) => {
                 }}
             />
             <button className="p-1" onClick={handleZoomIn}>
-                <PlusIcon className="text-gray-400 w-4" />
+                <PlusIcon className="w-4 text-gray-400" />
             </button>
         </div>
     );
@@ -35,7 +35,7 @@ export const RotationSlider = ({ className }: { className: string }) => {
     return (
         <div className={cn(className, "flex items-center justify-center gap-2")}>
             <button className="p-1" onClick={handleRotateAntiCw}>
-                <CornerUpLeft className="text-gray-400 w-4" />
+                <CornerUpLeft className="w-4 text-gray-400" />
             </button>
             <input
                 type="range"
@@ -49,7 +49,7 @@ export const RotationSlider = ({ className }: { className: string }) => {
                 }}
             />
             <button className="p-1" onClick={handleRotateCw}>
-                <CornerUpRight className="text-gray-400 w-4" />
+                <CornerUpRight className="w-4 text-gray-400" />
             </button>
         </div>
     );

@@ -24,9 +24,9 @@ const ImageCropModalContent: React.FC<TImageCropModalContentProps> = ({ handleDo
     };
 
     return (
-        <div className="text-center relative">
-            <h5 className="text-gray-800 dark:text-white mb-4">Edit profile picture</h5>
-            <div className="border dark:border-gray-700 border-white p-6 rounded-lg">
+        <div className="relative text-center">
+            <h5 className="mb-4 text-gray-800 dark:text-white">Edit profile picture</h5>
+            <div className="rounded-lg border border-white p-6 dark:border-gray-700">
                 <div className="flex justify-center">
                     <div className="crop-container mb-4">
                         <Cropper />
@@ -43,7 +43,7 @@ const ImageCropModalContent: React.FC<TImageCropModalContentProps> = ({ handleDo
                     accept="image/*"
                 />
 
-                <Button variant="secondary" className="shadow w-full mb-4 hover:shadow-lg">
+                <Button variant="secondary" className="mb-4 w-full shadow hover:shadow-lg">
                     <label htmlFor="avatarInput">Upload Another Picture</label>
                 </Button>
                 <div className="flex gap-2">

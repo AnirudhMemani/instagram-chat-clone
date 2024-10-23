@@ -1,8 +1,8 @@
+import { prisma } from "@instachat/db/client";
 import bcrypt from "bcrypt";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { ConflictException, ResourceNotFoundError, UnauthorizedError } from "../middlewares/GlobalErrorHandler.js";
 import { env } from "../utils/constants.js";
-import { prisma } from "@instachat/db/client";
 
 const salt = 10;
 
@@ -22,15 +22,13 @@ export const validateUser = async (credentials: string, password: string) => {
     });
 
     if (!userInfo) {
-        new ResourceNotFoundError("Username or Email does not exists");
-        return;
+        throw new ResourceNotFoundError("Username or Email does not exists");
     }
 
     const isPasswordValid = await bcrypt.compare(password, userInfo.password);
 
     if (!isPasswordValid) {
-        new UnauthorizedError("Invalid Credentials");
-        return;
+        throw new UnauthorizedError("Invalid Credentials");
     }
 
     const jwtPayload = {
@@ -99,7 +97,7 @@ export const getAllUserData = async (id: string) => {
     });
 
     if (!userData) {
-        new ResourceNotFoundError("No other user found");
+        throw new ResourceNotFoundError("No other user found");
     }
 
     return userData;

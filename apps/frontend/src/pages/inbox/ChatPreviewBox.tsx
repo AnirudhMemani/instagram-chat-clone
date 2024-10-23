@@ -18,8 +18,8 @@ export const ChatPreviewBox: React.FC<TChatPreviewBoxProps> = ({
     unReadMessage = false,
 }): JSX.Element => {
     return (
-        <div className="flex justify-between items-center w-full">
-            <div className="flex gap-3 items-center">
+        <div className="flex w-full items-center justify-between">
+            <div className="flex items-center gap-3">
                 <Avatar className="size-14">
                     <AvatarImage src={profilePic} />
                     <AvatarFallback>{fullName.slice(0, 2).toUpperCase()}</AvatarFallback>
@@ -27,16 +27,16 @@ export const ChatPreviewBox: React.FC<TChatPreviewBoxProps> = ({
                 <div className="flex flex-col gap-2">
                     <p
                         className={cn(
-                            "text-sm line-clamp-1 text-ellipsis",
+                            "line-clamp-1 text-ellipsis text-sm",
                             unReadMessage ? "font-bold" : "font-normal"
                         )}
                     >
                         {fullName}
                     </p>
-                    <div className="flex text-xs items-center">
+                    <div className="flex items-center text-xs">
                         <p
                             className={cn(
-                                "after:px-1 after:text-gray-400 after:content-['·'] line-clamp-1 text-ellipsis",
+                                "line-clamp-1 text-ellipsis after:px-1 after:text-gray-400 after:content-['·']",
                                 unReadMessage ? "font-bold" : "text-gray-400"
                             )}
                         >
@@ -46,7 +46,7 @@ export const ChatPreviewBox: React.FC<TChatPreviewBoxProps> = ({
                     </div>
                 </div>
             </div>
-            {unReadMessage && <Dot className="text-blue-400 size-12" />}
+            {unReadMessage && <Dot className="size-12 text-blue-400" />}
         </div>
     );
 };

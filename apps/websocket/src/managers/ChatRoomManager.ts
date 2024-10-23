@@ -1,7 +1,7 @@
 // import { Redis } from "ioredis";
 // import { IUser } from "./UserManager.js";
 // import redis from "../redis/client.js";
-// import { GET_DM } from "./Messages.js";
+// import { GET_INBOX } from "./Messages.js";
 // import { prisma } from "@instachat/db/client";
 // import { TOP_DM } from "./RedisKeys.js";
 
@@ -17,7 +17,7 @@
 //         user.socket.on("message", async (data) => {
 //             const message = JSON.parse(data.toString());
 
-//             if (message.type === GET_DM) {
+//             if (message.type === GET_INBOX) {
 //                 const dm = await this.getUserDm(user.id);
 //                 user.socket.send(dm);
 //             }

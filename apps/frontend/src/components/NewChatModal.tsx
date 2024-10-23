@@ -1,17 +1,19 @@
 import { Loader } from "@/components/Loader";
-import { chatRoomAtom, groupAtom } from "@/state/chat";
-import { isChatModalVisibleAtom } from "@/state/global";
+import { chatRoomAtom, existingGroupsAtom } from "@/state/chat";
+import { isChatModalVisibleAtom, showGroupSelectionModalAtom } from "@/state/global";
 import { selectedUsersAtom, userAtom } from "@/state/user";
-import { NavigationRoutes } from "@/utils/constants";
+import { TGroupExistsResponse } from "@/types/chatRoom";
+import { NAVIGATION_ROUTES } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
+import { ADD_TO_CHAT, FIND_CHATS, ROOM_EXISTS } from "@instachat/messages/messages";
 import { IMessage } from "@instachat/messages/types";
-import { ADD_TO_CHAT, FIND_USERS, ROOM_EXISTS } from "@instachat/messages/messages";
 import { X } from "lucide-react";
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { toast } from "sonner";
-import { IUserBarsProps, UserBars } from "./UserBars";
+import GroupBars from "./GroupBars";
+import { UserBars } from "./UserBars";
 import { UserLoadingSkeleton } from "./UserLoadingSkeleton";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -23,33 +25,76 @@ export type TUsersSchema = {
     profilePic: string;
 };
 
+type TFilteredChats =
+    | {
+          showGroup: false;
+          id: string;
+          fullName: string;
+          username: string;
+          profilePic: string;
+          isSelected?: boolean;
+      }
+    | {
+          showGroup: true;
+          data:
+              | {
+                    isGroup: true;
+                    id: string;
+                    name: string;
+                    picture: string;
+                    participants: { id: string; username: string; profilePic: string }[];
+                }
+              | {
+                    isGroup: false;
+                    id: string;
+                    fullName: string;
+                    username: string;
+                    profilePic: string;
+                };
+      };
+
 type TAllUsersSchema = {
     id: string;
     username: string;
     email: string;
     fullName: string;
-    password: string;
     createdAt: Date;
     updatedAt: Date;
     profilePic: string;
 };
 
+type TGroupSchema = {
+    id: string;
+    name: string;
+    picture: string;
+    participants: { id: string; username: string; profilePic: string }[];
+};
+
 export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket }): JSX.Element => {
     const [searchInput, setSearchInput] = useState<string>("");
-    const [usersData, setUsersData] = useState<TUsersSchema[]>();
-    const [filteredUsers, setFilteredUsers] = useState<Omit<IUserBarsProps, "onClick">[]>();
+    const [userDetails, setUserDetails] = useState<TUsersSchema[]>();
+    const [groupDetails, setGroupDetails] = useState<TGroupSchema[]>();
+    const [filteredChats, setFilteredChats] = useState<TFilteredChats[]>();
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+    const setShowGroupSelectionModal = useSetRecoilState(showGroupSelectionModalAtom);
     const [isChatModalVisible, setIsChatModalVisible] = useRecoilState(isChatModalVisibleAtom);
     const [selectedUsers, setSelectedUsers] = useRecoilState(selectedUsersAtom);
     const [chatRoomDetails, setChatRoomDetails] = useRecoilState(chatRoomAtom);
-    const setGroupDetails = useSetRecoilState(groupAtom);
+
+    const setExistingGroups = useSetRecoilState(existingGroupsAtom);
+
     const user = useRecoilValue(userAtom);
 
     const modalContainerRef = useRef<HTMLDivElement>(null);
-
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (isChatModalVisible.visible === true) {
+            setSelectedUsers([]);
+        }
+    }, [isChatModalVisible.visible]);
 
     useEffect(() => {
         if (!socket) {
@@ -60,61 +105,75 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
         socket.onmessage = (event) => {
             try {
                 const message = JSON.parse(event.data) as IMessage;
-                const payload = message.payload;
+                const payload = message?.payload;
+                const status = message?.status;
 
                 switch (message.type) {
-                    case FIND_USERS:
-                        printlogs("chatRoomDetails", chatRoomDetails);
-                        printlogs("payload", payload);
+                    case FIND_CHATS:
                         const data =
-                            chatRoomDetails?.participants.length && isChatModalVisible.type === "ADD_USERS"
-                                ? (payload as TAllUsersSchema[]).filter((user) =>
-                                      chatRoomDetails.participants.every((participant) => participant.id !== user.id)
+                            chatRoomDetails?.participants?.length && isChatModalVisible.type === "ADD_USERS"
+                                ? (payload?.users as TAllUsersSchema[]).filter((user) =>
+                                      chatRoomDetails?.participants?.every((participant) => participant?.id !== user.id)
                                   )
-                                : payload;
-                        printlogs("User data inside modal:", data);
-                        setUsersData(data);
+                                : payload?.users;
+                        setUserDetails(data);
+                        setGroupDetails(payload?.groups);
                         break;
                     case ROOM_EXISTS:
-                        const isGroup = Boolean(payload.groupDetails);
-
-                        if (payload.result === "error") {
-                            toast.info(payload.message, {
-                                richColors: true,
-                            });
-                            return;
+                        switch (status) {
+                            case 400:
+                                toast.error(payload?.message);
+                                break;
+                            case 409:
+                                if (payload?.isGroup === true) {
+                                    setExistingGroups((payload as TGroupExistsResponse)?.existingGroups);
+                                    setShowGroupSelectionModal(true);
+                                } else if (payload?.isGroup === false) {
+                                    const roomName = payload?.existingChatRoom?.participants?.filter(
+                                        (member: any) => member?.id !== user.id
+                                    )[0].username;
+                                    const existingRoomDetails = {
+                                        id: payload?.existingChatRoom?.id,
+                                        name: roomName,
+                                        createdAt: payload?.existingChatRoom?.createdAt,
+                                        participants: payload?.existingChatRoom?.participants,
+                                        messages: payload?.existingChatRoom?.messages,
+                                        isGroup: payload?.isGroup,
+                                    };
+                                    setChatRoomDetails(existingRoomDetails);
+                                    navigate(`/inbox/direct/${payload?.existingChatRoom?.id}`);
+                                }
+                                break;
+                            case 201:
+                                const roomName = payload?.chatRoomDetails?.participants?.filter(
+                                    (member: any) => member?.id !== user.id
+                                )[0].username;
+                                const newChatRoomDetails = {
+                                    id: payload?.chatRoomDetails?.id,
+                                    name: roomName,
+                                    createdAt: payload?.chatRoomDetails?.createdAt,
+                                    participants: payload?.chatRoomDetails?.participants,
+                                    messages: payload?.chatRoomDetails?.messages,
+                                    isGroup: payload?.isGroup,
+                                };
+                                setChatRoomDetails(newChatRoomDetails);
+                                navigate(`/inbox/direct/${payload?.chatRoomDetails?.id}`);
+                                break;
+                            case 200:
+                                if (payload?.isGroup === true) {
+                                    navigate(NAVIGATION_ROUTES.CREATE_NEW_GROUP);
+                                }
+                                break;
+                            default:
+                                toast.error("An unknown error occurred. Please try again later!");
+                                break;
                         }
-
-                        if (payload.result === "created" || payload.result === "exists") {
-                            console.log("\n\nROOM_EXISTS PAYLOAD:", payload);
-                            setChatRoomDetails(() => ({
-                                id: payload.chatRoomId,
-                                name: payload.chatRoomName,
-                                createdAt: payload.createdAt,
-                                participants: payload.participants,
-                                messages: payload.messageDetails,
-                                isGroup,
-                            }));
-
-                            if (isGroup) {
-                                setGroupDetails(payload.groupDetails);
-                            }
-
-                            setSelectedUsers([]);
-                            navigate(`/inbox/direct/${payload.chatRoomId}`);
-                        }
-
-                        if (payload.result === "group") {
-                            navigate(NavigationRoutes.CreateNewGroup);
-                        }
-
                         setIsChatModalVisible({ visible: false });
                         break;
                     case ADD_TO_CHAT:
                         if (payload.result === "error") {
                             switch (payload.statusCode) {
                                 case 400:
-                                    printlogs("Error trying to add new member", payload.message);
                                     toast.error(
                                         "Invalid request. Please contact the owner or the developer of this website"
                                     );
@@ -155,79 +214,11 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
                     default:
                         break;
                 }
-
-                /**
-                 * prev?.participants.push({
-                                    id: payload.newUsersDetails?.id,
-                                    username: payload.newUsersDetails?.username,
-                                    fullName: payload.newUsersDetails?.fullName,
-                                    profilePic:
-                                        payload.newUsersDetails?.profilePic,
-                                });
-                                return prev;
-                 */
-
-                // if (message.type === FIND_USERS) {
-                //     printlogs("chatRoomDetails", chatRoomDetails);
-                //     printlogs("payload", payload);
-                //     const data =
-                //         chatRoomDetails?.participants.length &&
-                //         isChatModalVisible.type === "ADD_USERS"
-                //             ? (payload as TAllUsersSchema[]).filter((user) =>
-                //                   chatRoomDetails.participants.every(
-                //                       (participant) =>
-                //                           participant.id !== user.id
-                //                   )
-                //               )
-                //             : payload;
-                //     printlogs("User data inside modal:", data);
-                //     setUsersData(data);
-                //     return;
-                // }
-
-                // if (message.type === ROOM_EXISTS) {
-                //     const isGroup = Boolean(payload.groupDetails);
-
-                //     if (payload.result === "error") {
-                //         toast.info(payload.message, { richColors: true });
-                //         return;
-                //     }
-
-                //     if (
-                //         payload.result === "created" ||
-                //         payload.result === "exists"
-                //     ) {
-                //         console.log("\n\nROOM_EXISTS PAYLOAD:", payload);
-                //         setChatRoomDetails(() => ({
-                //             id: payload.chatRoomId,
-                //             name: payload.chatRoomName,
-                //             createdAt: payload.createdAt,
-                //             participants: payload.participants,
-                //             messages: payload.messageDetails,
-                //             isGroup,
-                //         }));
-
-                //         if (isGroup) {
-                //             setGroupDetails(payload.groupDetails);
-                //         }
-
-                //         setSelectedUsers([]);
-                //         navigate(`/inbox/direct/${payload.chatRoomId}`);
-                //     }
-
-                //     if (payload.result === "group") {
-                //         navigate(NavigationRoutes.CreateNewGroup);
-                //     }
-
-                //     setIsChatModalVisible({ visible: false });
-                //     return;
-                // }
             } catch (error) {
                 toast.error("Uh oh! Something went wrong.", {
                     description: "Your request could not be processed",
                     richColors: true,
                 });
-                setSelectedUsers([]);
             } finally {
                 setIsLoading(false);
                 setIsSubmitting(false);
@@ -237,7 +228,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
         setIsLoading(true);
         socket.send(
             JSON.stringify({
-                type: FIND_USERS,
+                type: FIND_CHATS,
             })
         );
     }, [socket]);
@@ -247,7 +238,6 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
             if (modalContainerRef.current && !modalContainerRef.current.contains(event.target as Node)) {
                 setIsChatModalVisible({ visible: false });
                 setSearchInput("");
-                setSelectedUsers([]);
             }
         };
 
@@ -258,27 +248,53 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
         };
     }, []);
 
-    const filterUsers = (users: TUsersSchema[], searchQuery: string) => {
-        const filteredUserData = users.filter(
-            (user) =>
-                user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                user.username.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+    const filterUsers = (searchQuery: string, users?: TUsersSchema[], groups?: TGroupSchema[]) => {
+        const filteredUserData = users?.length
+            ? users.filter(
+                  (user) =>
+                      user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      user.username.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+            : null;
 
-        setFilteredUsers(
-            filteredUserData.map((user) => ({
-                ...user,
-                isSelected: selectedUsers.some((selectedUser) => user.id === selectedUser.id),
-            }))
-        );
+        printlogs("selectedUsers", selectedUsers);
+        printlogs("selectedUsers length", selectedUsers.length);
+
+        if (selectedUsers.length > 0) {
+            setFilteredChats(
+                filteredUserData?.map((user) => ({
+                    ...user,
+                    isSelected: selectedUsers.some((selectedUser) => user.id === selectedUser.id),
+                    showGroup: false,
+                })) || []
+            );
+            return;
+        }
+
+        const filteredGroupsData = groups?.length
+            ? groups.filter((group) => group.name.toLowerCase().includes(searchQuery.toLowerCase()))
+            : null;
+
+        const filteredData = [
+            ...(filteredUserData?.map((user) => ({
+                data: { ...user, isGroup: false as false },
+                showGroup: true as true,
+            })) || []),
+            ...(filteredGroupsData?.map((group) => ({
+                data: { ...group, isGroup: true as true },
+                showGroup: true as true,
+            })) || []),
+        ];
+
+        setFilteredChats(filteredData);
     };
 
     const searchInputChangeHandler = async (e: ChangeEvent<HTMLInputElement>) => {
         const searchQuery = e.target.value;
         setSearchInput(searchQuery);
 
-        if (usersData) {
-            filterUsers(usersData, searchQuery);
+        if (userDetails || groupDetails) {
+            filterUsers(searchQuery, userDetails, groupDetails);
         }
     };
 
@@ -311,12 +327,10 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
 
         setSelectedUsers(participants);
 
-        printlogs("participants for the chat room", participants);
-
         const message: IMessage = {
             type: ROOM_EXISTS,
             payload: {
-                userDetails: participants,
+                selectedUsers: participants,
             },
         };
 
@@ -342,25 +356,24 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
     };
 
     return (
-        <div className="h-dvh fixed top-0 left-0 right-0 w-full bg-[#00000080] flex items-center justify-center z-30">
+        <div className="fixed left-0 right-0 top-0 z-30 flex h-dvh w-full items-center justify-center bg-[#00000080]">
             <div
-                className="py-6 rounded-lg sm:w-[588px] overflow-hidden sm:h-[70%] bg-background w-[90%] border border-input flex flex-col"
+                className="bg-background border-input flex w-[90%] flex-col overflow-hidden rounded-lg border py-6 sm:h-[70%] sm:w-[588px]"
                 ref={modalContainerRef}
             >
-                <div className="flex items-center mb-3 justify-center">
-                    <h1 className="text-center flex-grow font-bold">New Message</h1>
+                <div className="mb-3 flex items-center justify-center">
+                    <h1 className="flex-grow text-center font-bold">New Message</h1>
                     <X
-                        className="size-6 mr-6 cursor-pointer"
+                        className="mr-6 size-6 cursor-pointer"
                         onClick={() => {
                             if (isSubmitting) {
                                 return;
                             }
                             setIsChatModalVisible({ visible: false });
-                            setSelectedUsers([]);
                         }}
                     />
                 </div>
-                <div className="flex items-center py-2 gap-3 border border-input">
+                <div className="border-input flex items-center gap-3 border py-2">
                     <span className="ml-6 font-semibold">To:</span>
                     {selectedUsers.length > 0 &&
                         selectedUsers.map((user) => (
@@ -379,33 +392,68 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
                     <input
                         type="search"
                         placeholder="Search..."
-                        className="placeholder:text-gray-400 px-2 border-0 outline-none bg-transparent w-full mr-5"
+                        className="mr-5 w-full border-0 bg-transparent px-2 outline-none placeholder:text-gray-400"
                         onChange={searchInputChangeHandler}
                         value={searchInput}
                     />
                 </div>
-                <div className="flex flex-col w-full gap-1 pt-5 flex-grow overflow-y-scroll scrollbar mb-4">
+                <div className="scrollbar mb-4 flex w-full flex-grow flex-col gap-1 overflow-y-scroll pt-5">
                     {searchInput ? (
-                        !isLoading && filteredUsers && filteredUsers.length > 0 ? (
-                            filteredUsers.map((user) => (
-                                <React.Fragment key={user.id}>
+                        !isLoading && filteredChats && filteredChats.length > 0 ? (
+                            filteredChats.map((chat, index) =>
+                                chat.showGroup === false ? (
                                     <UserBars
-                                        id={user.id}
-                                        fullName={user.fullName}
-                                        username={user.username}
-                                        profilePic={user.profilePic}
-                                        isSelected={selectedUsers.some((selectedUser) => selectedUser.id === user.id)}
+                                        key={`${chat.id}${index}`}
+                                        id={chat.id}
+                                        fullName={chat.fullName}
+                                        username={chat.username}
+                                        profilePic={chat.profilePic}
+                                        isSelected={selectedUsers.some((selectedUser) => selectedUser.id === chat.id)}
                                         onClick={() => {
                                             if (isLoading) {
                                                 return;
                                             }
-                                            handleUserSelection(user.id, user.fullName, user.profilePic);
+                                            handleUserSelection(chat.id, chat.fullName, chat.profilePic);
                                         }}
                                     />
-                                </React.Fragment>
-                            ))
+                                ) : chat.data.isGroup === true ? (
+                                    <GroupBars
+                                        key={`${chat.data.id}${index}`}
+                                        name={chat.data.name}
+                                        participants={chat.data.participants}
+                                        picture={chat.data.picture}
+                                        onClick={() => {
+                                            setIsChatModalVisible({ visible: false, type: "ADD_USERS" });
+                                            navigate(`/inbox/direct/${chat.data.id}`);
+                                        }}
+                                    />
+                                ) : (
+                                    <UserBars
+                                        key={`${chat.data.id}${index}`}
+                                        id={chat.data.id}
+                                        fullName={chat.data.fullName}
+                                        username={chat.data.username}
+                                        profilePic={chat.data.profilePic}
+                                        isSelected={selectedUsers.some(
+                                            (selectedUser) => selectedUser.id === chat.data.id
+                                        )}
+                                        onClick={() => {
+                                            if (isLoading) {
+                                                return;
+                                            }
+                                            if (chat.data.isGroup === false) {
+                                                handleUserSelection(
+                                                    chat.data.id,
+                                                    chat.data.fullName,
+                                                    chat.data.profilePic
+                                                );
+                                            }
+                                        }}
+                                    />
+                                )
+                            )
                         ) : (
-                            <div className="flex flex-col mx-6 gap-6">
+                            <div className="mx-6 flex flex-col gap-6">
                                 {Array.from({ length: 20 }, (_, index) => (
                                     <UserLoadingSkeleton key={index} />
                                 ))}
@@ -417,9 +465,9 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
                         </div>
                     )}
                 </div>
-                <div className="w-full flex items-center justify-center">
+                <div className="flex w-full items-center justify-center">
                     <Button
-                        className="w-full mx-6"
+                        className="mx-6 w-full"
                         disabled={selectedUsers.length === 0 || isSubmitting}
                         onClick={isChatModalVisible.type === "ADD_USERS" ? addNewUserToChatRoom : initiateNewChat}
                         variant="secondary"

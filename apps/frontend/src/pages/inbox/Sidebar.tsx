@@ -2,7 +2,7 @@ import { Home } from "lucide-react";
 import { useRecoilValue } from "recoil";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
-import { NavigationRoutes, handleUserLogout } from "@/utils/constants";
+import { NAVIGATION_ROUTES, handleUserLogout } from "@/utils/constants";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -10,7 +10,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DialogBox } from "@/components/DialogBox";
+import { DialogBox } from "@/components/AlertModal";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { isLoadingAtom } from "@/state/global";
@@ -28,12 +28,12 @@ const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
     const navigate = useNavigate();
 
     return (
-        <div className={cn("lg:h-dvh lg:w-fit w-full", className)}>
-            <div className="flex lg:flex-col w-full lg:w-fit border-gray-950 justify-center h-full gap-6 lg:py-0 py-3 lg:px-6 border-t lg:border-r dark:border-gray-700">
+        <div className={cn("w-full lg:h-dvh lg:w-fit", className)}>
+            <div className="flex h-full w-full justify-center gap-6 border-t border-gray-950 py-3 lg:w-fit lg:flex-col lg:border-r lg:px-6 lg:py-0 dark:border-gray-700">
                 <Home
-                    className="size-10 cursor-pointer active:brightness-50 select-none"
+                    className="size-10 cursor-pointer select-none active:brightness-50"
                     aria-disabled={isLoading}
-                    onClick={() => navigate(NavigationRoutes.Inbox, { replace: true })}
+                    onClick={() => navigate(NAVIGATION_ROUTES.INBOX, { replace: true })}
                 />
                 <DropdownMenu>
                     <DropdownMenuTrigger disabled={isLoading}>
@@ -53,7 +53,7 @@ const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
                             >
                                 <Button
                                     variant="outline"
-                                    className="w-full justify-start border-0 text-sm px-2"
+                                    className="w-full justify-start border-0 px-2 text-sm"
                                     disabled={isLoading}
                                 >
                                     Logout

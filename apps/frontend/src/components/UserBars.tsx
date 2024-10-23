@@ -1,7 +1,7 @@
+import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
 import { TUsersSchema } from "./NewChatModal";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Check } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export interface IUserBarsProps extends TUsersSchema {
     isSelected?: boolean;
@@ -11,10 +11,10 @@ export interface IUserBarsProps extends TUsersSchema {
 export const UserBars: React.FC<IUserBarsProps> = ({ fullName, profilePic, username, isSelected = false, onClick }) => {
     return (
         <div
-            className="w-full px-6 flex items-center cursor-pointer hover:bg-[rgba(30,41,59,0.5)] active:scale-[0.98] py-2"
+            className="flex w-full cursor-pointer items-center px-6 py-2 hover:bg-[rgba(30,41,59,0.5)] active:scale-[0.98]"
             onClick={onClick}
         >
-            <div className="w-full flex items-center gap-3 flex-grow">
+            <div className="flex w-full flex-grow items-center gap-3">
                 <Avatar className="size-12">
                     <AvatarImage src={profilePic} />
                     <AvatarFallback>{fullName.slice(0, 2).toUpperCase()}</AvatarFallback>
@@ -26,11 +26,11 @@ export const UserBars: React.FC<IUserBarsProps> = ({ fullName, profilePic, usern
             </div>
             <div
                 className={cn(
-                    "flex items-center justify-center rounded-full border border-input",
+                    "border-input flex items-center justify-center rounded-full border",
                     !isSelected && "bg-transparent p-3"
                 )}
             >
-                <Check className={cn(isSelected ? "size-6 bg-secondary rounded-full border border-input" : "hidden")} />
+                <Check className={cn(isSelected ? "bg-secondary border-input size-6 rounded-full border" : "hidden")} />
             </div>
         </div>
     );

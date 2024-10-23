@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { isChatModalVisibleAtom } from "@/state/global";
 import { localStorageUtils } from "@/utils/LocalStorageUtils";
-import { NavigationRoutes, StatusCodes } from "@/utils/constants";
+import { NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import axios from "axios";
 import { ArrowUpRight, Eye, EyeOff } from "lucide-react";
 import { FormEvent, useState } from "react";
@@ -23,7 +23,7 @@ const Signup: React.FC = (): JSX.Element => {
     const token = localStorageUtils.getToken();
 
     if (token) {
-        return <Navigate to={NavigationRoutes.Inbox} replace />;
+        return <Navigate to={NAVIGATION_ROUTES.INBOX} replace />;
     }
 
     const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
@@ -70,7 +70,7 @@ const Signup: React.FC = (): JSX.Element => {
             const response = await processUserSignup(formData, navigate);
 
             if (response) {
-                navigate(NavigationRoutes.Login, { replace: true });
+                navigate(NAVIGATION_ROUTES.LOGIN, { replace: true });
             }
         } catch (error) {
             if (axios.isAxiosError(error)) {
@@ -114,15 +114,15 @@ const Signup: React.FC = (): JSX.Element => {
     };
 
     return (
-        <section className="min-h-dvh w-full flex items-center justify-center">
-            <div className="flex flex-col gap-8 justify-center py-10 px-16 border border-input rounded-lg">
-                <div className="flex flex-col space-y-3 items-center justify-center">
+        <section className="flex min-h-dvh w-full items-center justify-center">
+            <div className="border-input flex flex-col justify-center gap-8 rounded-lg border px-16 py-10">
+                <div className="flex flex-col items-center justify-center space-y-3">
                     <img />
-                    <h1 className="text-bold text-3xl text-center">Sign up to get started</h1>
-                    <p className="text-sm text-[#6c6c89] text-center">Welcome! Please enter your details.</p>
+                    <h1 className="text-bold text-center text-3xl">Sign up to get started</h1>
+                    <p className="text-center text-sm text-[#6c6c89]">Welcome! Please enter your details.</p>
                 </div>
                 <form className="grid w-full max-w-sm items-center space-y-6" onSubmit={handleUserSignup}>
-                    <div className="grid w-full space-y-4 max-w-sm items-center">
+                    <div className="grid w-full max-w-sm items-center space-y-4">
                         <CustomInput
                             type="email"
                             id="email"
@@ -173,12 +173,12 @@ const Signup: React.FC = (): JSX.Element => {
                             autoComplete="new-password"
                         />
                         {preview && (
-                            <img src={preview} className="object-cover rounded-full h-32 w-32 mx-auto" alt="" />
+                            <img src={preview} className="mx-auto h-32 w-32 rounded-full object-cover" alt="" />
                         )}
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="picture">Profile Photo</Label>
-                            <div className="w-full relative border border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-800 dark:hover:text-slate-50 active:scale-95">
-                                <span className="absolute top-1/2 -translate-y-1/2 size-sm left-1/2 -translate-x-1/2 line-clamp-1 w-[90%] text-center text-sm">
+                            <div className="relative w-full border border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900 active:scale-95 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-800 dark:hover:text-slate-50">
+                                <span className="size-sm absolute left-1/2 top-1/2 line-clamp-1 w-[90%] -translate-x-1/2 -translate-y-1/2 text-center text-sm">
                                     {imageName}
                                 </span>
                                 <Input
@@ -192,7 +192,7 @@ const Signup: React.FC = (): JSX.Element => {
                             </div>
                         </div>
                         {error && (
-                            <p className="font-medium text-destructive" id="error">
+                            <p className="text-destructive font-medium" id="error">
                                 {error}
                             </p>
                         )}
@@ -201,7 +201,7 @@ const Signup: React.FC = (): JSX.Element => {
                         <Checkbox id="terms" required disabled={isLoading} />
                         <label
                             htmlFor="terms"
-                            className="text-sm pointer-events-none font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            className="pointer-events-none text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
                             Accept terms and conditions
                         </label>
@@ -213,9 +213,9 @@ const Signup: React.FC = (): JSX.Element => {
                 <div className="flex items-center justify-center gap-2">
                     <p className="text-center text-sm">Already have an account? </p>
                     <Link
-                        to={NavigationRoutes.Login}
+                        to={NAVIGATION_ROUTES.LOGIN}
                         className={cn(
-                            "text-muted-foreground flex items-center underline text-sm",
+                            "text-muted-foreground flex items-center text-sm underline",
                             isLoading && "pointer-events-none opacity-50"
                         )}
                         aria-disabled={isLoading}
