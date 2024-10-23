@@ -27,6 +27,7 @@ export const AlertModal = () => {
                         onClick={() => {
                             if (alertModalMetadata.negativeOnClick) {
                                 alertModalMetadata.negativeOnClick();
+                                setAlertModalMetadata({ visible: false });
                             } else {
                                 setAlertModalMetadata({ visible: false });
                             }
@@ -38,6 +39,8 @@ export const AlertModal = () => {
                         onClick={() => {
                             if (alertModalMetadata.positiveOnClick) {
                                 alertModalMetadata.positiveOnClick();
+                                setAlertModalMetadata({ visible: false });
+                            } else {
                                 setAlertModalMetadata({ visible: false });
                             }
                         }}

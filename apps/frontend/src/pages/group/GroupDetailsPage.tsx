@@ -5,9 +5,9 @@ import { readFile } from "@/components/image-editor/helpers/cropImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { chatRoomAtom } from "@/state/chat";
+import { chatRoomAtom, TParticipant } from "@/state/chat";
 import { selectedUsersAtom } from "@/state/user";
-import { NAVIGATION_ROUTES } from "@/utils/constants";
+import { NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import { CREATE_GROUP } from "@instachat/messages/messages";
 import { IMessage } from "@instachat/messages/types";
 import { ArrowLeft, Camera } from "lucide-react";
@@ -15,6 +15,19 @@ import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRecoilState, useSetRecoilState } from "recoil";
 import { toast } from "sonner";
+
+type TCreateGroupResponse = {
+    id: string;
+    name: string;
+    picture: string;
+    nameUpdatedAt: Date;
+    pictureUpdatedAt: Date;
+    createdAt: Date;
+    createdBy: TParticipant;
+    admins: TParticipant[];
+    participants: TParticipant[];
+    superAdmin: TParticipant;
+};
 
 const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): JSX.Element => {
     const defaultGroupImageFile = new File(
@@ -46,35 +59,47 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): J
             const message: IMessage = JSON.parse(event.data);
 
             if (message.type === CREATE_GROUP) {
-                const payload = message.payload;
+                const success = message.success;
+                const status = message.status;
+                const payload = message.payload as TCreateGroupResponse;
 
-                if (payload.error) {
-                    toast.error("Uh oh! Something went wrong.", {
-                        richColors: true,
-                        description: "Max 5 MB of file size allowed",
-                    });
-                    return;
+                if (!success) {
+                    if (status === StatusCodes.BadRequest) {
+                        toast.error("Uh oh! Something went wrong.", {
+                            description: "Max 5 MB of file size allowed",
+                        });
+                    } else {
+                        toast.error("Uh oh! Something went wrong.", {
+                            description: "There was an issue with your request. Please try again later!",
+                        });
+                    }
+                    setIsSubmitting(false);
+                } else {
+                    if (status === StatusCodes.Ok) {
+                        setChatRoomDetails(() => ({
+                            isGroup: true,
+                            id: payload.id,
+                            name: payload.name,
+                            admins: payload.admins,
+                            superAdmin: payload.superAdmin,
+                            createdAt: payload.createdAt,
+                            createdBy: payload.createdBy,
+                            participants: payload.participants,
+                            picture: payload.picture,
+                            messages: [],
+                            nameUpdatedAt: payload.nameUpdatedAt,
+                            pictureUpdatedAt: payload.pictureUpdatedAt,
+                        }));
+                        setSelectedUsers([]);
+                        toast.success("Group created successfully");
+                        navigate(`/inbox/direct/${payload.id}`);
+                    } else {
+                        toast.error("Uh oh! Something went wrong.", {
+                            description: "Our servers are busy. Please try again later!",
+                        });
+                    }
                 }
-
-                // setChatRoomDetails(() => ({
-                //     id: payload.chatRoomId,
-                //     name: payload.chatRoomName,
-                //     createdAt: payload.createdAt,
-                //     participants: payload.participants,
-                //     messages: payload.messageDetails,
-                //     isGroup: true,
-                // }));
-
-                // setGroupDetails(payload.groupDetails);
-
-                setIsSubmitting(false);
-                navigate(`/inbox/direct/${payload.chatRoomId}`);
-                setSelectedUsers([]);
             }
-        };
-
-        return () => {
-            socket.onmessage = null;
         };
     }, [socket]);
 
@@ -102,7 +127,6 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): J
         e.preventDefault();
 
         if (!socket) {
-            console.log("Group Creation, socket not found");
             return;
         }
 
@@ -117,21 +141,19 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): J
                 return;
             }
 
-            console.log(imageData);
+            const message = {
+                type: CREATE_GROUP,
+                payload: {
+                    selectedUsers,
+                    groupDetails: {
+                        name: groupName,
+                        profilePic: imageData,
+                        pictureName: groupImage.name,
+                    },
+                },
+            };
 
-            // const message: IStartConvoMessageRequest = {
-            //     type: CREATE_GROUP,
-            //     payload: {
-            //         userDetails: selectedUsers,
-            //         groupDetails: {
-            //             name: groupName,
-            //             profilePic: imageData,
-            //             pictureName: groupImage.name,
-            //         },
-            //     },
-            // };
-
-            // socket.send(JSON.stringify(message));
+            socket.send(JSON.stringify(message));
         };
 
         reader.readAsDataURL(groupImage);

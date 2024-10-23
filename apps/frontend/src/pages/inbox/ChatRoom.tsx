@@ -85,11 +85,15 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 return;
             }
 
+            if (!chatRoomDetails || !chatRoomDetails.id) {
+                return;
+            }
+
             const transferSuperAdminMessage = {
                 type: TRANSFER_SUPER_ADMIN,
                 payload: {
                     newSuperAdminId: id,
-                    chatRoomId: chatRoomDetails?.id,
+                    chatRoomId: chatRoomDetails.id,
                 },
             };
 
@@ -141,7 +145,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
     useEffect(() => {
         if (isEditNameModalVisible && chatRoomDetails?.isGroup) {
-            setNewGroupName(chatRoomDetails?.name);
+            setNewGroupName(chatRoomDetails?.name.trim());
         }
     }, [isEditNameModalVisible]);
 
@@ -155,7 +159,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 const responseMessage = JSON.parse(event.data) as IMessage;
 
                 if (responseMessage?.type === CHATROOM_DETAILS_BY_ID) {
-                    if (responseMessage.status === 404) {
+                    if (responseMessage.status === StatusCodes.NotFound) {
                         navigate(NAVIGATION_ROUTES.INBOX, {
                             replace: true,
                         });
@@ -163,7 +167,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                         return;
                     }
 
-                    if (responseMessage.status === 500) {
+                    if (responseMessage.status === StatusCodes.InternalServerError) {
                         navigate(NAVIGATION_ROUTES.INBOX, {
                             replace: true,
                         });
@@ -204,31 +208,39 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 if (chatRoomDetails?.id) {
                     switch (responseMessage?.type) {
                         case CHANGE_GROUP_NAME:
-                            if (responseMessage.status === 403) {
+                            if (responseMessage.status === StatusCodes.Forbidden) {
                                 commonToastErrorMessage({
                                     title: "Permission Denied",
                                     description: "Only a member of the group can change the group name",
                                 });
-                            } else if (responseMessage.status === 200) {
-                                const updatedChatRoomName = responseMessage.payload?.updatedGroupName;
+                            } else if (responseMessage.status === StatusCodes.Ok) {
+                                const updatedChatRoomName = responseMessage?.payload?.updatedGroupName;
 
                                 setChatRoomDetails((prev) => (prev ? { ...prev, name: updatedChatRoomName } : prev));
-                                setChatRoomName(updatedChatRoomName);
+                                setChatRoomName(() => updatedChatRoomName);
                             } else {
                                 commonToastErrorMessage({
                                     description: "An unknown error occurred. Please try again!",
                                 });
                             }
+                            setIsLoading(false);
+                            setIsEditNameModalVisible(false);
                             break;
                         case LEAVE_GROUP_CHAT:
+                            printlogs("case LEAVE_GROUP_CHAT entered");
                             if (responseMessage?.status === StatusCodes.Forbidden) {
+                                printlogs("LEAVE_GROUP_CHAT | Status Code 403 found and entered");
                                 switch (responseMessage?.payload?.action) {
                                     case "not-member":
+                                        printlogs("Action not-member found and entered");
                                         removeMemberById(user.id);
                                         toast.error(responseMessage?.payload?.message);
                                         break;
                                     case "select-superadmin":
-                                        toast.info(responseMessage?.payload?.message);
+                                        printlogs("Action select-superadmin found and entered");
+                                        toast.info(
+                                            "Super admin cannot leave the group. Please transfer this role to someone else to leave the group chat"
+                                        );
                                         const potentialSuperAdmins = responseMessage?.payload
                                             ?.participants as TParticipant[];
                                         const filteredSuperAdmins =
@@ -240,13 +252,14 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                         setShowAdminSelectionModal(true);
                                         break;
                                     case "auto-superadmin":
+                                        printlogs("Action auto-superadmin found and entered");
                                         const newSuperAdmin = (
                                             responseMessage?.payload?.participants as TParticipant[]
                                         )?.filter((member) => member.id !== user.id);
                                         setAlertModalMetadata({
                                             visible: true,
                                             title: `Are you sure you want to make ${newSuperAdmin[0].username} the super admin of this group`,
-                                            description: `If you leave this group, you will have to transfer the super admin role to ${newSuperAdmin[0].username}. This action cannot be reverted!`,
+                                            description: `You are about to make ${newSuperAdmin[0].username} the super admin of this group. This action cannot be reverted`,
                                             positiveOnClick: () => handleSuperAdminSelection(newSuperAdmin[0].id),
                                             positiveTitle: "Confirm and leave",
                                             PositiveButtonStyles: "!bg-destructive dark:text-slate-200 text-black",
@@ -445,7 +458,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 type: CHANGE_GROUP_NAME,
                 payload: {
                     chatRoomId: chatRoomDetails.id,
-                    groupName: newGroupName,
+                    groupName: newGroupName.trim(),
                 },
             };
 

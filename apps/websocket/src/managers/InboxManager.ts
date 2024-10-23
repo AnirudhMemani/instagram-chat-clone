@@ -22,6 +22,7 @@ import {
     ILeaveGroupChat,
     IMessage,
     IRoomExistsRequest,
+    IStartConvoMessageRequest,
     ITransferSuperAdminAndLeaveGroupChat,
     IUpdateChatRoomName,
 } from "@instachat/messages/types";
@@ -205,96 +206,90 @@ export class InboxManager {
         this.res.json(FIND_CHATS, payload);
     }
 
-    async handleGroupConvo(socket: WebSocket, id: string, message: IMessage) {
-        const selectedUsers = message as any;
-        const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8 MB
-        const participants = selectedUsers.payload.userDetails;
-        const groupDetails = selectedUsers.payload.groupDetails;
+    async handleGroupCreation(id: string, message: IStartConvoMessageRequest) {
+        try {
+            const selectedUsers = message.payload.selectedUsers;
+            const groupDetails = message.payload.groupDetails;
 
-        const { name, profilePic, pictureName } = groupDetails;
+            const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8 MB
 
-        const fileSize = Buffer.byteLength(profilePic);
+            const { name, profilePic, pictureName } = groupDetails;
 
-        printlogs("fileSize:", fileSize);
+            const fileSize = Buffer.byteLength(profilePic);
 
-        if (fileSize > MAX_FILE_SIZE) {
-            socket.send(
-                JSON.stringify({
-                    type: CREATE_GROUP,
-                    payload: {
-                        error: "Exceeded max file size for group image",
+            printlogs("fileSize:", fileSize);
+
+            if (fileSize > MAX_FILE_SIZE) {
+                this.res.error(CREATE_GROUP, "Exceeded max file size of 8 MB for group image", STATUS_CODE.BAD_REQUEST);
+                return;
+            }
+
+            const result = await cloudinary.v2.uploader.upload(profilePic, {
+                public_id: pictureName,
+                upload_preset: process.env.CLOUDINARY_PRESET_NAME,
+            });
+
+            const newChatRoom = await prisma.chatRoom.create({
+                data: {
+                    name,
+                    participants: {
+                        connect: selectedUsers.map((user) => ({
+                            id: user.id,
+                        })),
                     },
-                })
-            );
+                    roomType: "GROUP",
+                    picture: result.secure_url,
+                    superAdmin: { connect: { id } },
+                    admins: { connect: { id } },
+                    createdBy: { connect: { id } },
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    createdAt: true,
+                    picture: true,
+                    nameUpdatedAt: true,
+                    pictureUpdatedAt: true,
+                    createdBy: {
+                        select: {
+                            id: true,
+                            fullName: true,
+                            username: true,
+                            profilePic: true,
+                        },
+                    },
+                    admins: {
+                        select: {
+                            id: true,
+                            fullName: true,
+                            username: true,
+                            profilePic: true,
+                        },
+                    },
+                    participants: {
+                        select: {
+                            id: true,
+                            fullName: true,
+                            username: true,
+                            profilePic: true,
+                        },
+                    },
+                    superAdmin: {
+                        select: {
+                            id: true,
+                            fullName: true,
+                            username: true,
+                            profilePic: true,
+                        },
+                    },
+                },
+            });
+
+            this.res.json(CREATE_GROUP, { ...newChatRoom, message: "Group created successfully" });
+        } catch (error) {
+            printlogs("ERROR inside handleGroupCreation()", error);
+            this.res.error(CREATE_GROUP, "An error occurred while trying to create this group");
         }
-
-        const result = await cloudinary.v2.uploader.upload(profilePic, {
-            public_id: pictureName,
-            upload_preset: process.env.CLOUDINARY_PRESET_NAME,
-        });
-
-        const newChatRoom = await prisma.chatRoom.create({
-            data: {
-                name,
-                createdAt: new Date(Date.now()),
-                participants: {
-                    connect: participants.map((user: any) => ({
-                        id: user.id,
-                    })),
-                },
-                // isGroup: true,
-                // Group: {
-                //     create: {
-                //         name,
-                //         picture: result.secure_url,
-                //         superAdminId: id,
-                //         adminOf: { connect: { id } },
-                //         createdAt: new Date(Date.now()),
-                //         members: {
-                //             connect: participants.map((user: any) => ({
-                //                 id: user.id,
-                //             })),
-                //         },
-                //     },
-                // },
-            },
-            include: {
-                participants: {
-                    select: {
-                        id: true,
-                        fullName: true,
-                        username: true,
-                        profilePic: true,
-                    },
-                },
-                // Group: {
-                //     select: {
-                //         id: true,
-                //         name: true,
-                //         picture: true,
-                //         createdAt: true,
-                //         chatRoomId: true,
-                //         adminOf: {
-                //             select: { id: true },
-                //         },
-                //         superAdminId: true,
-                //     },
-                // },
-            },
-        });
-
-        socket.send(
-            JSON.stringify({
-                type: CREATE_GROUP,
-                payload: {
-                    chatRoomId: newChatRoom.id,
-                    chatRoomName: newChatRoom.name,
-                    createdAt: newChatRoom.createdAt,
-                    participants: newChatRoom.participants,
-                    // groupDetails: newChatRoom.Group,
-                },
-            })
-        );
     }
 
     async handleGroupExists(participantIds: string[]) {
@@ -486,7 +481,11 @@ export class InboxManager {
         });
 
         if (!isMember?.id) {
-            this.res.error(CHANGE_GROUP_NAME, "Only members of the group can change the group name", 403);
+            this.res.error(
+                CHANGE_GROUP_NAME,
+                "Only members of the group can change the group name",
+                STATUS_CODE.FORBIDDEN
+            );
             return;
         }
 
@@ -507,16 +506,23 @@ export class InboxManager {
         try {
             const chatRoomId = message.payload.chatRoomId;
 
-            const chatRoom = await this.prisma.chatRoom.findFirst({
-                where: { id: chatRoomId, participants: { some: { id } } },
+            const chatRoom = await this.prisma.chatRoom.findUnique({
+                where: { id: chatRoomId },
                 select: {
                     id: true,
-                    superAdminId: true,
+                    superAdmin: { select: { id: true } },
                     participants: { select: { id: true, username: true, fullName: true, profilePic: true } },
                 },
             });
 
             if (!chatRoom || !chatRoom.id) {
+                this.res
+                    .status(STATUS_CODE.NOT_FOUND)
+                    .json(LEAVE_GROUP_CHAT, { message: "This chat room does not exists" }, { success: false });
+                return;
+            }
+
+            if (!chatRoom.participants.find((member) => member.id === id)?.id) {
                 this.res
                     .status(STATUS_CODE.FORBIDDEN)
                     .json(
@@ -527,7 +533,7 @@ export class InboxManager {
                 return;
             }
 
-            if (chatRoom.superAdminId === id && chatRoom.participants.length > 2) {
+            if (chatRoom.superAdmin?.id === id && chatRoom.participants.length > 2) {
                 this.res.status(STATUS_CODE.FORBIDDEN).json(
                     LEAVE_GROUP_CHAT,
                     {
@@ -541,7 +547,7 @@ export class InboxManager {
                 return;
             }
 
-            if (chatRoom.superAdminId === id && chatRoom.participants.length === 2) {
+            if (chatRoom.superAdmin?.id === id && chatRoom.participants.length === 2) {
                 this.res
                     .status(STATUS_CODE.FORBIDDEN)
                     .json(
@@ -549,6 +555,12 @@ export class InboxManager {
                         { participants: chatRoom.participants, action: "auto-superadmin" },
                         { success: false }
                     );
+                return;
+            }
+
+            if (chatRoom.participants.length === 1) {
+                await this.prisma.chatRoom.delete({ where: { id: chatRoomId } });
+                this.res.json(LEAVE_GROUP_CHAT, { message: "You have successfully left the group chat" });
                 return;
             }
 
@@ -573,11 +585,16 @@ export class InboxManager {
             const newSuperAdminId = message.payload.newSuperAdminId;
             const chatRoomId = message.payload.chatRoomId;
 
-            const chatRoom = await this.prisma.chatRoom.findFirst({
-                where: { id: chatRoomId, participants: { some: { id } } },
+            if (!newSuperAdminId || !chatRoomId) {
+                this.res.error(TRANSFER_SUPER_ADMIN, "Invalid request parameters", STATUS_CODE.BAD_REQUEST);
+                return;
+            }
+
+            const chatRoom = await this.prisma.chatRoom.findUnique({
+                where: { id: chatRoomId },
                 select: {
                     id: true,
-                    superAdminId: true,
+                    superAdmin: { select: { id: true } },
                     participants: { select: { id: true, fullName: true, profilePic: true, username: true } },
                 },
             });
@@ -587,9 +604,7 @@ export class InboxManager {
                 return;
             }
 
-            const isSuperAdmin = chatRoom.superAdminId === id;
-
-            if (!isSuperAdmin) {
+            if (chatRoom.superAdmin?.id !== id) {
                 this.res.error(
                     TRANSFER_SUPER_ADMIN,
                     "You do not have enough permissions to perform this action",
@@ -600,7 +615,7 @@ export class InboxManager {
 
             const isMember = chatRoom.participants.find((member) => member.id === newSuperAdminId);
 
-            if (!isMember) {
+            if (!isMember?.id) {
                 this.res.error(
                     TRANSFER_SUPER_ADMIN,
                     "Only members of the group chat can be made super admin",
@@ -613,9 +628,6 @@ export class InboxManager {
                 where: { id: chatRoomId },
                 data: {
                     superAdmin: {
-                        disconnect: {
-                            id,
-                        },
                         connect: {
                             id: newSuperAdminId,
                         },
@@ -1116,7 +1128,7 @@ export class InboxManager {
                     break;
                 // start the backend from here
                 case CREATE_GROUP:
-                    this.handleGroupConvo(socket, id, message);
+                    this.handleGroupCreation(id, message);
                     break;
                 case NEW_MESSAGE:
                     this.handleNewMessage(socket, message);

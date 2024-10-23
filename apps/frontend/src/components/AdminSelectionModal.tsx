@@ -1,9 +1,10 @@
+import { useChatRoom } from "@/hooks/useChatRoom";
 import { usePotentialSuperAdmins } from "@/hooks/usePotentialSuperAdmins";
-import { showAdminSelectionModalAtom } from "@/state/global";
+import { alertModalAtom, showAdminSelectionModalAtom } from "@/state/global";
 import { printlogs } from "@/utils/logs";
 import { TRANSFER_SUPER_ADMIN } from "@instachat/messages/messages";
 import { X } from "lucide-react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useSetRecoilState } from "recoil";
 import { UserBars } from "./UserBars";
 
@@ -12,10 +13,29 @@ type TAdminSelectionModalProps = {
 };
 
 const AdminSelectionModal: React.FC<TAdminSelectionModalProps> = ({ socket }): JSX.Element => {
+    const setAlertModalMetadata = useSetRecoilState(alertModalAtom);
     const setShowAdminSelectionModal = useSetRecoilState(showAdminSelectionModalAtom);
+    const chatRoomDetails = useChatRoom();
+
     const potentialSuperAdmins = usePotentialSuperAdmins();
 
     const modalContainerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        printlogs("AdminSelectionModal mounted");
+    }, []);
+
+    const confirmSuperAdminSelection = (id: string, username: string) => {
+        setAlertModalMetadata({
+            visible: true,
+            title: `Are you sure you want to make ${username} the super admin of this group`,
+            description: `You are about to make ${username} the super admin of this group. This action cannot be reverted`,
+            positiveOnClick: () => handleSuperAdminSelection(id),
+            negativeOnClick: () => setShowAdminSelectionModal(false),
+            positiveTitle: "Confirm and leave",
+            PositiveButtonStyles: "!bg-destructive dark:text-slate-200 text-black",
+        });
+    };
 
     const handleSuperAdminSelection = (id: string) => {
         try {
@@ -27,12 +47,14 @@ const AdminSelectionModal: React.FC<TAdminSelectionModalProps> = ({ socket }): J
                 type: TRANSFER_SUPER_ADMIN,
                 payload: {
                     newSuperAdminId: id,
+                    chatRoomId: chatRoomDetails?.id,
                 },
             };
 
             socket.send(JSON.stringify(transferSuperAdminMessage));
         } catch (error) {
             printlogs("ERROR inside handleSuperAdminSelection()", error);
+            setAlertModalMetadata({ visible: false });
         }
     };
 
@@ -43,10 +65,7 @@ const AdminSelectionModal: React.FC<TAdminSelectionModalProps> = ({ socket }): J
                 ref={modalContainerRef}
             >
                 <div className="mb-3 flex items-center justify-center">
-                    <h1 className="flex-grow text-center font-bold">
-                        Super admin cannot leave the group. Please transfer this role to someone else to leave the group
-                        chat
-                    </h1>
+                    <h1 className="flex-grow text-center font-bold">Select new Super Admin</h1>
                     <X
                         className="mr-6 size-6 cursor-pointer"
                         onClick={() => {
@@ -64,7 +83,7 @@ const AdminSelectionModal: React.FC<TAdminSelectionModalProps> = ({ socket }): J
                                 id={member.id}
                                 username={member.username}
                                 profilePic={member.username}
-                                onClick={() => handleSuperAdminSelection(member.id)}
+                                onClick={() => confirmSuperAdminSelection(member.id, member.username)}
                             />
                         ))
                     ) : (

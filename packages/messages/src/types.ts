@@ -7,16 +7,14 @@ export interface IMessage<TPayload = any> {
 
 export interface IStartConvoMessageRequest
     extends IMessage<{
-        payload: {
-            selectedUsers: {
-                id: string;
-                fullName: string;
-            }[];
-            groupDetails: {
-                name: string;
-                profilePic: any;
-                pictureName: string;
-            };
+        selectedUsers: {
+            id: string;
+            fullName: string;
+        }[];
+        groupDetails: {
+            name: string;
+            profilePic: any;
+            pictureName: string;
         };
     }> {}
 
