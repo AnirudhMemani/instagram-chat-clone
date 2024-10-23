@@ -239,7 +239,6 @@ const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({ socket }): JSX.
         };
 
         socket.send(JSON.stringify(getUserDM));
-        setIsLoading(true);
     }, [socket]);
 
     const getLatestMessage = (userDms: IUserDms) => {

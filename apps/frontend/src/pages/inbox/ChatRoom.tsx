@@ -25,7 +25,6 @@ import {
     NEW_MESSAGE,
     REMOVE_AS_ADMIN,
     REMOVE_FROM_CHAT,
-    SUCCESS,
     TRANSFER_SUPER_ADMIN,
 } from "@instachat/messages/messages";
 import { IMessage } from "@instachat/messages/types";
@@ -204,8 +203,8 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                         setChatRoomDetails(chatRoomDetails);
                     }
                 }
-
-                if (chatRoomDetails?.id) {
+                printlogs("chatRoomDetails inside the chatRoom details useEffect", chatRoomDetails);
+                if (chatRoomDetails) {
                     switch (responseMessage?.type) {
                         case CHANGE_GROUP_NAME:
                             if (responseMessage.status === StatusCodes.Forbidden) {
@@ -229,15 +228,12 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                         case LEAVE_GROUP_CHAT:
                             printlogs("case LEAVE_GROUP_CHAT entered");
                             if (responseMessage?.status === StatusCodes.Forbidden) {
-                                printlogs("LEAVE_GROUP_CHAT | Status Code 403 found and entered");
                                 switch (responseMessage?.payload?.action) {
                                     case "not-member":
-                                        printlogs("Action not-member found and entered");
                                         removeMemberById(user.id);
                                         toast.error(responseMessage?.payload?.message);
                                         break;
                                     case "select-superadmin":
-                                        printlogs("Action select-superadmin found and entered");
                                         toast.info(
                                             "Super admin cannot leave the group. Please transfer this role to someone else to leave the group chat"
                                         );
@@ -252,7 +248,6 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                         setShowAdminSelectionModal(true);
                                         break;
                                     case "auto-superadmin":
-                                        printlogs("Action auto-superadmin found and entered");
                                         const newSuperAdmin = (
                                             responseMessage?.payload?.participants as TParticipant[]
                                         )?.filter((member) => member.id !== user.id);
@@ -268,6 +263,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                     default:
                                         break;
                                 }
+                            } else if (responseMessage.status === StatusCodes.NotFound) {
+                                toast.info("There was an issue with your request. Please try again!");
+                                setChatRoomDetails(null);
+                                navigate(NAVIGATION_ROUTES.INBOX);
                             } else if (responseMessage.status === StatusCodes.Ok) {
                                 removeMemberById(user.id);
                                 toast.success("You have left this group chat");
@@ -289,7 +288,11 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                         toast.error("You do not have enough permissions to perform this action");
                                         break;
                                     case StatusCodes.BadRequest:
-                                        toast.error("Only members of this group chat can be made super admin");
+                                        if (responseMessage?.payload?.action === "only-members") {
+                                            toast.error("Only members of this group chat can be made super admin");
+                                        } else {
+                                            toast.error("There was an issue with your request. Please try again!");
+                                        }
                                         break;
                                     default:
                                         toast.error("There was an issue with your request. Please try again later!");
@@ -342,29 +345,91 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             }
                             break;
                         case REMOVE_FROM_CHAT:
-                            if (responseMessage.payload.result === ERROR) {
-                                commonToastErrorMessage({
-                                    description: responseMessage.payload.message,
-                                });
-                            } else if (responseMessage.payload.result === SUCCESS) {
-                                const removedMemberId = responseMessage.payload.data.removedMemberId;
-                                const chatRoomId = responseMessage.payload.data.chatRoomId;
-
-                                toast.success(
-                                    `${chatRoomDetails.participants.find((member) => member.id === removedMemberId)?.fullName} removed successfully`
-                                );
-
-                                setChatRoomDetails((prev) => {
-                                    if (prev && prev.id === chatRoomId) {
-                                        const updatedChatRoomParticipants = prev.participants.filter(
-                                            (member) => member.id !== removedMemberId
+                            printlogs("Remove from chat handler");
+                            if (responseMessage.success === false) {
+                                switch (responseMessage.status) {
+                                    case StatusCodes.NotFound:
+                                        toast.error("There was an issue with your request");
+                                        setChatRoomDetails(null);
+                                        navigate(NAVIGATION_ROUTES.INBOX);
+                                        break;
+                                    case StatusCodes.Conflict:
+                                        toast.error("The member you are trying to remove is not a part of this group");
+                                        const removeUserId = responseMessage?.payload?.removeUserId;
+                                        setChatRoomDetails((prev) =>
+                                            prev && prev.isGroup
+                                                ? {
+                                                      ...prev,
+                                                      participants: prev.participants.filter(
+                                                          (member) => member.id !== removeUserId
+                                                      ),
+                                                      admins: prev.admins.filter((admin) => admin.id !== removeUserId),
+                                                  }
+                                                : prev
                                         );
-                                        return { ...prev, participants: updatedChatRoomParticipants };
-                                    }
-                                    return prev;
-                                });
+                                        break;
+                                    case StatusCodes.BadRequest:
+                                        const action = responseMessage?.payload?.action;
+                                        if (action === "not-group") {
+                                            toast.info("Members can only be removed from group chats");
+                                            setChatRoomDetails(null);
+                                            navigate(NAVIGATION_ROUTES.INBOX);
+                                        } else {
+                                            commonToastErrorMessage({
+                                                description: "There was an issue with your request. Try again later!",
+                                            });
+                                        }
+                                        break;
+                                    case StatusCodes.Forbidden:
+                                        if (action === "permission-denied") {
+                                            toast.error(
+                                                "You do not have the required permissions to remove members from this group"
+                                            );
+                                            setChatRoomDetails((prev) =>
+                                                prev && prev.isGroup
+                                                    ? {
+                                                          ...prev,
+                                                          admins: prev.admins.filter((admin) => admin.id !== user.id),
+                                                      }
+                                                    : prev
+                                            );
+                                        } else if (action === "super-admin") {
+                                            toast.error("Super Admin cannot be removed by an admin");
+                                        } else {
+                                            commonToastErrorMessage({
+                                                description: "There was an issue with your request. Try again later!",
+                                            });
+                                        }
+                                        break;
+                                    default:
+                                        commonToastErrorMessage({
+                                            description: "There was an issue with your request. Try again later!",
+                                        });
+                                        break;
+                                }
                             } else {
-                                commonToastErrorMessage({});
+                                printlogs("else statement remove from chat");
+                                if (responseMessage?.status === StatusCodes.Ok) {
+                                    printlogs("Inside status code 200 remove from chat");
+                                    const removedMemberId = responseMessage?.payload?.removedMemberId;
+                                    setChatRoomDetails((prev) =>
+                                        prev && prev.isGroup
+                                            ? {
+                                                  ...prev,
+                                                  participants: prev.participants.filter(
+                                                      (member) => member.id !== removedMemberId
+                                                  ),
+                                                  admins: prev.admins.filter((admin) => admin.id !== removedMemberId),
+                                              }
+                                            : prev
+                                    );
+                                    printlogs("Right above toast message");
+                                    toast.success("Member removed successfully!");
+                                } else {
+                                    commonToastErrorMessage({
+                                        description: "There was an issue with your request. Try again later!",
+                                    });
+                                }
                             }
                             break;
                         case NEW_MESSAGE:
@@ -503,7 +568,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
     const handleDeleteGroupChat = () => {};
 
-    const handleRemoveUserFromGroup = (memberId: string) => {
+    const handleRemoveUserFromGroup = (removeUserId: string) => {
         try {
             if (!socket) {
                 return;
@@ -517,11 +582,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 type: REMOVE_FROM_CHAT,
                 payload: {
                     chatRoomId: chatRoomDetails.id,
-                    memberId,
+                    removeUserId,
                 },
             };
 
-            setIsLoading(true);
             socket.send(JSON.stringify(removeUserFromGroupMessage));
         } catch (error) {
             printlogs("Error removing participant from group", error);
@@ -745,7 +809,6 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                                                         title: "Remove from the group?",
                                                                         description: `You are about to remove ${member.fullName} from the group`,
                                                                         positiveTitle: "Remove",
-                                                                        negativeTitle: "Cancel",
                                                                         PositiveButtonStyles:
                                                                             "!bg-destructive dark:text-slate-200 text-black",
                                                                         positiveOnClick: () =>

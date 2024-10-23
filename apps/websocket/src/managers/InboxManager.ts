@@ -14,13 +14,14 @@ import {
     REMOVE_AS_ADMIN,
     REMOVE_FROM_CHAT,
     ROOM_EXISTS,
-    SUCCESS,
     TRANSFER_SUPER_ADMIN,
 } from "@instachat/messages/messages";
 import {
+    IAddUserToGroupChat,
     IGetChatRoomById,
     ILeaveGroupChat,
     IMessage,
+    IRemoveUserFromGroupChat,
     IRoomExistsRequest,
     IStartConvoMessageRequest,
     ITransferSuperAdminAndLeaveGroupChat,
@@ -586,7 +587,13 @@ export class InboxManager {
             const chatRoomId = message.payload.chatRoomId;
 
             if (!newSuperAdminId || !chatRoomId) {
-                this.res.error(TRANSFER_SUPER_ADMIN, "Invalid request parameters", STATUS_CODE.BAD_REQUEST);
+                this.res
+                    .status(STATUS_CODE.BAD_REQUEST)
+                    .json(
+                        TRANSFER_SUPER_ADMIN,
+                        { message: "Invalid request parameters", action: "invalid-params" },
+                        { success: false }
+                    );
                 return;
             }
 
@@ -616,10 +623,13 @@ export class InboxManager {
             const isMember = chatRoom.participants.find((member) => member.id === newSuperAdminId);
 
             if (!isMember?.id) {
-                this.res.error(
+                this.res.status(STATUS_CODE.BAD_REQUEST).json(
                     TRANSFER_SUPER_ADMIN,
-                    "Only members of the group chat can be made super admin",
-                    STATUS_CODE.BAD_REQUEST
+                    {
+                        message: "Only members of the group chat can be made super admin",
+                        action: "only-members",
+                    },
+                    { success: false }
                 );
                 return;
             }
@@ -811,297 +821,214 @@ export class InboxManager {
         }
     }
 
-    async addUserToChat(socket: WebSocket, id: string, message: IMessage) {
-        const chatRoomDetails = message.payload.chatRoomDetails;
-        const newUsersDetails: any[] = message.payload.newUsersDetails;
+    async addUserToChat(id: string, message: IAddUserToGroupChat) {
+        const { chatRoomId, addUsersId } = message.payload;
 
-        printlogs("user id:", id);
-
-        if (!chatRoomDetails || !newUsersDetails?.length || !chatRoomDetails?.id) {
-            const payload = {
-                result: "error",
-                message: "Invalid DM or user details",
-                statusCode: 400,
-            };
-            socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
+        if (!chatRoomId || !addUsersId) {
+            this.res
+                .status(STATUS_CODE.BAD_REQUEST)
+                .json(ADD_TO_CHAT, { message: "Invalid parameters", action: "invalid-params" }, { success: false });
             return;
         }
 
-        const chatRoom = await this.prisma.chatRoom.findUnique({
-            where: { id: chatRoomDetails.id },
-            // select: {
-            //     isGroup: true,
-            // },
-        });
-
-        // if (!chatRoom?.isGroup) {
-        //     const payload = {
-        //         result: "error",
-        //         message: "Cannot add members to a private DM",
-        //         statusCode: 400,
-        //     };
-        //     socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
-        //     return;
-        // }
-
-        const hasPermission = await this.prisma.chatRoom.findFirst({
-            where: {
-                id: chatRoomDetails.id,
-                // Group: {
-                //     OR: [{ adminOf: { some: { id } } }, { superAdmin: { id } }],
-                // },
-            },
-            select: { id: true },
-        });
-
-        printlogs("Has permission:", hasPermission);
-
-        if (!hasPermission?.id) {
-            const payload = {
-                result: "error",
-                message: "You do not have enough permissions to add members to this group",
-                statusCode: 403,
-            };
-
-            socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
+        if (!addUsersId.length) {
+            this.res
+                .status(STATUS_CODE.BAD_REQUEST)
+                .json(ADD_TO_CHAT, { message: "No users selected", action: "no-users" }, { success: false });
             return;
         }
-
-        const participantsIds: any[] = chatRoomDetails?.participants?.length
-            ? chatRoomDetails.participants.map((user: any) => user.id)
-            : [];
-
-        newUsersDetails.map((newUser: any) => participantsIds.push(newUser?.id));
-
-        printlogs("participantsIds", participantsIds);
-
-        const potentialChatRooms = await this.prisma.chatRoom.findMany({
-            where: {
-                AND: [
-                    {
-                        participants: {
-                            every: { id: { in: participantsIds } },
-                        },
-                    },
-                    {
-                        participants: {
-                            none: { id: { notIn: participantsIds } },
-                        },
-                    },
-                ],
-            },
-            select: {
-                id: true,
-                participants: true,
-            },
-        });
-
-        printlogs("Potential chat room details:", potentialChatRooms);
-
-        const existingChatRoom = potentialChatRooms.find(
-            (room: any) => room.participants.length === participantsIds.length
-        );
-
-        printlogs("existingChatRoom", existingChatRoom);
-
-        printlogs("participantsIds length", participantsIds.length);
-
-        if (existingChatRoom?.id) {
-            const payload = {
-                result: "error",
-                message: "A group with all the selected members already exists",
-                statusCode: 409,
-            };
-            socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
-            return;
-        }
-
-        const successfullyAddedUsers = [];
-
-        for (const newUserDetails of newUsersDetails) {
-            const isAlreadyInGroup = await this.prisma.chatRoom.findFirst({
-                where: {
-                    id: chatRoomDetails.id,
-                    participants: {
-                        some: {
-                            id: newUserDetails.id,
-                        },
-                    },
-                },
-                select: { id: true },
-            });
-
-            if (isAlreadyInGroup?.id) {
-                const payload = {
-                    result: "error",
-                    message: `User ${newUserDetails.username} is already in this group`,
-                    statusCode: 409,
-                };
-                socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
-                continue;
-            }
-
-            const updatedChatRoom = await this.prisma.chatRoom.update({
-                where: { id: chatRoomDetails.id },
-                data: {
-                    participants: {
-                        connect: {
-                            id: newUserDetails.id,
-                        },
-                    },
-                },
-                select: {
-                    participants: {
-                        where: {
-                            id: newUserDetails.id,
-                        },
-                        select: {
-                            id: true,
-                            username: true,
-                            email: true,
-                            profilePic: true,
-                            fullName: true,
-                        },
-                    },
-                },
-            });
-
-            if (!updatedChatRoom.participants.length) {
-                const payload = {
-                    result: "error",
-                    messsage: `User ${newUserDetails.username} does not exist`,
-                    statusCode: 404,
-                };
-                socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
-                continue;
-            }
-
-            successfullyAddedUsers.push(updatedChatRoom.participants[0]);
-        }
-
-        if (!successfullyAddedUsers.length) {
-            const payload = {
-                result: "error",
-                message: "No new users were added to the group",
-                statusCode: 400,
-            };
-            socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
-            return;
-        }
-
-        const payload = {
-            result: "success",
-            newUsersDetails: successfullyAddedUsers,
-            statusCode: 200,
-        };
-
-        socket.send(JSON.stringify({ type: ADD_TO_CHAT, payload }));
-    }
-
-    async removeUserFromChat(socket: WebSocket, id: string, message: IMessage) {
-        const chatRoomId = message.payload.chatRoomId;
-        const memberId = message.payload.memberId;
-
-        if (!chatRoomId || !memberId) {
-            const payload = {
-                result: "error",
-                message: "Invalid DM or user details",
-                statusCode: 400,
-            };
-
-            socket.send(JSON.stringify({ type: REMOVE_FROM_CHAT, payload }));
-            return;
-        }
-
-        printlogs("chatRoomId", chatRoomId);
 
         const chatRoom = await this.prisma.chatRoom.findUnique({
             where: { id: chatRoomId },
-            // select: {
-            //     isGroup: true,
-            // },
+            select: {
+                id: true,
+                participants: { select: { id: true } },
+                admins: { select: { id: true } },
+                superAdmin: { select: { id: true } },
+                roomType: true,
+            },
         });
 
-        printlogs("chatRoom details", chatRoom);
-
-        // if (!chatRoom?.isGroup) {
-        //     const payload = {
-        //         result: "error",
-        //         message: "This group does not exist",
-        //         statusCode: 400,
-        //     };
-        //     socket.send(JSON.stringify({ type: REMOVE_FROM_CHAT, payload }));
-        //     return;
-        // }
-
-        const memberExists = await this.prisma.chatRoom.findUnique({
-            where: { id: chatRoomId, participants: { some: { id: memberId } } },
-            select: { id: true },
-        });
-
-        if (!memberExists?.id) {
-            const payload = {
-                result: "error",
-                message: "This member is not a part of this group",
-                statusCode: 409,
-            };
-            socket.send(JSON.stringify({ type: REMOVE_FROM_CHAT, payload }));
+        if (!chatRoom || !chatRoom.id) {
+            this.res
+                .status(STATUS_CODE.NOT_FOUND)
+                .json(
+                    REMOVE_FROM_CHAT,
+                    { message: "This chat room does not exists", action: "chat-room" },
+                    { success: false }
+                );
             return;
         }
 
-        const hasPermission = await this.prisma.chatRoom.findFirst({
-            where: {
-                id: chatRoomId,
-                // Group: {
-                //     AND: [
-                //         {
-                //             OR: [{ adminOf: { some: { id } } }, { superAdmin: { id } }],
-                //         },
-                //         {
-                //             superAdmin: { id: { notIn: [memberId] } },
-                //         },
-                //     ],
-                // },
-            },
+        if (chatRoom.roomType === "DIRECT_MESSAGE") {
+            this.res.status(STATUS_CODE.BAD_REQUEST).json(
+                REMOVE_FROM_CHAT,
+                {
+                    message: "Members can only be added to group chats",
+                    action: "not-group",
+                },
+                { success: false }
+            );
+            return;
+        }
+
+        const hasPermission = chatRoom.admins.find((admin) => admin.id === id) || chatRoom.superAdmin?.id === id;
+
+        if (!hasPermission) {
+            this.res.error(
+                ADD_TO_CHAT,
+                "You do not have the required permissions to add members to this group",
+                STATUS_CODE.FORBIDDEN
+            );
+            return;
+        }
+
+        const usersToAdd: { id: string; username: string; fullName: string; profilePic: string }[] = [];
+
+        for (const userId of addUsersId) {
+            const user = await this.prisma.user.findUnique({
+                where: { id: userId },
+                select: { id: true, username: true, fullName: true, profilePic: true },
+            });
+
+            if (!user?.id) {
+                this.res
+                    .status(STATUS_CODE.NOT_FOUND)
+                    .json(
+                        ADD_TO_CHAT,
+                        { message: "This user does not exists", user, action: "user" },
+                        { success: false }
+                    );
+                return;
+            }
+
+            const isAlreadyParticipant = chatRoom.participants.find((member) => member.id === userId);
+
+            if (isAlreadyParticipant) {
+                this.res.status(STATUS_CODE.CONFLICT).json(
+                    ADD_TO_CHAT,
+                    {
+                        message: "The member you are trying to add is already a part of this group",
+                        user,
+                    },
+                    { success: false }
+                );
+            } else {
+                usersToAdd.push(user);
+            }
+        }
+
+        if (usersToAdd.length < 1) {
+            return;
+        }
+
+        await this.prisma.chatRoom.update({
+            where: { id: chatRoomId },
+            data: { participants: { connect: usersToAdd.map((user) => ({ id: user.id })) } },
             select: { id: true },
         });
 
-        if (!hasPermission?.id) {
-            const payload = {
-                result: "error",
-                message: "You do not have enough permissions to remove this member from the group",
-                statusCode: 403,
-            };
+        this.res.json(ADD_TO_CHAT, { message: "Users added successfully", addedUsers: usersToAdd });
+    }
 
-            socket.send(JSON.stringify({ type: REMOVE_FROM_CHAT, payload }));
+    async removeUserFromChat(id: string, message: IRemoveUserFromGroupChat) {
+        const { chatRoomId, removeUserId } = message.payload;
+
+        if (!chatRoomId || !removeUserId) {
+            this.res
+                .status(STATUS_CODE.BAD_REQUEST)
+                .json(
+                    REMOVE_FROM_CHAT,
+                    { message: "Invalid parameters", action: "invalid-params" },
+                    { success: false }
+                );
+            return;
+        }
+
+        const chatRoom = await this.prisma.chatRoom.findUnique({
+            where: { id: chatRoomId },
+            select: {
+                id: true,
+                participants: { select: { id: true } },
+                admins: { select: { id: true } },
+                superAdmin: { select: { id: true } },
+                roomType: true,
+            },
+        });
+
+        if (!chatRoom || !chatRoom.id) {
+            this.res.error(REMOVE_FROM_CHAT, "This chat room does not exists", STATUS_CODE.NOT_FOUND);
+            return;
+        }
+
+        if (chatRoom.roomType === "DIRECT_MESSAGE") {
+            this.res.status(STATUS_CODE.BAD_REQUEST).json(
+                REMOVE_FROM_CHAT,
+                {
+                    message: "Members can only be removed from group chats",
+                    action: "not-group",
+                },
+                { success: false }
+            );
+            return;
+        }
+
+        const isUserAdmin = chatRoom.admins.find((member) => member.id === id);
+        const isUserSuperAdmin = chatRoom.superAdmin?.id === id;
+        const isRemoveUserParticipant = chatRoom.participants.find((member) => member.id === removeUserId);
+
+        if (!isUserSuperAdmin && !isUserAdmin) {
+            this.res.status(STATUS_CODE.FORBIDDEN).json(
+                REMOVE_FROM_CHAT,
+                {
+                    message: "You do not have the required permissions to remove members from this group",
+                    action: "permission-denied",
+                },
+                { success: false }
+            );
+            return;
+        }
+
+        if (!isRemoveUserParticipant) {
+            this.res.status(STATUS_CODE.CONFLICT).json(
+                REMOVE_FROM_CHAT,
+                {
+                    message: "The member you are trying to remove is not part of this group",
+                    removeUserId,
+                },
+                { success: false }
+            );
+            return;
+        }
+
+        const isRemoveUserSuperAdmin = chatRoom.superAdmin?.id === removeUserId;
+
+        if (!isUserSuperAdmin && isRemoveUserSuperAdmin) {
+            this.res.status(STATUS_CODE.FORBIDDEN).json(
+                REMOVE_FROM_CHAT,
+                {
+                    message: "Super Admin cannot be removed by an admin",
+                    action: "super-admin",
+                },
+                { success: false }
+            );
             return;
         }
 
         await this.prisma.chatRoom.update({
             where: { id: chatRoomId },
             data: {
-                participants: {
-                    disconnect: {
-                        id: memberId,
-                    },
-                },
+                participants: { disconnect: { id: removeUserId } },
+                admins: { disconnect: { id: removeUserId } },
+                superAdmin: isRemoveUserSuperAdmin ? { disconnect: { id: removeUserId } } : undefined,
             },
-            select: {
-                id: true,
-            },
+            select: { id: true },
         });
 
-        const payload = {
-            result: SUCCESS,
-            data: {
-                removedMemberId: memberId,
-                chatRoomId,
-                message: "Successfully removed from the group",
-            },
-            statusCode: 200,
-        };
-
-        socket.send(JSON.stringify({ type: REMOVE_FROM_CHAT, payload }));
+        this.res.json(REMOVE_FROM_CHAT, {
+            message: "Member removed successfully",
+            removedMemberId: removeUserId,
+        });
     }
 
     async handleIncomingMessages(id: string, socket: WebSocket) {
@@ -1126,12 +1053,8 @@ export class InboxManager {
                 case TRANSFER_SUPER_ADMIN:
                     this.handleSuperAdminTranferAndLeaveGroupChat(id, message);
                     break;
-                // start the backend from here
                 case CREATE_GROUP:
                     this.handleGroupCreation(id, message);
-                    break;
-                case NEW_MESSAGE:
-                    this.handleNewMessage(socket, message);
                     break;
                 case CHANGE_GROUP_NAME:
                     this.handleChangeGroupName(id, message);
@@ -1139,17 +1062,21 @@ export class InboxManager {
                 case LEAVE_GROUP_CHAT:
                     this.handleLeaveGroupChat(id, message);
                     break;
+                // start the backend from here
+                case REMOVE_FROM_CHAT:
+                    this.removeUserFromChat(id, message);
+                    break;
+                case ADD_TO_CHAT:
+                    this.addUserToChat(id, message);
+                    break;
+                case NEW_MESSAGE:
+                    this.handleNewMessage(socket, message);
+                    break;
                 case MAKE_ADMIN:
                     this.handleAddAdmin(socket, id, message);
                     break;
                 case REMOVE_AS_ADMIN:
                     this.handleRemoveAdmin(socket, id, message);
-                    break;
-                case ADD_TO_CHAT:
-                    this.addUserToChat(socket, id, message);
-                    break;
-                case REMOVE_FROM_CHAT:
-                    this.removeUserFromChat(socket, id, message);
                     break;
                 default:
                     break;

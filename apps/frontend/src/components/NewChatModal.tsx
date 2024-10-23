@@ -1,9 +1,9 @@
 import { Loader } from "@/components/Loader";
-import { chatRoomAtom, existingGroupsAtom } from "@/state/chat";
+import { chatRoomAtom, existingGroupsAtom, TParticipant } from "@/state/chat";
 import { isChatModalVisibleAtom, showGroupSelectionModalAtom } from "@/state/global";
 import { selectedUsersAtom, userAtom } from "@/state/user";
 import { TGroupExistsResponse } from "@/types/chatRoom";
-import { NAVIGATION_ROUTES } from "@/utils/constants";
+import { NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
 import { ADD_TO_CHAT, FIND_CHATS, ROOM_EXISTS } from "@instachat/messages/messages";
 import { IMessage } from "@instachat/messages/types";
@@ -171,45 +171,68 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
                         setIsChatModalVisible({ visible: false });
                         break;
                     case ADD_TO_CHAT:
-                        if (payload.result === "error") {
-                            switch (payload.statusCode) {
-                                case 400:
+                        if (message.success === false) {
+                            const action = message?.payload?.action;
+                            switch (message.status) {
+                                case StatusCodes.BadRequest:
+                                    if (action === "invalid-params") {
+                                        toast.error("There was an issue with your request. Please try again later!");
+                                    } else if (action === "no-users") {
+                                        toast.error("Please select atleast one user to add to the group");
+                                    } else if (action === "not-group") {
+                                        toast.info("Members can only be removed from group chats");
+                                        setChatRoomDetails(null);
+                                        navigate(NAVIGATION_ROUTES.INBOX);
+                                    } else {
+                                        toast.error("There was an issue with your request. Please try again later!");
+                                    }
+                                    break;
+                                case StatusCodes.NotFound:
+                                    if (action === "chat-room") {
+                                        toast.error("There was an issue with your request. Please try again later!");
+                                        setChatRoomDetails(null);
+                                        navigate(NAVIGATION_ROUTES.INBOX);
+                                    } else if (action === "user") {
+                                        toast.info(`${message?.payload?.user?.username} does not exists`);
+                                    } else {
+                                        toast.error("There was an issue with your request. Please try again later!");
+                                    }
+                                    break;
+                                case StatusCodes.Conflict:
+                                    const user = message?.payload?.user as TParticipant;
+                                    toast.info(`${user?.username} is already part of this group`);
+                                    break;
+                                case StatusCodes.Forbidden:
                                     toast.error(
-                                        "Invalid request. Please contact the owner or the developer of this website"
+                                        "You do not have the required permissions to add members to this group"
+                                    );
+                                    setChatRoomDetails((prev) =>
+                                        prev && prev.isGroup
+                                            ? {
+                                                  ...prev,
+                                                  admins: prev.admins.filter((admin) => admin.id !== user.id),
+                                              }
+                                            : prev
                                     );
                                     break;
-                                case 409:
-                                    toast.error(payload.message);
-                                    break;
-                                case 403:
-                                    toast.error(payload.message);
-                                    break;
-                                case 404:
-                                    toast.error(payload.message);
-                                    break;
                                 default:
-                                    toast.error("An unknown error occurred");
+                                    toast.error("There was an issue with your request. Please try again later!");
                                     break;
                             }
-                            return;
+                        } else {
+                            if (message.status === StatusCodes.Ok) {
+                                toast.success("Members added successfully");
+                                const users = message?.payload?.addedUsers as TParticipant[];
+                                setChatRoomDetails((prev) =>
+                                    prev && prev.isGroup
+                                        ? { ...prev, participants: [...prev.participants, ...users] }
+                                        : prev
+                                );
+                            } else {
+                                toast.error("There was an issue with your request. Please try again later!");
+                            }
                         }
-
-                        if (payload.result === "success" && payload?.newUsersDetails?.length) {
-                            setChatRoomDetails((prev) => {
-                                if (prev) {
-                                    const newUsersDetails = payload.newUsersDetails.map((user: any) => ({
-                                        id: user.id,
-                                        username: user.username,
-                                        fullName: user.fullName,
-                                        profilePic: user.profilePic,
-                                    }));
-                                    return { ...prev, participants: [...prev?.participants, ...newUsersDetails] };
-                                }
-                                return prev;
-                            });
-
-                            setIsChatModalVisible({ visible: false });
-                        }
+                        setIsChatModalVisible({ visible: false });
                         break;
                     default:
                         break;
@@ -260,7 +283,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
         printlogs("selectedUsers", selectedUsers);
         printlogs("selectedUsers length", selectedUsers.length);
 
-        if (selectedUsers.length > 0) {
+        if (selectedUsers.length > 0 || isChatModalVisible.type === "ADD_USERS") {
             setFilteredChats(
                 filteredUserData?.map((user) => ({
                     ...user,
@@ -342,13 +365,17 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
             return;
         }
 
+        if (!chatRoomDetails?.isGroup) {
+            return;
+        }
+
         setIsSubmitting(true);
 
         const message: IMessage = {
             type: ADD_TO_CHAT,
             payload: {
-                chatRoomDetails,
-                newUsersDetails: selectedUsers,
+                chatRoomId: chatRoomDetails.id,
+                addUsersId: selectedUsers.map((user) => user.id),
             },
         };
 

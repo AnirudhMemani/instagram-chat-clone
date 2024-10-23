@@ -46,3 +46,15 @@ export interface ITransferSuperAdminAndLeaveGroupChat
         newSuperAdminId: string;
         chatRoomId: string;
     }> {}
+
+export interface IRemoveUserFromGroupChat
+    extends IMessage<{
+        chatRoomId: string;
+        removeUserId: string;
+    }> {}
+
+export interface IAddUserToGroupChat
+    extends IMessage<{
+        chatRoomId: string;
+        addUsersId: string[];
+    }> {}
