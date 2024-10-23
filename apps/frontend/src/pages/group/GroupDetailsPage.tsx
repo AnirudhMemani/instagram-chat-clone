@@ -56,14 +56,14 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): J
                     return;
                 }
 
-                setChatRoomDetails(() => ({
-                    id: payload.chatRoomId,
-                    name: payload.chatRoomName,
-                    createdAt: payload.createdAt,
-                    participants: payload.participants,
-                    messages: payload.messageDetails,
-                    isGroup: true,
-                }));
+                // setChatRoomDetails(() => ({
+                //     id: payload.chatRoomId,
+                //     name: payload.chatRoomName,
+                //     createdAt: payload.createdAt,
+                //     participants: payload.participants,
+                //     messages: payload.messageDetails,
+                //     isGroup: true,
+                // }));
 
                 // setGroupDetails(payload.groupDetails);
 
