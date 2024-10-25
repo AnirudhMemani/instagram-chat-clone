@@ -124,6 +124,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 (chatRoomDetails.isGroup ? chatRoomDetails.admins?.some((admin) => admin.id === user.id) : false) ||
                     false
             );
+            return;
         }
 
         if (!socket) {
@@ -780,7 +781,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 .map((member) => {
                                     const isUserAdmin =
                                         chatRoomDetails.isGroup &&
-                                        chatRoomDetails.admins.some((admin) => admin.id === member.id);
+                                        chatRoomDetails.admins.find((admin) => admin.id === member.id);
                                     const isUserSuperAdmin =
                                         chatRoomDetails.isGroup && chatRoomDetails?.superAdmin?.id === member?.id;
                                     if (!chatRoomDetails.isGroup && member?.id === user?.id) {
