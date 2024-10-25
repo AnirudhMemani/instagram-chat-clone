@@ -597,6 +597,20 @@ export class InboxManager {
                 return;
             }
 
+            const userExits = await this.prisma.user.findUnique({
+                where: { id: newSuperAdminId },
+                select: { id: true },
+            });
+
+            if (!userExits?.id) {
+                this.res.status(STATUS_CODE.NOT_FOUND).json(TRANSFER_SUPER_ADMIN, {
+                    message: "This user does not exists",
+                    action: "user",
+                    notFoundUserId: newSuperAdminId,
+                });
+                return;
+            }
+
             const chatRoom = await this.prisma.chatRoom.findUnique({
                 where: { id: chatRoomId },
                 select: {
@@ -607,7 +621,11 @@ export class InboxManager {
             });
 
             if (!chatRoom || !chatRoom.id) {
-                this.res.error(TRANSFER_SUPER_ADMIN, "This chat room does not exists", STATUS_CODE.NOT_FOUND);
+                this.res.status(STATUS_CODE.NOT_FOUND).json(TRANSFER_SUPER_ADMIN, {
+                    message: "This group does not exists",
+                    action: "chat-room",
+                    notFoundUser: newSuperAdminId,
+                });
                 return;
             }
 
@@ -650,6 +668,9 @@ export class InboxManager {
                     admins: {
                         disconnect: {
                             id,
+                        },
+                        connect: {
+                            id: newSuperAdminId,
                         },
                     },
                 },
@@ -805,7 +826,9 @@ export class InboxManager {
             });
 
             if (!chatRoomDetails?.id) {
-                this.res.status(404).json(CHATROOM_DETAILS_BY_ID, { message: "This chat room does not exists" });
+                this.res
+                    .status(404)
+                    .json(CHATROOM_DETAILS_BY_ID, { message: "This chat room does not exists" }, { success: false });
                 return;
             }
 
@@ -1062,12 +1085,15 @@ export class InboxManager {
                 case LEAVE_GROUP_CHAT:
                     this.handleLeaveGroupChat(id, message);
                     break;
-                // start the backend from here
                 case REMOVE_FROM_CHAT:
                     this.removeUserFromChat(id, message);
                     break;
                 case ADD_TO_CHAT:
                     this.addUserToChat(id, message);
+                    break;
+                // start the backend from here (it's over not the issue of changes not reflecting on the frontend needs to be fixed)
+                case REMOVE_FROM_CHAT:
+                    this.removeUserFromChat(id, message);
                     break;
                 case NEW_MESSAGE:
                     this.handleNewMessage(socket, message);

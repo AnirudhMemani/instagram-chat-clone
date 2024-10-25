@@ -102,6 +102,8 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
             return;
         }
 
+        printlogs("NewChatModal mounted");
+
         socket.onmessage = (event) => {
             try {
                 const message = JSON.parse(event.data) as IMessage;

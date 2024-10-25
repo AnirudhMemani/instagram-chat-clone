@@ -105,7 +105,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     };
 
     useEffect(() => {
-        if (chatRoomDetails) {
+        if (chatRoomDetails && chatRoomDetails.id === id) {
             printlogs("Chat room details inside chat room component:", chatRoomDetails);
 
             setChatRoomName(
@@ -149,61 +149,78 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     }, [isEditNameModalVisible]);
 
     useEffect(() => {
+        printlogs("chat room component mounted!");
         if (!socket) {
+            printlogs("Socket not found inside chat room useEffect");
             return;
         }
 
+        printlogs("Socket found inside chat room useEffect");
+
         socket.onmessage = (event) => {
+            printlogs("Entered socket.onmessage event handler");
             try {
                 const responseMessage = JSON.parse(event.data) as IMessage;
 
                 if (responseMessage?.type === CHATROOM_DETAILS_BY_ID) {
-                    if (responseMessage.status === StatusCodes.NotFound) {
-                        navigate(NAVIGATION_ROUTES.INBOX, {
-                            replace: true,
-                        });
-                        toast.error(responseMessage?.payload?.message);
-                        return;
+                    if (responseMessage.success === false) {
+                        if (responseMessage.status === StatusCodes.NotFound) {
+                            navigate(NAVIGATION_ROUTES.INBOX, {
+                                replace: true,
+                            });
+                            toast.error(responseMessage?.payload?.message);
+                            return;
+                        }
+
+                        if (responseMessage.status === StatusCodes.InternalServerError) {
+                            navigate(NAVIGATION_ROUTES.INBOX, {
+                                replace: true,
+                            });
+                            toast.error("There was an issue with your request. Try again!");
+                            return;
+                        }
+                    } else {
+                        if (responseMessage.status === StatusCodes.Ok) {
+                            if (responseMessage?.payload?.isGroup === true) {
+                                const chatRoomDetails = {
+                                    isGroup: true,
+                                    id: responseMessage?.payload?.id,
+                                    name: responseMessage?.payload?.name,
+                                    admins: responseMessage?.payload?.admins,
+                                    picture: responseMessage?.payload?.picture,
+                                    messages: responseMessage?.payload?.messages,
+                                    createdAt: responseMessage?.payload?.createdAt,
+                                    createdBy: responseMessage?.payload?.createdBy,
+                                    superAdmin: responseMessage?.payload?.superAdmin,
+                                    participants: responseMessage?.payload?.participants,
+                                    nameUpdatedAt: responseMessage?.payload?.nameUpdatedAt,
+                                    pictureUpdatedAt: responseMessage?.payload?.pictureUpdatedAt,
+                                } satisfies TChatRoomAtom;
+
+                                setChatRoomDetails(chatRoomDetails);
+                            } else if (responseMessage?.payload?.isGroup === false) {
+                                const chatRoomDetails = {
+                                    isGroup: false,
+                                    id: responseMessage?.payload?.id,
+                                    messages: responseMessage?.payload?.messages,
+                                    createdAt: responseMessage?.payload?.createdAt,
+                                    participants: responseMessage?.payload?.participants,
+                                } satisfies TChatRoomAtom;
+
+                                setChatRoomDetails(chatRoomDetails);
+                            }
+                        } else {
+                            navigate(NAVIGATION_ROUTES.INBOX, {
+                                replace: true,
+                            });
+                            toast.error("There was an issue with your request. Try again!");
+                        }
                     }
-
-                    if (responseMessage.status === StatusCodes.InternalServerError) {
-                        navigate(NAVIGATION_ROUTES.INBOX, {
-                            replace: true,
-                        });
-                        toast.error("An unknown error occurred. Try again!");
-                        return;
-                    }
-
-                    if (responseMessage?.payload?.isGroup === true) {
-                        const chatRoomDetails = {
-                            isGroup: true,
-                            id: responseMessage?.payload?.id,
-                            name: responseMessage?.payload?.name,
-                            admins: responseMessage?.payload?.admins,
-                            picture: responseMessage?.payload?.picture,
-                            messages: responseMessage?.payload?.messages,
-                            createdAt: responseMessage?.payload?.createdAt,
-                            createdBy: responseMessage?.payload?.createdBy,
-                            superAdmin: responseMessage?.payload?.superAdmin,
-                            participants: responseMessage?.payload?.participants,
-                            nameUpdatedAt: responseMessage?.payload?.nameUpdatedAt,
-                            pictureUpdatedAt: responseMessage?.payload?.pictureUpdatedAt,
-                        } satisfies TChatRoomAtom;
-
-                        setChatRoomDetails(chatRoomDetails);
-                    } else if (responseMessage?.payload?.isGroup === false) {
-                        const chatRoomDetails = {
-                            isGroup: false,
-                            id: responseMessage?.payload?.id,
-                            messages: responseMessage?.payload?.messages,
-                            createdAt: responseMessage?.payload?.createdAt,
-                            participants: responseMessage?.payload?.participants,
-                        } satisfies TChatRoomAtom;
-
-                        setChatRoomDetails(chatRoomDetails);
-                    }
+                    return;
                 }
+
                 printlogs("chatRoomDetails inside the chatRoom details useEffect", chatRoomDetails);
+
                 if (chatRoomDetails) {
                     switch (responseMessage?.type) {
                         case CHANGE_GROUP_NAME:
@@ -447,7 +464,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 setIsLoading(false);
             }
         };
-    }, [socket]);
+    }, [socket, chatRoomDetails]);
 
     useEffect(() => {
         const closeEmojiPicker = (e: MouseEvent) => {
@@ -798,27 +815,25 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                                         <EllipsisVertical className="size-5 cursor-pointer select-none active:brightness-50" />
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
-                                                        <DropdownMenuItem asChild>
-                                                            <Button
-                                                                variant="outline"
-                                                                className="text-destructive rounde-sm w-full justify-start gap-2 border-0 px-2 text-sm"
-                                                                disabled={isLoading}
-                                                                onClick={() =>
-                                                                    setAlertModalMetadata({
-                                                                        visible: true,
-                                                                        title: "Remove from the group?",
-                                                                        description: `You are about to remove ${member.fullName} from the group`,
-                                                                        positiveTitle: "Remove",
-                                                                        PositiveButtonStyles:
-                                                                            "!bg-destructive dark:text-slate-200 text-black",
-                                                                        positiveOnClick: () =>
-                                                                            handleRemoveUserFromGroup(member.id),
-                                                                    })
-                                                                }
-                                                            >
-                                                                Remove from the group
-                                                                <Loader visible={isLoading} />
-                                                            </Button>
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                setAlertModalMetadata({
+                                                                    visible: true,
+                                                                    title: "Remove from the group?",
+                                                                    description: `You are about to remove ${member.fullName} from the group`,
+                                                                    positiveTitle: "Remove",
+                                                                    PositiveButtonStyles:
+                                                                        "!bg-destructive dark:text-slate-200 text-black",
+                                                                    positiveOnClick() {
+                                                                        handleRemoveUserFromGroup(member.id);
+                                                                    },
+                                                                })
+                                                            }
+                                                            className="text-destructive rounde-sm w-full justify-start gap-2 border-0 px-2 text-sm"
+                                                            disabled={isLoading}
+                                                        >
+                                                            Remove from the group
+                                                            <Loader visible={isLoading} />
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem
                                                             className={isUserAdmin ? "text-destructive" : ""}
