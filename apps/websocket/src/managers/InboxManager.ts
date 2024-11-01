@@ -879,9 +879,7 @@ export class InboxManager {
             });
 
             if (!chatRoomDetails?.id) {
-                this.res
-                    .status(404)
-                    .json(CHATROOM_DETAILS_BY_ID, { message: "This chat room does not exists" }, { success: false });
+                this.res.error(CHATROOM_DETAILS_BY_ID, "This chat room does not exists", STATUS_CODE.NOT_FOUND);
                 return;
             }
 

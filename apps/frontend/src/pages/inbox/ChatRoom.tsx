@@ -38,6 +38,7 @@ import { toast } from "sonner";
 export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     const [message, setMessage] = useState<string>("");
     const [isAdmin, setIsAdmin] = useState<boolean>(false);
+    const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [chatRoomName, setChatRoomName] = useState<string>("");
     const [newGroupName, setNewGroupName] = useState<string>("");
@@ -124,6 +125,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 (chatRoomDetails.isGroup ? chatRoomDetails.admins?.some((admin) => admin.id === user.id) : false) ||
                     false
             );
+            setIsSuperAdmin(chatRoomDetails.isGroup && chatRoomDetails.superAdmin?.id === user?.id);
             return;
         }
 
@@ -967,7 +969,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            {isAdmin && !isUserSuperAdmin && (
+                                            {isAdmin && !isUserSuperAdmin && member.id !== user.id && (
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger>
                                                         <EllipsisVertical className="size-5 cursor-pointer select-none active:brightness-50" />
@@ -1041,7 +1043,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 </p>
                             </>
                         )}
-                        {(isAdmin || !chatRoomDetails.isGroup) && (
+                        {(isSuperAdmin || !chatRoomDetails.isGroup) && (
                             <Button
                                 variant="ghost"
                                 className="text-destructive cursor-pointer select-none p-0 text-base hover:!bg-transparent"
