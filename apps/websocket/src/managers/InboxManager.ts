@@ -19,6 +19,7 @@ import {
 } from "@instachat/messages/messages";
 import {
     IAddUserToGroupChat,
+    IAdminStatusChange,
     IDeleteGroupChat,
     IGetChatRoomById,
     ILeaveGroupChat,
@@ -218,19 +219,29 @@ export class InboxManager {
 
             const { name, profilePic, pictureName } = groupDetails;
 
-            const fileSize = Buffer.byteLength(profilePic);
+            let result;
 
-            printlogs("fileSize:", fileSize);
+            printlogs("group profilePic", profilePic);
 
-            if (fileSize > MAX_FILE_SIZE) {
-                this.res.error(CREATE_GROUP, "Exceeded max file size of 8 MB for group image", STATUS_CODE.BAD_REQUEST);
-                return;
+            if (profilePic) {
+                const fileSize = Buffer.byteLength(profilePic);
+
+                printlogs("fileSize:", fileSize);
+
+                if (fileSize > MAX_FILE_SIZE) {
+                    this.res.error(
+                        CREATE_GROUP,
+                        "Exceeded max file size of 8 MB for group image",
+                        STATUS_CODE.BAD_REQUEST
+                    );
+                    return;
+                }
+
+                result = await cloudinary.v2.uploader.upload(profilePic, {
+                    public_id: pictureName,
+                    upload_preset: process.env.CLOUDINARY_PRESET_NAME,
+                });
             }
-
-            const result = await cloudinary.v2.uploader.upload(profilePic, {
-                public_id: pictureName,
-                upload_preset: process.env.CLOUDINARY_PRESET_NAME,
-            });
 
             const newChatRoom = await prisma.chatRoom.create({
                 data: {
@@ -241,7 +252,7 @@ export class InboxManager {
                         })),
                     },
                     roomType: "GROUP",
-                    picture: result.secure_url,
+                    picture: result?.secure_url,
                     superAdmin: { connect: { id } },
                     admins: { connect: { id } },
                     createdBy: { connect: { id } },
@@ -693,103 +704,143 @@ export class InboxManager {
         }
     }
 
-    async handleAddAdmin(socket: WebSocket, id: string, message: IMessage) {
-        const adminId = message.payload.userId;
-        const groupId = message.payload.groupId;
+    async handleAddAdmin(id: string, message: IAdminStatusChange) {
+        try {
+            const adminId = message.payload.adminId;
+            const chatRoomId = message.payload.chatRoomId;
 
-        // const memberExists = await this.prisma.group.findFirst({
-        //     where: {
-        //         AND: [{ id: groupId }, { members: { some: { id: adminId } } }, { superAdminId: id }],
-        //     },
-        //     select: {
-        //         id: true,
-        //     },
-        // });
+            if (!adminId || !chatRoomId) {
+                this.res.error(MAKE_ADMIN, "Invalid params", STATUS_CODE.BAD_REQUEST);
+                return;
+            }
 
-        // if (!memberExists) {
-        //     socket.send(
-        //         JSON.stringify({
-        //             type: MAKE_ADMIN,
-        //             payload: {
-        //                 result: ERROR,
-        //             },
-        //         })
-        //     );
-        //     return;
-        // }
+            const chatRoom = await this.prisma.chatRoom.findUnique({
+                where: { id: chatRoomId },
+                select: {
+                    id: true,
+                    participants: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                    superAdmin: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                    admins: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                },
+            });
 
-        // const userDetails = await this.prisma.group.update({
-        //     where: { id: groupId },
-        //     data: {
-        //         adminOf: {
-        //             connect: {
-        //                 id: adminId,
-        //             },
-        //         },
-        //     },
-        //     include: {
-        //         adminOf: {
-        //             where: {
-        //                 id: adminId,
-        //             },
-        //         },
-        //     },
-        // });
+            if (!chatRoom) {
+                this.res.error(MAKE_ADMIN, "Group not found", STATUS_CODE.NOT_FOUND);
+                return;
+            }
 
-        // socket.send(
-        //     JSON.stringify({
-        //         type: MAKE_ADMIN,
-        //         payload: {
-        //             userDetails,
-        //         },
-        //     })
-        // );
+            const isUserMember = chatRoom.participants.find((member) => member.id === adminId);
+
+            if (!isUserMember) {
+                this.res.status(STATUS_CODE.FORBIDDEN).json(
+                    MAKE_ADMIN,
+                    {
+                        message: "This person is not a member of this group",
+                        action: "not-member",
+                    },
+                    { success: false }
+                );
+                return;
+            }
+
+            const hasPermission = chatRoom.admins.find((member) => member.id === id);
+
+            if (!hasPermission) {
+                this.res.status(STATUS_CODE.FORBIDDEN).json(
+                    MAKE_ADMIN,
+                    {
+                        message: "You do not have enough permissions to perform this action",
+                        action: "permission",
+                    },
+                    { success: false }
+                );
+                return;
+            }
+
+            const isUserAlreadyAdmin = chatRoom.admins.find((admin) => admin.id === adminId);
+
+            if (isUserAlreadyAdmin) {
+                this.res.error(MAKE_ADMIN, "This member is already an admin", STATUS_CODE.CONFLICT);
+                return;
+            }
+
+            const updatedChatRoom = await this.prisma.chatRoom.update({
+                where: { id: chatRoomId },
+                data: { admins: { connect: { id: adminId } } },
+                select: { id: true },
+            });
+
+            if (!updatedChatRoom) {
+                this.res.error(MAKE_ADMIN, "Error while trying to make user an admin");
+                return;
+            }
+
+            this.res.json(MAKE_ADMIN, { message: "Made user an admin successfully", newAdmin: isUserMember });
+        } catch (error) {
+            printlogs("ERROR inside handleAddAdmin():", error);
+            this.res.error(MAKE_ADMIN, "There was an error trying to make this user an admin");
+        }
     }
 
-    async handleRemoveAdmin(socket: WebSocket, id: string, message: IMessage) {
-        const adminId = message.payload.userId;
-        const groupId = message.payload.groupId;
+    async handleRemoveAdmin(id: string, message: IAdminStatusChange) {
+        try {
+            const chatRoomId = message.payload.chatRoomId;
+            const adminId = message.payload.adminId;
 
-        // const memberExists = await this.prisma.group.findFirst({
-        //     where: {
-        //         AND: [{ id: groupId }, { members: { some: { id: adminId } } }, { superAdminId: id }],
-        //     },
-        //     select: {
-        //         id: true,
-        //     },
-        // });
+            if (!chatRoomId || !adminId) {
+                this.res.error(REMOVE_AS_ADMIN, "Invalid params", STATUS_CODE.BAD_REQUEST);
+                return;
+            }
 
-        // if (!memberExists) {
-        //     socket.send(
-        //         JSON.stringify({
-        //             type: MAKE_ADMIN,
-        //             payload: {
-        //                 result: ERROR,
-        //             },
-        //         })
-        //     );
-        //     return;
-        // }
+            const chatRoom = await this.prisma.chatRoom.findUnique({
+                where: { id: chatRoomId },
+                select: {
+                    id: true,
+                    participants: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                    superAdmin: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                    admins: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                },
+            });
 
-        // await this.prisma.group.update({
-        //     where: { id: groupId },
-        //     data: {
-        //         adminOf: {
-        //             disconnect: {
-        //                 id: adminId,
-        //             },
-        //         },
-        //     },
-        // });
+            if (!chatRoom) {
+                this.res.error(REMOVE_AS_ADMIN, "Group not found!", STATUS_CODE.NOT_FOUND);
+                return;
+            }
 
-        // socket.send(
-        //     JSON.stringify({
-        //         type: MAKE_ADMIN,
-        //         payload: {
-        //             adminId,
-        //         },
-        //     })
-        // );
+            const isUserSuperAdmin = chatRoom.superAdmin?.id === adminId;
+
+            const hasPermission = chatRoom.admins.find((admin) => admin.id === id) || chatRoom.superAdmin?.id === id;
+
+            if (isUserSuperAdmin || !hasPermission) {
+                this.res
+                    .status(STATUS_CODE.FORBIDDEN)
+                    .json(REMOVE_AS_ADMIN, { message: "Cannot remove super admin" }, { success: false });
+                return;
+            }
+
+            const isUserAdmin = chatRoom.admins.find((admin) => admin.id === adminId);
+
+            if (!isUserAdmin) {
+                this.res.error(REMOVE_AS_ADMIN, "This user is not an admin", STATUS_CODE.CONFLICT);
+                return;
+            }
+
+            const updatedChatRoom = await this.prisma.chatRoom.update({
+                where: { id: chatRoomId },
+                data: { admins: { disconnect: { id: adminId } } },
+                select: { id: true },
+            });
+
+            if (!updatedChatRoom) {
+                this.res.error(REMOVE_AS_ADMIN, "There was an error trying to remove as admin");
+                return;
+            }
+
+            this.res.json(REMOVE_AS_ADMIN, { message: "Successfully removed as admin", removedAdmin: isUserAdmin });
+        } catch (error) {
+            printlogs("ERROR inside handleRemoveAdmin():", error);
+            this.res.error(REMOVE_AS_ADMIN, "There was an error trying to remove as admin");
+        }
     }
 
     async getChatRoomDetails(message: IGetChatRoomById) {
@@ -1138,14 +1189,15 @@ export class InboxManager {
                 case ADD_TO_CHAT:
                     this.addUserToChat(id, message);
                     break;
-                case NEW_MESSAGE:
-                    this.handleNewMessage(socket, message);
-                    break;
                 case MAKE_ADMIN:
-                    this.handleAddAdmin(socket, id, message);
+                    this.handleAddAdmin(id, message);
                     break;
                 case REMOVE_AS_ADMIN:
-                    this.handleRemoveAdmin(socket, id, message);
+                    this.handleRemoveAdmin(id, message);
+                    break;
+                // start the backend from here
+                case NEW_MESSAGE:
+                    this.handleNewMessage(socket, message);
                     break;
                 default:
                     break;

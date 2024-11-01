@@ -30,13 +30,8 @@ type TCreateGroupResponse = {
 };
 
 const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): JSX.Element => {
-    const defaultGroupImageFile = new File(
-        ["https://res.cloudinary.com/dtbyy0w95/image/upload/v1716144011/default-group-image_eopbih.png"],
-        "default-group-image.png"
-    );
-
     const [groupName, setGroupName] = useState<string>("");
-    const [groupImage, setGroupImage] = useState<File>(defaultGroupImageFile);
+    const [groupImage, setGroupImage] = useState<File>();
     const [previewImage, setPreviewImage] = useState<string>(
         "https://res.cloudinary.com/dtbyy0w95/image/upload/v1716144011/default-group-image_eopbih.png"
     );
@@ -49,6 +44,19 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): J
     const { getProcessedImage, setImage, resetStates } = useImageCropContext();
 
     const navigate = useNavigate();
+
+    const getSkeletonGroupPicture = async () => {
+        const response = await fetch(
+            "https://res.cloudinary.com/dtbyy0w95/image/upload/v1716144011/default-group-image_eopbih.png"
+        );
+        const blob = await response.blob();
+        const newFile = new File([blob], "default-group-image.png", { type: "image/png" });
+        setGroupImage(newFile);
+    };
+
+    useEffect(() => {
+        getSkeletonGroupPicture();
+    }, []);
 
     useEffect(() => {
         if (!socket) {
@@ -148,7 +156,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): J
                     groupDetails: {
                         name: groupName,
                         profilePic: imageData,
-                        pictureName: groupImage.name,
+                        ...(groupImage?.name && { pictureName: groupImage.name }),
                     },
                 },
             };
@@ -156,7 +164,9 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): J
             socket.send(JSON.stringify(message));
         };
 
-        reader.readAsDataURL(groupImage);
+        if (groupImage) {
+            reader.readAsDataURL(groupImage);
+        }
     };
 
     return (

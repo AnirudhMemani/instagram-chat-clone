@@ -63,3 +63,9 @@ export interface IDeleteGroupChat
     extends IMessage<{
         chatRoomId: string;
     }> {}
+
+export interface IAdminStatusChange
+    extends IMessage<{
+        chatRoomId: string;
+        adminId: string;
+    }> {}

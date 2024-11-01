@@ -20,7 +20,6 @@ import {
     CHANGE_GROUP_NAME,
     CHATROOM_DETAILS_BY_ID,
     DELETE_GROUP_CHAT,
-    ERROR,
     LEAVE_GROUP_CHAT,
     MAKE_ADMIN,
     NEW_MESSAGE,
@@ -376,25 +375,100 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             }
                             break;
                         case MAKE_ADMIN:
-                            if (responseMessage.payload.result === ERROR) {
-                                commonToastErrorMessage({});
+                            if (responseMessage.success === false) {
+                                switch (responseMessage.status) {
+                                    case StatusCodes.Conflict:
+                                        toast.info("This person is already an admin");
+                                        setChatRoomDetails(null);
+                                        break;
+                                    case StatusCodes.NotFound:
+                                        commonToastErrorMessage({ title: "This group does not exist!" });
+                                        navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
+                                        setChatRoomDetails(null);
+                                        break;
+                                    case StatusCodes.Forbidden:
+                                        if (responseMessage.payload?.action === "permission") {
+                                            commonToastErrorMessage({
+                                                title: "You do not have enough permissions to perform this action",
+                                            });
+                                        } else if (responseMessage.payload?.action === "not-member") {
+                                            commonToastErrorMessage({
+                                                title: "This person is not a member of this group",
+                                            });
+                                        }
+                                        setChatRoomDetails(null);
+                                        break;
+                                    default:
+                                        commonToastErrorMessage({
+                                            title: "There was an issue with your request!",
+                                        });
+                                        break;
+                                }
                             } else {
-                                const userDetails = responseMessage.payload.userDetails;
-                                // setGroupState({
-                                //     ...groupState,
-                                //     adminOf: [...groupState.adminOf, userDetails],
-                                // });
+                                if (responseMessage.status === StatusCodes.Ok) {
+                                    if (!chatRoomDetails.isGroup) {
+                                        setChatRoomDetails(null);
+                                        return;
+                                    }
+                                    const newAdmin = responseMessage.payload?.newAdmin as TParticipant;
+                                    toast.success(`Successfully made ${newAdmin?.username} an admin`);
+                                    const updatedChatRoomDetails = {
+                                        ...chatRoomDetails,
+                                        admins: [
+                                            ...chatRoomDetails.admins,
+                                            {
+                                                id: newAdmin?.id,
+                                                username: newAdmin?.username,
+                                                fullName: newAdmin?.fullName,
+                                                profilePic: newAdmin?.profilePic,
+                                            },
+                                        ],
+                                    } satisfies TChatRoomAtom;
+                                    setChatRoomDetails(updatedChatRoomDetails);
+                                    return;
+                                }
+
+                                commonToastErrorMessage({});
                             }
                             break;
                         case REMOVE_AS_ADMIN:
-                            if (responseMessage.payload.result === ERROR) {
-                                commonToastErrorMessage({});
+                            if (responseMessage.success === false) {
+                                switch (responseMessage.status) {
+                                    case StatusCodes.NotFound:
+                                        navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
+                                        setChatRoomDetails(null);
+                                        toast.error("This group does not exist");
+                                        break;
+                                    case StatusCodes.Conflict:
+                                        toast.info("This person is not an admin");
+                                        setChatRoomDetails(null);
+                                        break;
+                                    case StatusCodes.Forbidden:
+                                        toast.error("You do not have enough permissions");
+                                        break;
+                                    default:
+                                        commonToastErrorMessage({
+                                            title: "There was an issue with your request!",
+                                        });
+                                        break;
+                                }
                             } else {
-                                const adminId = responseMessage.payload.adminId;
-                                // setGroupState({
-                                //     ...groupState,
-                                //     adminOf: groupState.adminOf.filter((admin) => admin.id !== adminId),
-                                // });
+                                if (responseMessage.status === StatusCodes.Ok) {
+                                    if (!chatRoomDetails.isGroup) {
+                                        return;
+                                    }
+                                    const removedAdmin = responseMessage.payload?.removedAdmin as TParticipant;
+                                    toast.success(`Removed ${removedAdmin?.username} as admin`);
+                                    const updatedChatRoomDetails = {
+                                        ...chatRoomDetails,
+                                        admins: chatRoomDetails.admins.filter((admin) => admin.id !== removedAdmin.id),
+                                    } satisfies TChatRoomAtom;
+                                    setChatRoomDetails(updatedChatRoomDetails);
+                                    return;
+                                }
+                                commonToastErrorMessage({
+                                    title: "There was an issue with your request!",
+                                });
                             }
                             break;
                         case REMOVE_FROM_CHAT:
@@ -673,42 +747,63 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
         }
     };
 
-    const handleAdminStatusChange = (userId: string, action: "Make admin" | "Remove as admin") => {
-        // try {
-        //     if (!socket) {
-        //         return;
-        //     }
-        //     if (!groupState) {
-        //         return;
-        //     }
-        //     setIsLoading(true);
-        //     if (action === "Make admin") {
-        //         socket.send(
-        //             JSON.stringify({
-        //                 type: MAKE_ADMIN,
-        //                 payload: {
-        //                     userId,
-        //                     groupId: groupState.id,
-        //                 },
-        //             })
-        //         );
-        //         return;
-        //     }
-        //     if (action === "Remove as admin") {
-        //         socket.send(
-        //             JSON.stringify({
-        //                 type: REMOVE_AS_ADMIN,
-        //                 payload: {
-        //                     userId,
-        //                     groupId: groupState.id,
-        //                 },
-        //             })
-        //         );
-        //     }
-        // } catch (error) {
-        //     console.log(error);
-        //     setIsLoading(false);
-        // }
+    const handleAdminStatusChangeConfirmation = (id: string, username: string, isUserAdmin: boolean) => {
+        if (isUserAdmin) {
+            setAlertModalMetadata({
+                visible: true,
+                title: `Remove ${username} as the admin of this group`,
+                description: `You are about to remove ${username} as the admin of this group. Are you sure you want to continue?`,
+                positiveOnClick: () => handleAdminStatusChange(id, "Remove as admin"),
+                PositiveButtonStyles: "!bg-destructive dark:text-slate-200 text-black",
+            });
+        } else {
+            setAlertModalMetadata({
+                visible: true,
+                title: `Make ${username} an admin of this group`,
+                description: `You are about to make ${username} an admin of this group. They will be able to add, remove users and performs other actions. Are you sure you want to continue?`,
+                positiveOnClick: () => handleAdminStatusChange(id, "Make admin"),
+                PositiveButtonStyles: "!bg-destructive dark:text-slate-200 text-black",
+            });
+        }
+    };
+
+    const handleAdminStatusChange = (adminId: string, action: "Make admin" | "Remove as admin") => {
+        try {
+            if (!socket) {
+                return;
+            }
+
+            if (!chatRoomDetails) {
+                return;
+            }
+
+            if (action === "Make admin") {
+                socket.send(
+                    JSON.stringify({
+                        type: MAKE_ADMIN,
+                        payload: {
+                            adminId,
+                            chatRoomId: chatRoomDetails.id,
+                        },
+                    })
+                );
+                return;
+            }
+
+            if (action === "Remove as admin") {
+                socket.send(
+                    JSON.stringify({
+                        type: REMOVE_AS_ADMIN,
+                        payload: {
+                            adminId,
+                            chatRoomId: chatRoomDetails.id,
+                        },
+                    })
+                );
+            }
+        } catch (error) {
+            printlogs("ERROR inside handleAdminStatusChange():", error);
+        }
     };
 
     if (!chatRoomDetails) {
@@ -838,12 +933,15 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             chatRoomDetails.participants.length &&
                             chatRoomDetails.participants
                                 .map((member) => {
-                                    const isUserAdmin =
-                                        chatRoomDetails.isGroup &&
-                                        chatRoomDetails.admins.find((admin) => admin.id === member.id);
+                                    const isUserAdmin = chatRoomDetails.isGroup
+                                        ? Boolean(chatRoomDetails.admins.find((admin) => admin.id === member.id))
+                                        : undefined;
                                     const isUserSuperAdmin =
                                         chatRoomDetails.isGroup && chatRoomDetails?.superAdmin?.id === member?.id;
                                     if (!chatRoomDetails.isGroup && member?.id === user?.id) {
+                                        return;
+                                    }
+                                    if (isUserAdmin === undefined) {
                                         return;
                                     }
                                     return (
@@ -896,11 +994,11 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                                             <Loader visible={isLoading} />
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem
-                                                            className={isUserAdmin ? "text-destructive" : ""}
                                                             onClick={() =>
-                                                                handleAdminStatusChange(
+                                                                handleAdminStatusChangeConfirmation(
                                                                     member.id,
-                                                                    isUserAdmin ? "Remove as admin" : "Make admin"
+                                                                    member.username,
+                                                                    isUserAdmin
                                                                 )
                                                             }
                                                         >
