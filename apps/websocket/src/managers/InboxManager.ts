@@ -5,6 +5,7 @@ import {
     CHANGE_GROUP_NAME,
     CHATROOM_DETAILS_BY_ID,
     CREATE_GROUP,
+    DELETE_GROUP_CHAT,
     FIND_CHATS,
     GET_INBOX,
     LEAVE_GROUP_CHAT,
@@ -18,6 +19,7 @@ import {
 } from "@instachat/messages/messages";
 import {
     IAddUserToGroupChat,
+    IDeleteGroupChat,
     IGetChatRoomById,
     ILeaveGroupChat,
     IMessage,
@@ -1054,6 +1056,48 @@ export class InboxManager {
         });
     }
 
+    async handleGroupChatDeletion(id: string, message: IDeleteGroupChat) {
+        const chatRoomId = message.payload.chatRoomId;
+
+        if (!chatRoomId) {
+            this.res.error(DELETE_GROUP_CHAT, " Invalid params", STATUS_CODE.BAD_REQUEST);
+            return;
+        }
+
+        const chatRoom = await this.prisma.chatRoom.findUnique({
+            where: { id: chatRoomId },
+            select: {
+                id: true,
+                superAdmin: { select: { id: true, username: true, fullName: true, profilePic: true } },
+            },
+        });
+
+        if (!chatRoom) {
+            this.res.error(DELETE_GROUP_CHAT, "This group chat does not exist", STATUS_CODE.NOT_FOUND);
+            return;
+        }
+
+        const hasPermission = chatRoom.superAdmin?.id === id;
+
+        if (!hasPermission) {
+            this.res.error(
+                DELETE_GROUP_CHAT,
+                "You do not have permission to delete this group chat",
+                STATUS_CODE.FORBIDDEN
+            );
+            return;
+        }
+
+        const deletedChatRoom = await this.prisma.chatRoom.delete({ where: { id: chatRoomId }, select: { id: true } });
+
+        if (!deletedChatRoom) {
+            this.res.error(DELETE_GROUP_CHAT, "There was an error trying to delete this group chat");
+            return;
+        }
+
+        this.res.json(DELETE_GROUP_CHAT, { message: "Deleted successfully" });
+    }
+
     async handleIncomingMessages(id: string, socket: WebSocket) {
         console.log("Inside handle incoming request");
         socket.on("message", async (data) => {
@@ -1088,12 +1132,11 @@ export class InboxManager {
                 case REMOVE_FROM_CHAT:
                     this.removeUserFromChat(id, message);
                     break;
+                case DELETE_GROUP_CHAT:
+                    this.handleGroupChatDeletion(id, message);
+                    break;
                 case ADD_TO_CHAT:
                     this.addUserToChat(id, message);
-                    break;
-                // start the backend from here (it's over not the issue of changes not reflecting on the frontend needs to be fixed)
-                case REMOVE_FROM_CHAT:
-                    this.removeUserFromChat(id, message);
                     break;
                 case NEW_MESSAGE:
                     this.handleNewMessage(socket, message);

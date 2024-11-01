@@ -19,6 +19,7 @@ import { TWebSocket } from "@/utils/types";
 import {
     CHANGE_GROUP_NAME,
     CHATROOM_DETAILS_BY_ID,
+    DELETE_GROUP_CHAT,
     ERROR,
     LEAVE_GROUP_CHAT,
     MAKE_ADMIN,
@@ -340,6 +341,40 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 toast.error("Our servers are busy. Please try again later!");
                             }
                             break;
+                        case DELETE_GROUP_CHAT:
+                            if (responseMessage.success === false) {
+                                switch (responseMessage.status) {
+                                    case StatusCodes.NotFound:
+                                        commonToastErrorMessage({
+                                            title: "Group not found",
+                                        });
+                                        navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
+                                        setChatRoomDetails(null);
+                                        break;
+                                    case StatusCodes.Forbidden:
+                                        commonToastErrorMessage({
+                                            title: "You do not have enough permissions to perform this action",
+                                        });
+                                        break;
+                                    default:
+                                        commonToastErrorMessage({
+                                            title: "There was an issue with your request",
+                                        });
+                                        break;
+                                }
+                            } else {
+                                if (responseMessage.status === StatusCodes.Ok) {
+                                    toast.success("Group deleted!");
+                                    navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
+                                    setChatRoomDetails(null);
+                                    return;
+                                }
+                                commonToastErrorMessage({
+                                    title: "There was an issue with your request",
+                                });
+                                break;
+                            }
+                            break;
                         case MAKE_ADMIN:
                             if (responseMessage.payload.result === ERROR) {
                                 commonToastErrorMessage({});
@@ -584,7 +619,31 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
         }
     };
 
-    const handleDeleteGroupChat = () => {};
+    const handleDeleteGroupChat = () => {
+        try {
+            if (!socket) {
+                return;
+            }
+
+            if (!chatRoomDetails) {
+                return;
+            }
+
+            const deleteGroupChat: IMessage = {
+                type: DELETE_GROUP_CHAT,
+                payload: {
+                    chatRoomId: chatRoomDetails.id,
+                },
+            };
+
+            socket.send(JSON.stringify(deleteGroupChat));
+        } catch (error) {
+            printlogs("Error deleteing group chat", error);
+            commonToastErrorMessage({
+                description: "There was an issue with your request. Please try again",
+            });
+        }
+    };
 
     const handleRemoveUserFromGroup = (removeUserId: string) => {
         try {

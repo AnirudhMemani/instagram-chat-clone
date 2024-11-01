@@ -58,3 +58,8 @@ export interface IAddUserToGroupChat
         chatRoomId: string;
         addUsersId: string[];
     }> {}
+
+export interface IDeleteGroupChat
+    extends IMessage<{
+        chatRoomId: string;
+    }> {}
