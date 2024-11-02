@@ -1,12 +1,11 @@
+import { EndPoints, StatusCodes } from "@/utils/constants";
 import { NavigateFunction } from "react-router-dom";
 import { APIServices } from "./APIServices";
-import { EndPoints } from "@/utils/constants";
-import { HttpStatusCode } from "axios";
 
 export const processUserSignup = async (formData: FormData, navigate: NavigateFunction) => {
     try {
         const response = await new APIServices(false, navigate).post(EndPoints.Signup, formData);
-        if (response.status === HttpStatusCode.Ok) {
+        if (response.status === StatusCodes.Ok) {
             return response.data;
         }
     } catch (error) {
