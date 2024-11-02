@@ -69,3 +69,9 @@ export interface IAdminStatusChange
         chatRoomId: string;
         adminId: string;
     }> {}
+
+export interface ISendMessage
+    extends IMessage<{
+        chatRoomId: string;
+        content: string;
+    }> {}

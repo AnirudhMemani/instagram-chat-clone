@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { LocalStorageKeys } from "@/utils/LocalStorageUtils";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -7,6 +8,15 @@ import CredentailsCard from "./CredentialsCard";
 const ButtonToModal: React.FC = (): JSX.Element => {
     const [isOpen, setIsOpen] = useState(true);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+    const showPopup = localStorage.getItem(LocalStorageKeys.PopupDisabled);
+    const parsedShowPopup = showPopup ? JSON.parse(showPopup) : null;
+
+    useEffect(() => {
+        if (parsedShowPopup === true) {
+            setIsOpen(false);
+        }
+    }, []);
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -35,6 +45,11 @@ const ButtonToModal: React.FC = (): JSX.Element => {
     const fabSize = 64; // 4rem (w-16 h-16)
     const modalSize = Math.min(425, Math.min(dimensions.width, dimensions.height) * 0.8);
 
+    const disabledPopup = () => {
+        localStorage.setItem(LocalStorageKeys.PopupDisabled, JSON.stringify(true));
+        setIsOpen(false);
+    };
+
     return (
         <>
             <AnimatePresence>
@@ -50,7 +65,7 @@ const ButtonToModal: React.FC = (): JSX.Element => {
             </AnimatePresence>
 
             <motion.div
-                className="text-primary-foreground fixed z-50 overflow-x-hidden bg-gradient-to-b from-gray-950 to-black shadow-lg"
+                className="text-primary-foreground border-input scrollbarModal fixed z-50 overflow-y-auto overflow-x-hidden border bg-[#020617] py-3"
                 initial={false}
                 animate={{
                     width: isOpen ? modalSize : fabSize,
@@ -73,7 +88,9 @@ const ButtonToModal: React.FC = (): JSX.Element => {
                         >
                             <CredentailsCard>
                                 <div className="text-foreground/90 mb-8 flex items-center">
-                                    <h2 className="mx-auto text-2xl font-bold">Welcome to Insta Chat</h2>
+                                    <h2 className="text-muted-foreground mx-auto text-2xl font-bold">
+                                        Welcome to Insta Chat
+                                    </h2>
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -91,23 +108,34 @@ const ButtonToModal: React.FC = (): JSX.Element => {
                                 </p>
                                 <div className="border-b pb-4">
                                     <p className="text-foreground/80">
-                                        Username: <span className="text-sky-500">cristiano_7</span>
+                                        Username: <span className="text-sky-500">beta_tester</span>
                                     </p>
                                     <p className="text-foreground/80">
-                                        Password: <span className="text-sky-500">ronaldo7</span>
+                                        Password: <span className="text-sky-500">Welcome123</span>
                                     </p>
                                 </div>
-                                <p className="text-foreground/80 pt-4">
-                                    <span className="text-red-500">Note:</span> In case you want to view the credentials
-                                    again, you can open this modal by clicking on the floating action button on the
-                                    bottom-right of your screen.
+                                <p className="text-foreground/80 py-4">
+                                    <span className="text-red-500">Note:</span> The backend of this application is
+                                    hosted on vercel. Therefore, if you notice delay in response time, that's the reason
+                                    why.
                                 </p>
+                                {parsedShowPopup !== true && (
+                                    <p className="text-muted-foreground">
+                                        Don't want to see this pop-up again?{" "}
+                                        <span
+                                            className="cursor-pointer text-sky-500 underline underline-offset-2"
+                                            onClick={disabledPopup}
+                                        >
+                                            Click here
+                                        </span>
+                                    </p>
+                                )}
                             </CredentailsCard>
                         </motion.div>
                     ) : (
                         <motion.button
                             key="fab"
-                            className="bg-primary-foreground flex h-full w-full cursor-pointer items-center justify-center text-white"
+                            className="flex h-full w-full cursor-pointer items-center justify-center text-white"
                             onClick={() => setIsOpen(true)}
                             initial={{ opacity: 1 }}
                             animate={{ opacity: 1 }}

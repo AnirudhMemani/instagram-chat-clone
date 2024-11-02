@@ -10,7 +10,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { chatRoomAtom, potentialSuperAdminsAtom, TChatRoomAtom, TParticipant } from "@/state/chat";
+import { chatRoomAtom, potentialSuperAdminsAtom, TChatRoomAtom, TMessage, TParticipant } from "@/state/chat";
 import { alertModalAtom, isChatModalVisibleAtom, showAdminSelectionModalAtom } from "@/state/global";
 import { userAtom } from "@/state/user";
 import { NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
@@ -30,7 +30,7 @@ import {
 import { IMessage } from "@instachat/messages/types";
 import EmojiPicker, { EmojiClickData, SuggestionMode, Theme } from "emoji-picker-react";
 import { CircleAlert, EllipsisVertical, Smile } from "lucide-react";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import React, { FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { toast } from "sonner";
@@ -562,7 +562,38 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             }
                             break;
                         case NEW_MESSAGE:
-                            console.log("new message");
+                            if (responseMessage.success === false) {
+                                switch (responseMessage.status) {
+                                    case StatusCodes.NotFound:
+                                        navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
+                                        setChatRoomDetails(null);
+                                        break;
+                                    case StatusCodes.Forbidden:
+                                        navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
+                                        setChatRoomDetails(null);
+                                        toast.error("You are not a part of this chat room");
+                                        break;
+                                    case StatusCodes.BadRequest:
+                                        if (responseMessage.payload?.action === "empty-message") {
+                                            toast.info("Write a message to send");
+                                        }
+                                        break;
+                                    default:
+                                        commonToastErrorMessage({ title: "There was an issue with your request" });
+                                        break;
+                                }
+                            } else {
+                                if (responseMessage.status === StatusCodes.Ok) {
+                                    const message = responseMessage.payload?.messageDetails?.messages as TMessage[];
+                                    toast.success("Message sent");
+                                    const updatedChatRoomDetails = {
+                                        ...chatRoomDetails,
+                                        messages: [...message],
+                                    } satisfies TChatRoomAtom;
+
+                                    setChatRoomDetails(updatedChatRoomDetails);
+                                }
+                            }
                             break;
                     }
                 }
@@ -604,7 +635,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     };
 
     const handleSendMessage = () => {
-        if (message.length < 1) {
+        if (message.trim().length < 1) {
             return;
         }
 
@@ -612,14 +643,19 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             return;
         }
 
+        if (!chatRoomDetails) {
+            return;
+        }
+
         const newMessage: IMessage = {
             type: NEW_MESSAGE,
             payload: {
                 content: message,
-                senderId: user.id,
-                chatRoomId: chatRoomDetails?.id,
+                chatRoomId: chatRoomDetails.id,
             },
         };
+
+        setMessage("");
 
         socket.send(JSON.stringify(newMessage));
     };
@@ -845,7 +881,39 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     />
                 </div>
                 {/* messages */}
-                <div className="scrollbar w-full flex-grow overflow-y-scroll"></div>
+                <div className="scrollbar w-full flex-grow overflow-y-scroll">
+                    <div className="mx-2 flex h-full flex-col justify-end gap-4">
+                        {chatRoomDetails &&
+                            chatRoomDetails?.messages?.length > 0 &&
+                            chatRoomDetails?.messages?.map((message) =>
+                                message?.sentBy?.id === user?.id ? (
+                                    <div className="flex justify-end">
+                                        <div className="mx-1 flex items-center rounded-full rounded-br-md bg-green-500 px-3 py-2">
+                                            <span>{message?.content}</span>
+                                        </div>
+                                        <Avatar className="size-6 self-end">
+                                            <AvatarImage src={message?.sentBy?.profilePic} />
+                                            <AvatarFallback>
+                                                {message?.sentBy?.username?.slice(0, 2)?.toUpperCase()}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    </div>
+                                ) : (
+                                    <div className="flex justify-start">
+                                        <Avatar className="size-6 self-end">
+                                            <AvatarImage src={message?.sentBy?.profilePic} />
+                                            <AvatarFallback>
+                                                {message?.sentBy?.username?.slice(0, 2)?.toUpperCase()}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="mx-1 flex items-center rounded-full rounded-bl-md bg-sky-500 px-3 py-2">
+                                            <span>{message?.content}</span>
+                                        </div>
+                                    </div>
+                                )
+                            )}
+                    </div>
+                </div>
                 <div className="border-input my-4 flex w-[98%] items-center gap-4 rounded-full border py-2 pl-4 pr-6">
                     <div ref={emojiPickerRef} className="relative">
                         <EmojiPicker

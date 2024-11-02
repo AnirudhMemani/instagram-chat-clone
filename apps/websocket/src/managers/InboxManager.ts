@@ -10,7 +10,6 @@ import {
     GET_INBOX,
     LEAVE_GROUP_CHAT,
     MAKE_ADMIN,
-    MESSAGE_QUEUE,
     NEW_MESSAGE,
     REMOVE_AS_ADMIN,
     REMOVE_FROM_CHAT,
@@ -26,11 +25,11 @@ import {
     IMessage,
     IRemoveUserFromGroupChat,
     IRoomExistsRequest,
+    ISendMessage,
     IStartConvoMessageRequest,
     ITransferSuperAdminAndLeaveGroupChat,
     IUpdateChatRoomName,
 } from "@instachat/messages/types";
-import amqp from "amqplib";
 import cloudinary from "cloudinary";
 import { Redis } from "ioredis";
 import WebSocket from "ws";
@@ -120,44 +119,91 @@ export class InboxManager {
         return stringifiedUserMessages;
     }
 
-    async handleNewMessage(socket: WebSocket, message: IMessage) {
-        const { chatRoomId, content, senderId } = message.payload;
+    async handleNewMessage(id: string, message: ISendMessage) {
+        const { chatRoomId, content } = message.payload;
 
-        if (content.length < 1) {
-            socket.send(
-                JSON.stringify({
-                    type: NEW_MESSAGE,
-                    payload: {
-                        error: "Invalid message",
-                    },
-                })
-            );
+        if (!chatRoomId || !content) {
+            this.res
+                .status(STATUS_CODE.BAD_REQUEST)
+                .json(NEW_MESSAGE, { message: "Invalid params", action: "invalid-params" });
             return;
         }
 
-        const chatRoomExists = await this.prisma.chatRoom.findUnique({
+        if (content.trim().length < 1) {
+            this.res
+                .status(STATUS_CODE.BAD_REQUEST)
+                .json(NEW_MESSAGE, { message: "Message cannot be empty", action: "empty-message" });
+            return;
+        }
+
+        const chatRoom = await this.prisma.chatRoom.findUnique({
             where: { id: chatRoomId },
+            select: {
+                id: true,
+                participants: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                roomType: true,
+            },
         });
 
-        if (!chatRoomExists) {
-            socket.send(
-                JSON.stringify({
-                    type: NEW_MESSAGE,
-                    payload: {
-                        error: "Chat room does not exists",
-                    },
-                })
+        if (!chatRoom) {
+            this.res.error(NEW_MESSAGE, "Chat room not found", STATUS_CODE.NOT_FOUND);
+            return;
+        }
+
+        const isUserMember = chatRoom.participants.find((member) => member.id === id);
+
+        if (!isUserMember) {
+            this.res.error(
+                NEW_MESSAGE,
+                `User is not a member of this ${chatRoom.roomType === "GROUP" ? "group" : "chat room"}`,
+                STATUS_CODE.FORBIDDEN
             );
             return;
         }
 
-        // fix this
-        const MQServerUrl = "amqp://localhost";
+        const updatedChatRoom = await this.prisma.chatRoom.update({
+            where: { id: chatRoomId },
+            data: {
+                messages: {
+                    create: {
+                        sentBy: { connect: { id } },
+                        content,
+                        recipients: { connect: chatRoom.participants.map((member) => ({ id: member.id })) },
+                    },
+                },
+            },
+            select: {
+                id: true,
+                messages: {
+                    select: {
+                        id: true,
+                        content: true,
+                        sentAt: true,
+                        editedAt: true,
+                        readBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                        isEdited: true,
+                        sentBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                        receivedBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                        recipients: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                    },
+                },
+            },
+        });
 
-        const conn = await amqp.connect(MQServerUrl);
-        const channel = await conn.createChannel();
-        await channel.assertQueue(MESSAGE_QUEUE);
-        channel.sendToQueue(MESSAGE_QUEUE, message.payload);
+        if (!updatedChatRoom) {
+            this.res.error(NEW_MESSAGE, "There was an error trying to send this message");
+            return;
+        }
+
+        this.res.json(NEW_MESSAGE, { message: "Message sent", messageDetails: updatedChatRoom });
+
+        // fix this
+        // const MQServerUrl = "amqp://localhost";
+
+        // const conn = await amqp.connect(MQServerUrl);
+        // const channel = await conn.createChannel();
+        // await channel.assertQueue(MESSAGE_QUEUE);
+        // channel.sendToQueue(MESSAGE_QUEUE, message.payload);
 
         // await redis.publish(chatRoomId, JSON.stringify(content));
     }
@@ -1195,7 +1241,7 @@ export class InboxManager {
                     break;
                 // start the backend from here
                 case NEW_MESSAGE:
-                    this.handleNewMessage(socket, message);
+                    this.handleNewMessage(id, message);
                     break;
                 default:
                     break;

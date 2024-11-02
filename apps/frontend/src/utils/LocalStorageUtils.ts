@@ -23,4 +23,5 @@ export const localStorageUtils = new LocalStorageUtils();
 
 export const LocalStorageKeys = {
     Token: "@token",
+    PopupDisabled: "@pop-up-disabled",
 } as const;

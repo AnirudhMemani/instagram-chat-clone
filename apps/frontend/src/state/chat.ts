@@ -44,7 +44,7 @@ export type TParticipant = {
     profilePic: string;
 };
 
-type TMessage = {
+export type TMessage = {
     id: string;
     content: string;
     sentAt: Date;
@@ -72,7 +72,7 @@ export type TChatRoomAtom =
           pictureUpdatedAt: Date;
           nameUpdatedAt: Date;
       }
-    | { isGroup: false; id: string; createdAt: Date; participants: TParticipant[]; messages?: TMessage[] };
+    | { isGroup: false; id: string; createdAt: Date; participants: TParticipant[]; messages: TMessage[] };
 
 export type TExistingGroupsAtom = {
     id: string;
