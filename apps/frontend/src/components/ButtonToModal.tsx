@@ -6,17 +6,10 @@ import { useEffect, useState } from "react";
 import CredentailsCard from "./CredentialsCard";
 
 const ButtonToModal: React.FC = (): JSX.Element => {
-    const [isOpen, setIsOpen] = useState(true);
-    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-
     const showPopup = localStorage.getItem(LocalStorageKeys.PopupDisabled);
     const parsedShowPopup = showPopup ? JSON.parse(showPopup) : null;
-
-    useEffect(() => {
-        if (parsedShowPopup === true) {
-            setIsOpen(false);
-        }
-    }, []);
+    const [isOpen, setIsOpen] = useState(parsedShowPopup === true ? false : true);
+    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
     useEffect(() => {
         const updateDimensions = () => {

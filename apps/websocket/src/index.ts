@@ -1,10 +1,11 @@
 import cloudinary from "cloudinary";
 import url from "url";
-import { WebSocketServer } from "ws";
+import WebSocket, { WebSocketServer } from "ws";
 import { InboxManager } from "./managers/InboxManager.js";
-import { IUser } from "./managers/UserManager.js";
+import { IUser, IUserWithSocket, UserManager } from "./managers/UserManager.js";
 import { connectToRedis } from "./redis/client.js";
 import { validateUser } from "./utils/helper.js";
+import { printlogs } from "./utils/logs.js";
 
 // const app = express();
 
@@ -15,6 +16,7 @@ import { validateUser } from "./utils/helper.js";
 
 const port = Number(process.env.WS_URL) || 8080;
 const wss = new WebSocketServer({ port });
+const userManager = new UserManager();
 
 cloudinary.v2.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -27,32 +29,35 @@ connectToRedis();
 wss.on("connection", function connection(socket, req) {
     console.log("Connection Established");
 
-    socket.on("error", console.error);
+    socket.on("error", printlogs);
 
     const token = url.parse(req.url as string, true).query.token as string;
 
     if (!token) {
-        socket.close(1007, "Token not found");
-        return;
+        return closeSocket(socket, "Token not found");
     }
 
-    const { id, fullName, profilePic } = validateUser(token, socket) as Omit<IUser, "socket">;
+    const user = validateUser(token, socket) as IUser;
 
-    if (!id || !fullName || !profilePic) {
-        socket.close(1007, "Invalid token");
-        return;
+    if (!user) {
+        return socket.close(1007, "Invalid token");
     }
 
-    const userInfo = {
-        id,
-        fullName,
-        profilePic,
+    const userWithSocket: IUserWithSocket = {
+        ...user,
         socket,
+        chatRooms: [],
     };
 
-    const inboxManager = new InboxManager(socket);
+    userManager.addUser(userWithSocket);
 
-    inboxManager.connectUser(userInfo);
+    const inboxManager = new InboxManager(socket, userManager);
 
-    socket.on("close", () => socket.close());
+    inboxManager.connectUser(userWithSocket);
+
+    socket.on("close", () => userManager.removeUser(user.id));
 });
+
+function closeSocket(socket: WebSocket, reason: string) {
+    socket.close(1007, reason);
+}

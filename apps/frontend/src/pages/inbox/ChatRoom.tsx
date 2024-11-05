@@ -584,11 +584,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 }
                             } else {
                                 if (responseMessage.status === StatusCodes.Ok) {
-                                    const message = responseMessage.payload?.messageDetails?.messages as TMessage[];
-                                    toast.success("Message sent");
+                                    const messages = responseMessage.payload?.messageDetails?.messages as TMessage[];
                                     const updatedChatRoomDetails = {
                                         ...chatRoomDetails,
-                                        messages: [...message],
+                                        messages: [...messages],
                                     } satisfies TChatRoomAtom;
 
                                     setChatRoomDetails(updatedChatRoomDetails);

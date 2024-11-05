@@ -33,11 +33,11 @@ import {
 import cloudinary from "cloudinary";
 import { Redis } from "ioredis";
 import WebSocket from "ws";
-import redis from "../redis/client.js";
+import { redis } from "../redis/client.js";
 import { STATUS_CODE } from "../utils/constants.js";
 import { getSortedSetKey } from "../utils/helper.js";
 import { printlogs } from "../utils/logs.js";
-import { IUser } from "./UserManager.js";
+import { IUserWithSocket, UserManager } from "./UserManager.js";
 
 /**
  * TODO:
@@ -47,15 +47,28 @@ import { IUser } from "./UserManager.js";
 export class InboxManager {
     private redis: Redis = redis;
     private prisma: typeof prisma = prisma;
-    private subscriber: Redis = redis.duplicate();
+    private userManager: UserManager;
     private res: SocketResponse;
 
-    constructor(socket: WebSocket) {
+    constructor(socket: WebSocket, userManager: UserManager) {
         this.res = new SocketResponse(socket);
+        this.userManager = userManager;
     }
 
-    async connectUser(user: IUser) {
+    async subscribeToUserChatRooms(userId: string, socket: WebSocket) {
+        const userChatRooms = await prisma.chatRoom.findMany({
+            where: { participants: { some: { id: userId } } },
+            select: { id: true },
+        });
+
+        userChatRooms.forEach((chatRoom) => {
+            this.userManager.addUserToRoom(userId, chatRoom.id);
+        });
+    }
+
+    async connectUser(user: IUserWithSocket) {
         this.handleIncomingMessages(user.id, user.socket);
+        await this.subscribeToUserChatRooms(user.id, user.socket);
     }
 
     async getLatestMessages(id: string, take: number, skip: number) {
@@ -194,6 +207,18 @@ export class InboxManager {
             this.res.error(NEW_MESSAGE, "There was an error trying to send this message");
             return;
         }
+
+        const messagePayload = {
+            type: NEW_MESSAGE,
+            payload: {
+                message: "Message sent",
+                messageDetails: updatedChatRoom,
+            },
+            status: STATUS_CODE.OK,
+            success: true,
+        };
+
+        this.userManager.publishToRoom(chatRoomId, id, messagePayload);
 
         this.res.json(NEW_MESSAGE, { message: "Message sent", messageDetails: updatedChatRoom });
 
@@ -345,6 +370,10 @@ export class InboxManager {
                 },
             });
 
+            newChatRoom.participants.forEach((user) => {
+                this.userManager.addUserToRoom(user.id, newChatRoom.id);
+            });
+
             this.res.json(CREATE_GROUP, { ...newChatRoom, message: "Group created successfully" });
         } catch (error) {
             printlogs("ERROR inside handleGroupCreation()", error);
@@ -396,7 +425,7 @@ export class InboxManager {
         printlogs("Existing group details:", existingGroups);
 
         if (existingGroups?.length) {
-            this.res.status(409).json(ROOM_EXISTS, { existingGroups, isGroup: true });
+            this.res.status(STATUS_CODE.CONFLICT).json(ROOM_EXISTS, { existingGroups, isGroup: true });
             return;
         }
 
@@ -409,17 +438,19 @@ export class InboxManager {
         printlogs("participants:", participants);
 
         if (!participants || !participants.length) {
-            this.res.status(400).error(ROOM_EXISTS, "Participants not found");
+            this.res.status(STATUS_CODE.BAD_REQUEST).error(ROOM_EXISTS, "Participants not found");
             return;
         }
 
         if (participants?.length < 1) {
-            this.res.status(400).error(ROOM_EXISTS, "Please select atleast one person to start a conversation with");
+            this.res
+                .status(STATUS_CODE.BAD_REQUEST)
+                .error(ROOM_EXISTS, "Please select atleast one person to start a conversation with");
             return;
         }
 
         if (participants.length === 1 && participants[0].id === id) {
-            this.res.status(400).error(ROOM_EXISTS, "Cannot start a chat with yourself");
+            this.res.status(STATUS_CODE.BAD_REQUEST).error(ROOM_EXISTS, "Cannot start a chat with yourself");
             return;
         }
 
@@ -521,14 +552,11 @@ export class InboxManager {
             },
         });
 
-        // work on this
-        this.subscriber.subscribe(chatRoomDetails.id);
-        this.subscriber.on("message", async (channel, message) => {
-            printlogs("subscribed channel:", channel);
-            printlogs("subscribed message:", JSON.parse(message));
+        participants.forEach((user) => {
+            this.userManager.addUserToRoom(user.id, chatRoomDetails.id);
         });
 
-        this.res.status(201).json(ROOM_EXISTS, { chatRoomDetails });
+        this.res.status(STATUS_CODE.CREATED).json(ROOM_EXISTS, { chatRoomDetails });
     }
 
     async handleChangeGroupName(id: string, message: IUpdateChatRoomName) {
@@ -1249,4 +1277,3 @@ export class InboxManager {
         });
     }
 }
-//

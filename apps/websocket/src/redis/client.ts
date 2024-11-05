@@ -10,6 +10,8 @@ const getRedisClient = () => {
 };
 
 const redis = getRedisClient();
+const redisPublisher = redis.duplicate();
+const redisSubscriber = redis.duplicate();
 
 export const connectToRedis = async () => {
     redis.on("error", (error) => console.error(error));
@@ -19,4 +21,4 @@ export const connectToRedis = async () => {
     redis.on("close", () => console.log("Disconnected from Redis"));
 };
 
-export default redis;
+export { redis, redisPublisher, redisSubscriber };
