@@ -1,217 +1,38 @@
-import { Edit } from "lucide-react";
-import { useRecoilValue, useSetRecoilState } from "recoil";
-import { ChatPreviewBox, TChatPreviewBoxProps } from "./ChatPreviewBox";
-import { isChatModalVisibleAtom } from "@/state/global";
 import { UserLoadingSkeleton } from "@/components/UserLoadingSkeleton";
-import { useEffect, useState } from "react";
-import { GET_INBOX } from "@instachat/messages/messages";
-import { IMessage } from "@instachat/messages/types";
+import { TMessage, TParticipant } from "@/state/chat";
+import { isChatModalVisibleAtom } from "@/state/global";
 import { userAtom } from "@/state/user";
-import { getMessageAge } from "@/utils/constants";
+import { getMessageAge, StatusCodes } from "@/utils/constants";
+import { GET_INBOX, NEW_MESSAGE } from "@instachat/messages/messages";
+import { IMessage } from "@instachat/messages/types";
+import { Edit } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useRecoilValue, useSetRecoilState } from "recoil";
+import { ChatPreviewBox } from "./ChatPreviewBox";
 
-interface ISender {
+type TInbox = {
     id: string;
-    fullName: string;
-    profilePic: string;
-}
+    picture: string;
+    name: string;
+    isGroup: boolean;
+    latestMessage: TMessage;
+    hasRead: boolean;
+    participants: TParticipant[];
+};
 
-interface ILatestMessage {
-    content: string;
-    contentType: "ATTACHMENT" | "TEXT";
-    sentAt: string;
-    sentBy: ISender;
-}
+type TDirectMessageProps = {
+    socket: WebSocket | null;
+};
 
-interface IUserDms {
-    id: string;
-    read: boolean;
-    latestMessage: ILatestMessage;
-}
-
-const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({ socket }): JSX.Element => {
-    const [dm, setDm] = useState<IUserDms[]>([]);
+const DirectMessage: React.FC<TDirectMessageProps> = ({ socket }): JSX.Element => {
+    const [dm, setDm] = useState<TInbox[]>([]);
     const user = useRecoilValue(userAtom);
-    // @ts-ignore
-    const chatPreview: TChatPreviewBoxProps[] = [
-        {
-            messageAge: "2hr",
-            profilePic: user.profilePic,
-            recentMessage: "Hello",
-            fullName: "roman_.reigns",
-            unReadMessage: false,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-        {
-            messageAge: "10hr",
-            profilePic: user.profilePic,
-            recentMessage: "You have sent an attachment",
-            fullName: "Shrii",
-            unReadMessage: true,
-        },
-    ];
 
     const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (!socket) {
@@ -220,13 +41,26 @@ const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({ socket }): JSX.
 
         socket.onmessage = (event) => {
             const message = JSON.parse(event.data) as IMessage;
-            if (message.type === GET_INBOX) {
-                setIsLoading(false);
-                if (!message.payload.DM) {
-                    setDm([]);
-                    return;
+            if (message?.type === GET_INBOX) {
+                if (message?.status === StatusCodes.Ok) {
+                    const inbox = message?.payload?.userInbox as TInbox[];
+                    setDm(inbox);
                 }
-                setDm(message.payload.DM);
+            } else if (message?.type === NEW_MESSAGE) {
+                if (message?.status === StatusCodes.Ok) {
+                    const newMessage = message?.payload?.messageDetails as TInbox;
+                    const updatedChatRoomDetails = {
+                        id: newMessage?.id,
+                        hasRead: newMessage?.hasRead,
+                        isGroup: newMessage?.isGroup,
+                        latestMessage: { ...newMessage?.latestMessage },
+                        name: newMessage?.name,
+                        participants: newMessage?.participants,
+                        picture: newMessage?.picture,
+                    } satisfies TInbox;
+
+                    setDm([updatedChatRoomDetails]);
+                }
             }
         };
 
@@ -241,14 +75,12 @@ const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({ socket }): JSX.
         socket.send(JSON.stringify(getUserDM));
     }, [socket]);
 
-    const getLatestMessage = (userDms: IUserDms) => {
-        if (userDms.latestMessage.contentType === "ATTACHMENT") {
-            return userDms.latestMessage.sentBy.id === user.id
-                ? "You sent an attachment"
-                : `${userDms.latestMessage.sentBy.fullName.split(" ")[0]} sent an attachment`;
+    const getLatestMessage = (userDms: TInbox) => {
+        if (userDms.latestMessage.sentBy.id === user.id) {
+            return `You: ${userDms.latestMessage.content.trim()}`;
         }
 
-        return userDms.latestMessage.content;
+        return userDms.latestMessage.content.trim();
     };
 
     return (
@@ -269,11 +101,15 @@ const DirectMessage: React.FC<{ socket: WebSocket | null }> = ({ socket }): JSX.
                     dm.map((_, index) => (
                         <ChatPreviewBox
                             key={index}
-                            messageAge={getMessageAge(_.latestMessage.sentAt)}
-                            profilePic={_.latestMessage.sentBy.profilePic}
-                            recentMessage={getLatestMessage(_)}
-                            fullName={_.latestMessage.sentBy.fullName}
-                            unReadMessage={_.read}
+                            messageAge={getMessageAge(_?.latestMessage?.sentAt)}
+                            avatar={_?.isGroup ? _?.picture : _?.latestMessage?.sentBy?.profilePic}
+                            message={getLatestMessage(_)}
+                            name={_.isGroup ? _.name : _.latestMessage?.sentBy?.username}
+                            hasRead={_?.hasRead}
+                            onClick={() => {
+                                setDm((prev) => (prev ? prev.map((p) => ({ ...p, hasRead: true })) : prev));
+                                navigate(`/inbox/direct/${_.id}`);
+                            }}
                         />
                     ))
                 ) : isLoading ? (

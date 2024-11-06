@@ -25,11 +25,13 @@ import {
     NEW_MESSAGE,
     REMOVE_AS_ADMIN,
     REMOVE_FROM_CHAT,
+    SEND_MESSAGE,
     TRANSFER_SUPER_ADMIN,
 } from "@instachat/messages/messages";
 import { IMessage } from "@instachat/messages/types";
+import { format } from "date-fns";
 import EmojiPicker, { EmojiClickData, SuggestionMode, Theme } from "emoji-picker-react";
-import { CircleAlert, EllipsisVertical, Smile } from "lucide-react";
+import { CircleAlert, Clock, EllipsisVertical, Smile } from "lucide-react";
 import React, { FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
@@ -38,13 +40,14 @@ import { toast } from "sonner";
 export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     const [message, setMessage] = useState<string>("");
     const [isAdmin, setIsAdmin] = useState<boolean>(false);
-    const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [chatRoomName, setChatRoomName] = useState<string>("");
     const [newGroupName, setNewGroupName] = useState<string>("");
-    const [chatRoomImage, setChatRoomImage] = useState<string | undefined>(undefined);
+    const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
+    const [isSendingMessage, setIsSendingMessage] = useState<boolean>(false);
     const [isRoomInfoVisible, setIsRoomInfoVisible] = useState<boolean>(false);
     const [isEmojiPickerVisible, setIsEmojiPickerVisible] = useState<boolean>(false);
+    const [chatRoomImage, setChatRoomImage] = useState<string | undefined>(undefined);
     const [isEditNameModalVisible, setIsEditNameModalVisible] = useState<boolean>(false);
 
     const user = useRecoilValue(userAtom);
@@ -61,6 +64,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     const { id } = useParams();
     const { theme } = useTheme();
     const navigate = useNavigate();
+    const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
     const commonToastErrorMessage = ({ title, description }: { title?: string; description?: string }) => {
         toast.error(title ?? "Uh oh! Something went wrong", {
@@ -104,6 +108,12 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             printlogs("ERROR inside handleSuperAdminSelection()", error);
         }
     };
+
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+        }
+    }, [chatRoomDetails?.messages]);
 
     useEffect(() => {
         if (chatRoomDetails && chatRoomDetails.id === id) {
@@ -562,6 +572,31 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             }
                             break;
                         case NEW_MESSAGE:
+                            if (responseMessage.status === StatusCodes.Ok) {
+                                const newMessage = responseMessage?.payload?.messageDetails?.latestMessage as TMessage;
+                                const updatedChatRoomDetails = {
+                                    ...chatRoomDetails,
+                                    messages: [
+                                        ...chatRoomDetails.messages,
+                                        {
+                                            id: newMessage.id,
+                                            chatRoomId: newMessage.chatRoomId,
+                                            content: newMessage.content,
+                                            editedAt: newMessage.editedAt,
+                                            isEdited: newMessage.isEdited,
+                                            readBy: newMessage.readBy,
+                                            receivedBy: newMessage.receivedBy,
+                                            recipients: newMessage.recipients,
+                                            sentAt: newMessage.sentAt,
+                                            sentBy: newMessage.sentBy,
+                                        },
+                                    ],
+                                } satisfies TChatRoomAtom;
+
+                                setChatRoomDetails(updatedChatRoomDetails);
+                            }
+                            break;
+                        case SEND_MESSAGE:
                             if (responseMessage.success === false) {
                                 switch (responseMessage.status) {
                                     case StatusCodes.NotFound:
@@ -584,15 +619,34 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 }
                             } else {
                                 if (responseMessage.status === StatusCodes.Ok) {
-                                    const messages = responseMessage.payload?.messageDetails?.messages as TMessage[];
+                                    const newMessage = responseMessage.payload?.messageDetails
+                                        ?.latestMessage as TMessage;
                                     const updatedChatRoomDetails = {
                                         ...chatRoomDetails,
-                                        messages: [...messages],
+                                        messages: [
+                                            ...chatRoomDetails.messages.slice(0, -1),
+                                            {
+                                                id: newMessage.id,
+                                                chatRoomId: newMessage.chatRoomId,
+                                                content: newMessage.content,
+                                                editedAt: newMessage.editedAt,
+                                                isEdited: newMessage.isEdited,
+                                                readBy: newMessage.readBy,
+                                                receivedBy: newMessage.receivedBy,
+                                                recipients: newMessage.recipients,
+                                                sentAt: newMessage.sentAt,
+                                                sentBy: newMessage.sentBy,
+                                            },
+                                        ],
                                     } satisfies TChatRoomAtom;
 
                                     setChatRoomDetails(updatedChatRoomDetails);
+                                    return;
                                 }
                             }
+                            setChatRoomDetails((prev) =>
+                                prev ? { ...prev, messages: [...chatRoomDetails.messages.slice(0, -1)] } : prev
+                            );
                             break;
                     }
                 }
@@ -604,6 +658,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             } finally {
                 setIsEditNameModalVisible(false);
                 setIsLoading(false);
+                setIsSendingMessage(false);
             }
         };
     }, [socket, chatRoomDetails]);
@@ -633,30 +688,61 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
         setIsChatModalVisible({ visible: true, type: "ADD_USERS" });
     };
 
-    const handleSendMessage = () => {
-        if (message.trim().length < 1) {
-            return;
+    const handleSendMessage = async () => {
+        try {
+            if (message.trim().length < 1) {
+                return;
+            }
+
+            if (!socket) {
+                return;
+            }
+
+            if (!chatRoomDetails) {
+                return;
+            }
+
+            const newMessage: IMessage = {
+                type: SEND_MESSAGE,
+                payload: {
+                    content: message,
+                    chatRoomId: chatRoomDetails.id,
+                },
+            };
+
+            const currentTime = new Date(Date.now());
+
+            setIsSendingMessage(true);
+
+            setChatRoomDetails((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          messages: [
+                              ...prev.messages,
+                              {
+                                  id: "",
+                                  content: message,
+                                  sentAt: currentTime,
+                                  chatRoomId: "",
+                                  editedAt: currentTime,
+                                  isEdited: false,
+                                  readBy: [],
+                                  receivedBy: [],
+                                  recipients: [],
+                                  sentBy: user,
+                              },
+                          ],
+                      }
+                    : prev
+            );
+            setMessage("");
+            socket.send(JSON.stringify(newMessage));
+        } catch (error) {
+            setIsSendingMessage(false);
+            commonToastErrorMessage({});
+            printlogs("ERROR inside handleSendMessage():", error);
         }
-
-        if (!socket) {
-            return;
-        }
-
-        if (!chatRoomDetails) {
-            return;
-        }
-
-        const newMessage: IMessage = {
-            type: NEW_MESSAGE,
-            payload: {
-                content: message,
-                chatRoomId: chatRoomDetails.id,
-            },
-        };
-
-        setMessage("");
-
-        socket.send(JSON.stringify(newMessage));
     };
 
     const handleChangeGroupName = async (e: FormEvent) => {
@@ -880,74 +966,96 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     />
                 </div>
                 {/* messages */}
-                <div className="scrollbar w-full flex-grow overflow-y-scroll">
-                    <div className="mx-2 flex h-full flex-col justify-end gap-4">
+                <div className="scrollbar flex w-full flex-grow flex-col overflow-y-auto py-2 text-white">
+                    <div className="mx-2 flex flex-col justify-end gap-4">
                         {chatRoomDetails &&
                             chatRoomDetails?.messages?.length > 0 &&
-                            chatRoomDetails?.messages?.map((message) =>
+                            chatRoomDetails?.messages?.map((message, index) =>
                                 message?.sentBy?.id === user?.id ? (
-                                    <div className="flex justify-end">
-                                        <div className="mx-1 flex items-center rounded-full rounded-br-md bg-green-500 px-3 py-2">
-                                            <span>{message?.content}</span>
+                                    <div className="flex flex-col items-end gap-1" key={message.id}>
+                                        <div className="flex">
+                                            <div className="mx-1 flex max-w-md items-center rounded-3xl rounded-br-md bg-sky-500 px-3 py-2 lg:max-w-lg">
+                                                <span>{message?.content}</span>
+                                            </div>
+                                            <Avatar className="size-6 self-end">
+                                                <AvatarImage src={message?.sentBy?.profilePic} />
+                                                <AvatarFallback>
+                                                    {message?.sentBy?.username?.slice(0, 2)?.toUpperCase()}
+                                                </AvatarFallback>
+                                            </Avatar>
                                         </div>
-                                        <Avatar className="size-6 self-end">
-                                            <AvatarImage src={message?.sentBy?.profilePic} />
-                                            <AvatarFallback>
-                                                {message?.sentBy?.username?.slice(0, 2)?.toUpperCase()}
-                                            </AvatarFallback>
-                                        </Avatar>
+                                        {index === chatRoomDetails.messages.length - 1 && isSendingMessage ? (
+                                            <Clock className="text-muted-foreground size-3" />
+                                        ) : (
+                                            <span className="text-muted-foreground text-xs">
+                                                {format(message?.sentAt, "HH:mm")}
+                                            </span>
+                                        )}
                                     </div>
                                 ) : (
-                                    <div className="flex justify-start">
-                                        <Avatar className="size-6 self-end">
-                                            <AvatarImage src={message?.sentBy?.profilePic} />
-                                            <AvatarFallback>
-                                                {message?.sentBy?.username?.slice(0, 2)?.toUpperCase()}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="mx-1 flex items-center rounded-full rounded-bl-md bg-sky-500 px-3 py-2">
-                                            <span>{message?.content}</span>
+                                    <div className="flex flex-col items-start" key={message.id}>
+                                        <div className="flex">
+                                            <Avatar className="size-6 self-end">
+                                                <AvatarImage src={message?.sentBy?.profilePic} />
+                                                <AvatarFallback>
+                                                    {message?.sentBy?.username?.slice(0, 2)?.toUpperCase()}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="mx-1 flex max-w-md items-center rounded-3xl rounded-bl-md bg-gray-800 px-3 py-2 lg:max-w-lg">
+                                                <span>{message?.content}</span>
+                                            </div>
                                         </div>
+                                        {index === chatRoomDetails.messages.length - 1 && isSendingMessage ? (
+                                            <Clock className="text-muted-foreground size-3" />
+                                        ) : (
+                                            <span className="text-muted-foreground text-xs">
+                                                {format(message?.sentAt, "HH:mm")}
+                                            </span>
+                                        )}
                                     </div>
                                 )
                             )}
+                        <div ref={messagesEndRef} />
                     </div>
                 </div>
-                <div className="border-input my-4 flex w-[98%] items-center gap-4 rounded-full border py-2 pl-4 pr-6">
-                    <div ref={emojiPickerRef} className="relative">
-                        <EmojiPicker
-                            open={isEmojiPickerVisible}
-                            theme={theme === "dark" ? Theme.DARK : Theme.LIGHT}
-                            onEmojiClick={handleEmojiClick}
-                            autoFocusSearch={false}
-                            suggestedEmojisMode={SuggestionMode.FREQUENT}
-                            className="!absolute bottom-[150%]"
-                            height={400}
+                <div className="w-full">
+                    <div className="border-input m-4 flex items-center gap-4 rounded-full border py-2 pl-4 pr-6">
+                        <div ref={emojiPickerRef} className="relative">
+                            <EmojiPicker
+                                open={isEmojiPickerVisible}
+                                theme={theme === "dark" ? Theme.DARK : Theme.LIGHT}
+                                onEmojiClick={handleEmojiClick}
+                                autoFocusSearch={false}
+                                suggestedEmojisMode={SuggestionMode.FREQUENT}
+                                className="!absolute bottom-[150%]"
+                                height={400}
+                            />
+                            <Smile
+                                className="size-7 cursor-pointer active:brightness-50"
+                                onClick={() => setIsEmojiPickerVisible((p) => !p)}
+                            />
+                        </div>
+                        <input
+                            className="w-full border-none bg-transparent outline-none"
+                            type="text"
+                            id={"message"}
+                            placeholder="Message..."
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            ref={messageInputRef}
+                            autoComplete="off"
                         />
-                        <Smile
-                            className="size-7 cursor-pointer active:brightness-50"
-                            onClick={() => setIsEmojiPickerVisible((p) => !p)}
-                        />
+                        <p
+                            className={cn(
+                                "cursor-not-allowed select-none text-gray-400",
+                                message.length > 0 &&
+                                    "cursor-pointer text-blue-400 active:scale-95 active:text-blue-700"
+                            )}
+                            onClick={handleSendMessage}
+                        >
+                            Send
+                        </p>
                     </div>
-                    <input
-                        className="w-full border-none bg-transparent text-lg outline-none"
-                        type="text"
-                        id={"message"}
-                        placeholder="Message..."
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        ref={messageInputRef}
-                        autoComplete="off"
-                    />
-                    <p
-                        className={cn(
-                            "cursor-not-allowed select-none text-gray-400",
-                            message.length > 0 && "cursor-pointer text-blue-400 active:scale-95 active:text-blue-700"
-                        )}
-                        onClick={handleSendMessage}
-                    >
-                        Send
-                    </p>
                 </div>
             </div>
             {isRoomInfoVisible && (

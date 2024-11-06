@@ -119,17 +119,16 @@
         color: rgba(0, 0, 0, 0.8) !important;
     }
 
-    ::-moz-selection {
-        /* Code for Firefox */
-        color: black;
-        /* background: #e9d2fd; */
-        background: #e9d2fd;
+    /* ::-moz-selection {
+        Code for Firefox
+        color: white;
+        background: #0c344b;
     }
 
     ::selection {
-        color: black;
-        background: #e9d2fd;
-    }
+        color: white;
+        background: #0c344b;
+    } */
 
     /* Scrollbar styles */
 

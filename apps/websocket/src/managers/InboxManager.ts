@@ -14,6 +14,7 @@ import {
     REMOVE_AS_ADMIN,
     REMOVE_FROM_CHAT,
     ROOM_EXISTS,
+    SEND_MESSAGE,
     TRANSFER_SUPER_ADMIN,
 } from "@instachat/messages/messages";
 import {
@@ -42,6 +43,8 @@ import { IUserWithSocket, UserManager } from "./UserManager.js";
 /**
  * TODO:
  * Maybe switch to singleton since the scores array is being tracked?
+ * Figure out how to update the inbox when a new message is sent. Maybe remove redis??
+ * Also, add types of responses for better coding experience honestly
  */
 
 export class InboxManager {
@@ -72,64 +75,86 @@ export class InboxManager {
     }
 
     async getLatestMessages(id: string, take: number, skip: number) {
-        const cacheKey = getSortedSetKey(id);
+        try {
+            const cacheKey = getSortedSetKey(id);
 
-        // LRANGE "key" start "stop"
-        // Where start and stop are zero-based indexes. The stop index is inclusive, meaning the element at the stop index is included in the result.
-        const cachedDMs = await this.redis.lrange(cacheKey, skip, skip + take - 1);
+            // LRANGE "key" start "stop"
+            // Where start and stop are zero-based indexes. The stop index is inclusive, meaning the element at the stop index is included in the result.
+            // const cachedDMs = await this.redis.lrange(cacheKey, skip, skip + take - 1);
 
-        if (cachedDMs.length > 0) {
-            return cachedDMs.map((cachedDM: any) => JSON.parse(cachedDM));
+            // if (cachedDMs.length > 0) {
+            //     return cachedDMs.map((cachedDM: any) => JSON.parse(cachedDM));
+            // }
+
+            const userMessages = await this.prisma.chatRoom.findMany({
+                where: {
+                    participants: {
+                        some: {
+                            id,
+                        },
+                    },
+                },
+                select: {
+                    id: true,
+                    picture: true,
+                    name: true,
+                    roomType: true,
+                    latestMessage: {
+                        select: {
+                            id: true,
+                            content: true,
+                            sentAt: true,
+                            editedAt: true,
+                            readBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                            isEdited: true,
+                            sentBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                            receivedBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                            recipients: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                        },
+                    },
+                    participants: { select: { id: true, username: true, profilePic: true, fullName: true } },
+                },
+                orderBy: {
+                    latestMessage: {
+                        sentAt: "desc",
+                    },
+                },
+                take,
+                skip,
+            });
+
+            if (!userMessages) {
+                this.res.error(GET_INBOX, "User is not part of any chat rooms", STATUS_CODE.NOT_FOUND);
+                return;
+            }
+
+            const filteredMessages = userMessages.filter((message) => message?.latestMessage !== null);
+
+            const stringifiedUserMessages = filteredMessages.map((message) =>
+                message
+                    ? {
+                          ...message,
+                          hasRead:
+                              message.latestMessage?.readBy?.some((user) => user.id === id) ||
+                              message.latestMessage?.sentBy.id === id ||
+                              false,
+                          isGroup: message.roomType === "GROUP",
+                      }
+                    : message
+            );
+
+            if (filteredMessages.length > 0) {
+                // Push the new messages to the head of the list
+                await this.redis.lpush(cacheKey, ...stringifiedUserMessages.map((message) => JSON.stringify(message)));
+                // Trim the list to keep only the most recent 50 messages
+                await this.redis.ltrim(cacheKey, 0, 49);
+            }
+
+            return stringifiedUserMessages;
+        } catch (error) {
+            printlogs("ERROR inside getLatestMessages():", error);
+            this.res.error(GET_INBOX, "There was an issue trying to get your inbox");
         }
-
-        const userMessages = await this.prisma.chatRoom.findMany({
-            where: {
-                participants: {
-                    some: {
-                        id,
-                    },
-                },
-            },
-            select: {
-                id: true,
-                picture: true,
-                name: true,
-                roomType: true,
-                latestMessage: {
-                    select: {
-                        id: true,
-                        content: true,
-                        readBy: true,
-                        senderId: true,
-                        sentAt: true,
-                    },
-                },
-                participants: {
-                    select: {
-                        id: true,
-                        username: true,
-                        fullName: true,
-                        profilePic: true,
-                    },
-                },
-            },
-            orderBy: {
-                latestMessage: {
-                    sentAt: "desc",
-                },
-            },
-        });
-
-        const stringifiedUserMessages = userMessages.map((message) => JSON.stringify(message));
-
-        if (userMessages.length) {
-            // Push the new messages to the head of the list
-            await this.redis.lpush(cacheKey, ...stringifiedUserMessages);
-            // Trim the list to keep only the most recent 50 messages
-            await this.redis.ltrim(cacheKey, 0, 49);
-        }
-
-        return stringifiedUserMessages;
     }
 
     async handleNewMessage(id: string, message: ISendMessage) {
@@ -138,14 +163,14 @@ export class InboxManager {
         if (!chatRoomId || !content) {
             this.res
                 .status(STATUS_CODE.BAD_REQUEST)
-                .json(NEW_MESSAGE, { message: "Invalid params", action: "invalid-params" });
+                .json(SEND_MESSAGE, { message: "Invalid params", action: "invalid-params" });
             return;
         }
 
         if (content.trim().length < 1) {
             this.res
                 .status(STATUS_CODE.BAD_REQUEST)
-                .json(NEW_MESSAGE, { message: "Message cannot be empty", action: "empty-message" });
+                .json(SEND_MESSAGE, { message: "Message cannot be empty", action: "empty-message" });
             return;
         }
 
@@ -159,7 +184,7 @@ export class InboxManager {
         });
 
         if (!chatRoom) {
-            this.res.error(NEW_MESSAGE, "Chat room not found", STATUS_CODE.NOT_FOUND);
+            this.res.error(SEND_MESSAGE, "Chat room not found", STATUS_CODE.NOT_FOUND);
             return;
         }
 
@@ -167,27 +192,34 @@ export class InboxManager {
 
         if (!isUserMember) {
             this.res.error(
-                NEW_MESSAGE,
+                SEND_MESSAGE,
                 `User is not a member of this ${chatRoom.roomType === "GROUP" ? "group" : "chat room"}`,
                 STATUS_CODE.FORBIDDEN
             );
             return;
         }
 
+        const newMessage = await this.prisma.message.create({
+            data: {
+                sentBy: { connect: { id } },
+                content,
+                recipients: { connect: chatRoom.participants.map((member) => ({ id: member.id })) },
+                chatRoom: { connect: { id: chatRoomId } },
+            },
+            select: { id: true },
+        });
+
         const updatedChatRoom = await this.prisma.chatRoom.update({
             where: { id: chatRoomId },
             data: {
-                messages: {
-                    create: {
-                        sentBy: { connect: { id } },
-                        content,
-                        recipients: { connect: chatRoom.participants.map((member) => ({ id: member.id })) },
-                    },
-                },
+                latestMessage: { connect: { id: newMessage.id } },
             },
             select: {
                 id: true,
-                messages: {
+                name: true,
+                picture: true,
+                roomType: true,
+                latestMessage: {
                     select: {
                         id: true,
                         content: true,
@@ -198,21 +230,44 @@ export class InboxManager {
                         sentBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
                         receivedBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
                         recipients: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                        chatRoomId: true,
                     },
                 },
+                participants: { select: { id: true, username: true, fullName: true, profilePic: true } },
             },
         });
 
-        if (!updatedChatRoom) {
-            this.res.error(NEW_MESSAGE, "There was an error trying to send this message");
+        if (!newMessage || !updatedChatRoom) {
+            this.res.error(SEND_MESSAGE, "There was an error trying to send this message");
             return;
         }
+
+        const modifiedChatRoom = {
+            ...updatedChatRoom,
+            isGroup: updatedChatRoom.roomType === "GROUP",
+            hasRead:
+                updatedChatRoom.latestMessage?.readBy.some((user) => user.id === id) ||
+                updatedChatRoom.latestMessage?.sentBy.id === id ||
+                false,
+        };
+
+        const cacheKey = getSortedSetKey(id);
+        const cachedMessages = await this.redis.lrange(cacheKey, 0, -1);
+
+        const updatedCache = cachedMessages.map((cachedMsg) => {
+            const parsedMsg = JSON.parse(cachedMsg);
+            return parsedMsg?.id === chatRoomId ? JSON.stringify(modifiedChatRoom) : cachedMsg;
+        });
+
+        await this.redis.del(cacheKey);
+        await this.redis.lpush(cacheKey, ...updatedCache);
+        await this.redis.ltrim(cacheKey, 0, 49);
 
         const messagePayload = {
             type: NEW_MESSAGE,
             payload: {
                 message: "Message sent",
-                messageDetails: updatedChatRoom,
+                messageDetails: modifiedChatRoom,
             },
             status: STATUS_CODE.OK,
             success: true,
@@ -220,7 +275,7 @@ export class InboxManager {
 
         this.userManager.publishToRoom(chatRoomId, id, messagePayload);
 
-        this.res.json(NEW_MESSAGE, { message: "Message sent", messageDetails: updatedChatRoom });
+        this.res.json(SEND_MESSAGE, { message: "Message sent", messageDetails: modifiedChatRoom });
 
         // fix this
         // const MQServerUrl = "amqp://localhost";
@@ -233,10 +288,11 @@ export class InboxManager {
         // await redis.publish(chatRoomId, JSON.stringify(content));
     }
 
-    getUserInbox(id: string, message: IMessage) {
-        const take = message.payload.take;
-        const skip = message.payload.skip;
-        const userInbox = this.getLatestMessages(id, take, skip);
+    async getUserInbox(id: string, message: IMessage) {
+        const take = Number.isNaN(Number(message.payload.take)) ? Infinity : message.payload.take;
+        const skip = Number.isNaN(Number(message.payload.skip)) ? 0 : message.payload.skip;
+
+        const userInbox = await this.getLatestMessages(id, take, skip);
         this.res.json(GET_INBOX, { userInbox });
     }
 
@@ -1268,7 +1324,7 @@ export class InboxManager {
                     this.handleRemoveAdmin(id, message);
                     break;
                 // start the backend from here
-                case NEW_MESSAGE:
+                case SEND_MESSAGE:
                     this.handleNewMessage(id, message);
                     break;
                 default:

@@ -1,6 +1,6 @@
+import { formatDistanceToNow } from "date-fns";
 import { NavigateFunction } from "react-router-dom";
 import { localStorageUtils } from "./LocalStorageUtils";
-import { formatDistanceToNow } from "date-fns";
 
 export const NAVIGATION_ROUTES = {
     LOGIN: "/login",
@@ -10,8 +10,8 @@ export const NAVIGATION_ROUTES = {
     CREATE_NEW_GROUP: "/inbox/group/create",
 } as const;
 
-export const getMessageAge = (messageSentAt: string) => {
-    return formatDistanceToNow(new Date(messageSentAt), { addSuffix: true });
+export const getMessageAge = (messageSentAt: Date) => {
+    return formatDistanceToNow(messageSentAt, { addSuffix: true });
 };
 
 export const env = {
