@@ -35,7 +35,7 @@ const ButtonToModal: React.FC = (): JSX.Element => {
         return () => document.removeEventListener("keydown", handleKeyDown);
     }, [isOpen]);
 
-    const fabSize = 64; // 4rem (w-16 h-16)
+    const fabSize = 64;
     const modalSize = Math.min(425, Math.min(dimensions.width, dimensions.height) * 0.8);
 
     const disabledPopup = () => {
@@ -94,12 +94,14 @@ const ButtonToModal: React.FC = (): JSX.Element => {
                                         <X className="h-6 w-6" />
                                     </Button>
                                 </div>
-                                <p className="text-foreground/80 mb-4">
-                                    If you are a <span className="text-green-500">recruiter</span> and want to explore
-                                    the application without the hastle of creating a new account, please use the
-                                    credentials below to login into the application.
+                                <p className="text-foreground/80 border-b pb-4">
+                                    If you're a <span className="text-green-500">recruiter</span> and would like to
+                                    explore the application without the hassle of creating a new account, please use the
+                                    credentials below to log in. Two sets of credentials are provided to help you test
+                                    sending and receiving messages.
                                 </p>
-                                <div className="border-b pb-4">
+                                <div className="border-b py-4">
+                                    <h1 className="text-green-500">Credentials one:</h1>
                                     <p className="text-foreground/80">
                                         Username: <span className="text-sky-500">beta_tester</span>
                                     </p>
@@ -107,9 +109,18 @@ const ButtonToModal: React.FC = (): JSX.Element => {
                                         Password: <span className="text-sky-500">Welcome123</span>
                                     </p>
                                 </div>
+                                <div className="border-b py-4">
+                                    <h1 className="text-green-500">Credentials two:</h1>
+                                    <p className="text-foreground/80">
+                                        Username: <span className="text-sky-500">beta_tester2</span>
+                                    </p>
+                                    <p className="text-foreground/80">
+                                        Password: <span className="text-sky-500">Welcome123</span>
+                                    </p>
+                                </div>
                                 <p className="text-foreground/80 py-4">
                                     <span className="text-red-500">Note:</span> The backend of this application is
-                                    hosted on vercel. Therefore, if you notice delay in response time, that's the reason
+                                    hosted on Vercel, so if you notice delays in response time, that&apos;s the reason
                                     why.
                                 </p>
                                 {parsedShowPopup !== true && (

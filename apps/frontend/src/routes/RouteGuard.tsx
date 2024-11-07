@@ -1,55 +1,48 @@
-import { isLoadingAtom } from "@/state/global";
-import { isAuthenticatedAtom } from "@/state/user";
+// RouteGuard.tsx
+import { Loader } from "@/components/Loader";
 import { localStorageUtils } from "@/utils/LocalStorageUtils";
-import { EndPoints, NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
+import { EndPoints, handleUserLogout, NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
 import axios from "axios";
-import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
-import { useRecoilState, useSetRecoilState } from "recoil";
+import { useEffect, useMemo, useState } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
 
-const navigateToLoginScreen = () => {
-    return <Navigate to={NAVIGATION_ROUTES.LOGIN} replace />;
-};
+const RouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const navigate = useNavigate();
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
-const RouteGuard = ({ children }: { children?: React.ReactNode }) => {
-    const [token] = useState(localStorageUtils.getToken());
-
-    if (!token) {
-        navigateToLoginScreen();
-    }
-
-    const [isAuthenticated, setIsAuthenticated] = useRecoilState(isAuthenticatedAtom);
-    const setIsLoading = useSetRecoilState(isLoadingAtom);
-
-    const authenticateUser = async () => {
-        try {
-            setIsLoading(true);
-            const response = await axios.post(EndPoints.Auth, null, {
-                headers: {
-                    Authorization: "Bearer " + token,
-                },
-            });
-            if (response.status === StatusCodes.Ok) {
-                setIsAuthenticated(true);
-            } else {
-                localStorageUtils.clearStore();
-                setIsAuthenticated(false);
-            }
-        } catch (error) {
-            printlogs("Authentication middleware error", error);
-            localStorageUtils.clearStore();
-            setIsAuthenticated(false);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const token = useMemo(() => localStorageUtils.getToken(), []);
 
     useEffect(() => {
-        authenticateUser();
-    }, []);
+        const authenticateUser = async () => {
+            if (!token) return handleUserLogout(navigate);
 
-    return isAuthenticated ? <>{children}</> : navigateToLoginScreen();
+            try {
+                const response = await axios.post(EndPoints.Auth, null, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                response.status === StatusCodes.Ok ? setIsAuthenticated(true) : handleUserLogout(navigate);
+            } catch (error) {
+                printlogs("Authentication error", error);
+                handleUserLogout(navigate);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        authenticateUser();
+    }, [token]);
+
+    if (isLoading) {
+        return (
+            <div className="flex h-dvh w-full items-center justify-center bg-black/60">
+                <Loader visible />
+            </div>
+        );
+    }
+
+    return isAuthenticated ? <>{children}</> : <Navigate to={NAVIGATION_ROUTES.LOGIN} replace />;
 };
 
 export default RouteGuard;

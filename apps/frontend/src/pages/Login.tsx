@@ -9,22 +9,18 @@ import { isChatModalVisibleAtom } from "@/state/global";
 import { userAtom } from "@/state/user";
 import { localStorageUtils } from "@/utils/LocalStorageUtils";
 import { NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
+import { printlogs } from "@/utils/logs";
 import axios from "axios";
 import { ArrowUpRight, Eye, EyeOff } from "lucide-react";
-import React, { FormEvent, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { FormEvent, useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useSetRecoilState } from "recoil";
 import { toast } from "sonner";
 
 const Login: React.FC = (): JSX.Element => {
     const token = localStorageUtils.getToken();
-    const navigate = useNavigate();
 
-    useEffect(() => {
-        if (token) {
-            navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
-        }
-    }, [token]);
+    if (token) return <Navigate to={NAVIGATION_ROUTES.INBOX} replace />;
 
     const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
     setIsChatModalVisible({ visible: false });
@@ -35,18 +31,21 @@ const Login: React.FC = (): JSX.Element => {
     const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
 
     const setUser = useSetRecoilState(userAtom);
+    const navigate = useNavigate();
 
     const handleUserLogin = async (e: FormEvent) => {
         e.preventDefault();
 
+        const validation = LoginFormSchema.safeParse({ credentials, password });
+        if (!validation.success) {
+            const { fieldErrors } = validation.error.flatten();
+
+            Object.entries(fieldErrors).map(([field, errors]) => printlogs(`${field}: ${[...errors]}`));
+            return setError("Invalid form data");
+        }
+
         try {
             setIsLoading(true);
-            const result = LoginFormSchema.safeParse({ credentials, password });
-            if (!result.success) {
-                const messageArray = JSON.parse(result.error.message);
-                setError(messageArray?.[0].message || "");
-                return;
-            }
             const response = await processUserLogin(credentials, password, navigate);
             if (response) {
                 localStorageUtils.setToken(response.data?.token);
@@ -57,24 +56,19 @@ const Login: React.FC = (): JSX.Element => {
                     fullName: response.data.fullName,
                     profilePic: response.data.profilePic,
                 });
-                navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
                 toast.success("Login successful");
+                navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
             }
         } catch (error) {
-            console.log(error);
-            if (axios.isAxiosError(error)) {
-                if (error.response?.status === StatusCodes.BadRequest) {
-                    setError("Bad Request!");
-                } else if (error.response?.status === StatusCodes.NotFound) {
-                    setError("Account does not exist. Please sign up");
-                } else if (error.response?.status === StatusCodes.Unauthorized) {
-                    setError("Invalid Credentials");
-                } else {
-                    setError("Unknown error occured");
-                }
-            } else {
-                setError("Unknown error occured");
-            }
+            printlogs("ERROR inside handleUserLogin():", error);
+            const message = axios.isAxiosError(error)
+                ? {
+                      [StatusCodes.BadRequest]: "There was an issue with your request",
+                      [StatusCodes.NotFound]: "Account not found. Please sign up.",
+                      [StatusCodes.Unauthorized]: "Invalid Credentials",
+                  }[error.response?.status || 500] || "An unknown error occurred. Please try again later!"
+                : "An unknown error occurred. Please try again later!";
+            setError(message);
         } finally {
             setIsLoading(false);
         }
@@ -116,7 +110,7 @@ const Login: React.FC = (): JSX.Element => {
                                 rightIconOnClick={() => setIsPasswordVisible((p) => !p)}
                             />
                             {error && (
-                                <p className="text-destructive text-xs font-medium" id="error">
+                                <p className="text-destructive text-sm font-medium" id="error">
                                     {error}
                                 </p>
                             )}

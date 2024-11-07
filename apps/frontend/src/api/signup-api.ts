@@ -6,7 +6,7 @@ export const processUserSignup = async (formData: FormData, navigate: NavigateFu
     try {
         const response = await new APIServices(false, navigate).post(EndPoints.Signup, formData);
         if (response.status === StatusCodes.Ok) {
-            return response.data;
+            return response;
         }
     } catch (error) {
         console.log(error);

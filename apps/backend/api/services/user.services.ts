@@ -1,8 +1,9 @@
 import { prisma } from "@instachat/db/client";
 import bcrypt from "bcrypt";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { ConflictException, ResourceNotFoundError, UnauthorizedError } from "../middlewares/GlobalErrorHandler.js";
 import { env } from "../utils/constants.js";
+import { printlogs } from "../utils/logs.js";
 
 const salt = 10;
 
@@ -34,17 +35,14 @@ export const validateUser = async (credentials: string, password: string) => {
     const jwtPayload = {
         id: userInfo.id,
         username: userInfo.username,
+        email: userInfo.email,
         fullName: userInfo.fullName,
         profilePic: userInfo.profilePic,
     };
 
-    const token = jwt.sign(jwtPayload, env.JWT_SECRET, {
-        expiresIn: "365d",
-    });
+    const token = jwt.sign(jwtPayload, env.JWT_SECRET);
 
-    const decodedToken = jwt.decode(token) as JwtPayload;
-
-    return { token, ...decodedToken, email: userInfo.email };
+    return { token, ...jwtPayload };
 };
 
 export const saveUserInfo = async (
@@ -54,15 +52,17 @@ export const saveUserInfo = async (
     password: string,
     profilePic: string
 ) => {
-    const userId = await prisma.user.findFirst({
+    const userExists = await prisma.user.findFirst({
         where: {
-            OR: [{ email, username }],
+            OR: [{ email }, { username }],
         },
         select: { id: true },
     });
 
-    if (userId) {
-        new ConflictException("Username or Email already exists");
+    printlogs("userExists", userExists);
+
+    if (userExists) {
+        throw new ConflictException("Username or Email already exists");
     }
 
     const encryptedPassword = await bcrypt.hash(password, salt);
@@ -74,7 +74,6 @@ export const saveUserInfo = async (
             email,
             password: encryptedPassword,
             profilePic,
-            createdAt: new Date(Date.now()),
         },
         select: {
             id: true,

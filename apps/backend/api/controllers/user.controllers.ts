@@ -2,7 +2,7 @@ import cloudinary from "cloudinary";
 import expressAsyncHandler from "express-async-handler";
 import { Readable } from "stream";
 import z from "zod";
-import { BadRequestException, InternalServerError } from "../middlewares/GlobalErrorHandler.js";
+import { InternalServerError } from "../middlewares/GlobalErrorHandler.js";
 import { getAllUserData, saveUserInfo, validateUser } from "../services/user.services.js";
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -35,13 +35,21 @@ interface UserSignupRequest {
 }
 
 export const UserLoginController = expressAsyncHandler(async (req, res) => {
-    const result = loginSchema.safeParse(req.body);
+    const validation = loginSchema.safeParse(req.body);
 
-    if (!result.success) {
-        throw new BadRequestException(result.error.message);
+    if (!validation.success) {
+        const { fieldErrors } = validation.error.flatten();
+
+        const formattedErrors = Object.entries(fieldErrors).map(([field, errors]) => ({
+            field,
+            errors,
+        }));
+
+        res.status(400).json(formattedErrors);
+        return;
     }
 
-    const { credentials, password } = result.data;
+    const { credentials, password } = validation.data;
 
     const response = await validateUser(credentials, password);
 
@@ -72,18 +80,29 @@ const uploadToCloudinary = async (profilePic: Buffer): Promise<string> => {
 };
 
 export const userSignupController = expressAsyncHandler(async (req, res) => {
-    const result = userSchema.safeParse({
+    const validation = userSchema.safeParse({
         ...req.body,
         profilePic: req.file,
     });
 
-    if (!result.success) {
-        throw new BadRequestException(result.error.message);
+    if (!validation.success) {
+        const { fieldErrors } = validation.error.flatten();
+
+        const formattedErrors = Object.entries(fieldErrors).map(([field, errors]) => ({
+            field,
+            errors,
+        }));
+
+        res.status(400).json(formattedErrors);
+        return;
     }
 
-    const { username, email, password, profilePic, fullName } = result.data as UserSignupRequest;
+    const { username, email, password, profilePic, fullName } = validation.data as UserSignupRequest;
 
-    let filePath = "https://res.cloudinary.com/dtbyy0w95/image/upload/v1716151086/anonymous-avatar_dmiw3j.webp";
+    const defaultImageUrl =
+        "https://res.cloudinary.com/dtbyy0w95/image/upload/v1716151086/anonymous-avatar_dmiw3j.webp";
+
+    let filePath = defaultImageUrl;
 
     if (profilePic) {
         try {

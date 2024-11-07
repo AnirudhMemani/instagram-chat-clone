@@ -8,14 +8,14 @@ import { RecoilRoot } from "recoil";
 import { Toaster } from "sonner";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-    <React.StrictMode>
-        <RecoilRoot>
-            <ThemeProvider>
-                <BrowserRouter>
-                    <App />
-                    <Toaster richColors />
-                </BrowserRouter>
-            </ThemeProvider>
-        </RecoilRoot>
-    </React.StrictMode>
+    // <React.StrictMode>
+    <RecoilRoot>
+        <ThemeProvider>
+            <BrowserRouter>
+                <App />
+                <Toaster richColors />
+            </BrowserRouter>
+        </ThemeProvider>
+    </RecoilRoot>
+    // </React.StrictMode>
 );

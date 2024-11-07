@@ -969,7 +969,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     />
                 </div>
                 {/* messages */}
-                <div className="scrollbar flex w-full flex-grow flex-col overflow-y-auto py-2 text-white">
+                <div className="scrollbar flex w-full flex-grow flex-col overflow-y-auto pb-2 pt-4 text-white">
                     <div className="mx-2 flex flex-col justify-end gap-4">
                         {chatRoomDetails &&
                             chatRoomDetails?.messages?.length > 0 &&
@@ -1119,7 +1119,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                     const isUserSuperAdmin = chatRoomDetails.isGroup
                                         ? chatRoomDetails?.superAdmin?.id === member?.id || false
                                         : false;
-                                    if (chatRoomDetails.isGroup === false && member.id === user.id) {
+                                    if (!chatRoomDetails.isGroup && member.id === user.id) {
                                         return;
                                     }
                                     return (

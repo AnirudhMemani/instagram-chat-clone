@@ -1,6 +1,7 @@
 import { EndPoints, StatusCodes } from "@/utils/constants";
-import { APIServices } from "./APIServices";
+import { printlogs } from "@/utils/logs";
 import { NavigateFunction } from "react-router-dom";
+import { APIServices } from "./APIServices";
 
 export const processUserLogin = async (credentials: string, password: string, navigate: NavigateFunction) => {
     try {
@@ -15,7 +16,7 @@ export const processUserLogin = async (credentials: string, password: string, na
             return response;
         }
     } catch (error) {
-        console.log(error);
+        printlogs(error);
         throw error;
     }
 };

@@ -1,55 +1,41 @@
 import { localStorageUtils } from "@/utils/LocalStorageUtils";
 import { env, handleUserLogout } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export const useSocket = () => {
     const [socket, setSocket] = useState<WebSocket | null>(null);
-    const token = localStorageUtils.getToken();
     const navigate = useNavigate();
-    const RECONNECT_INTERVAL = 2 * 1000;
+    const token = useMemo(() => localStorageUtils.getToken(), []);
+    const RECONNECT_INTERVAL = 2000;
 
-    const connectToWs = () => {
+    const connectToWs = useCallback(() => {
+        if (!token) return handleUserLogout(navigate);
+
         const ws = new WebSocket(`${env.WS_BACKEND_URL}?token=${token}`);
 
-        ws.onopen = () => {
-            console.log("Web socket open");
-            setSocket(ws);
-        };
+        ws.onopen = () => setSocket(ws);
 
         ws.onclose = (ev) => {
-            printlogs("Web socket closed because of this reason:", ev.reason, "with status code:", ev.code);
-            if (ev.code === 1006) {
-                toast.error("An unknown error occurred");
+            printlogs("WebSocket closed | Reason:", ev.reason, "| StatusCode:", ev.code);
+
+            if ([1006, 1007].includes(ev.code)) {
                 handleUserLogout(navigate);
-                setSocket(null);
-                return;
-            } else if (ev.code === 1007) {
-                toast.error("Session timed out!");
-                setSocket(null);
-                handleUserLogout(navigate);
-                return;
+                return toast.error(ev.code === 1007 ? "Session timed out!" : "An unknown error occurred");
             }
+
             setSocket(null);
             setTimeout(() => connectToWs(), RECONNECT_INTERVAL);
         };
 
-        ws.onerror = () => {
-            ws.close();
-        };
+        ws.onerror = () => ws.close();
 
         return () => setSocket(null);
-    };
-
-    useEffect(() => {
-        if (!token) {
-            handleUserLogout(navigate);
-            return;
-        }
-        connectToWs();
     }, [token]);
+
+    useEffect(() => connectToWs(), [connectToWs]);
 
     return socket;
 };

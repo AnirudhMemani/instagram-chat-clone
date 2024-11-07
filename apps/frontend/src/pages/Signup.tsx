@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { isChatModalVisibleAtom } from "@/state/global";
 import { localStorageUtils } from "@/utils/LocalStorageUtils";
@@ -18,6 +17,7 @@ import { ArrowUpRight, Eye, EyeOff } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useSetRecoilState } from "recoil";
+import { toast } from "sonner";
 
 const Signup: React.FC = (): JSX.Element => {
     const token = localStorageUtils.getToken();
@@ -42,7 +42,6 @@ const Signup: React.FC = (): JSX.Element => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const navigate = useNavigate();
-    const { toast } = useToast();
 
     const { getProcessedImage, setImage, resetStates } = useImageCropContext();
 
@@ -50,9 +49,7 @@ const Signup: React.FC = (): JSX.Element => {
         e.preventDefault();
 
         if (!profilePic) {
-            toast({
-                title: "Please add a profile picture",
-            });
+            toast.error("Please add a profile picture");
             return;
         }
 
@@ -61,10 +58,10 @@ const Signup: React.FC = (): JSX.Element => {
 
             const formData = new FormData();
 
-            formData.set("email", email);
-            formData.set("username", username);
+            formData.set("email", email.trim());
+            formData.set("username", username.trim());
             formData.set("password", password);
-            formData.set("fullName", fullName);
+            formData.set("fullName", fullName.trim());
             formData.append("profilePic", profilePic);
 
             const response = await processUserSignup(formData, navigate);
@@ -73,18 +70,13 @@ const Signup: React.FC = (): JSX.Element => {
                 navigate(NAVIGATION_ROUTES.LOGIN, { replace: true });
             }
         } catch (error) {
-            if (axios.isAxiosError(error)) {
-                if (error.response?.status === StatusCodes.BadRequest) {
-                    const message = JSON.parse(error.response?.data.message).pop().message || "Bad Request!";
-                    setError(message);
-                } else if (error.response?.status === StatusCodes.Conflict) {
-                    setError("Username or Email already exists!");
-                } else {
-                    setError("An unknown error occured");
-                }
-            } else {
-                setError("An unknown error occured");
-            }
+            const message = axios.isAxiosError(error)
+                ? {
+                      [StatusCodes.BadRequest]: "There was an issue with your request",
+                      [StatusCodes.Conflict]: "Username or Email ID already exists!",
+                  }[error.response?.status || 500] || "An unknown error occurred. Please try again later!"
+                : "An unknown error occurred. Please try again later!";
+            setError(message);
         } finally {
             setIsLoading(false);
         }
@@ -192,7 +184,7 @@ const Signup: React.FC = (): JSX.Element => {
                             </div>
                         </div>
                         {error && (
-                            <p className="text-destructive font-medium" id="error">
+                            <p className="text-destructive text-sm font-medium" id="error">
                                 {error}
                             </p>
                         )}
