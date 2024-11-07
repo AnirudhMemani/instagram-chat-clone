@@ -61,8 +61,8 @@ model ChatRoom {
     superAdminId     String?
     superAdmin       User?     @relation(name: "SuperAdmin", fields: [superAdminId], references: [id])
     admins           User[]    @relation(name: "GroupAdmins")
-    latestMessageId  String    @unique
-    latestMessage    Message   @relation(name: "LatestMessage", fields: [latestMessageId], references: [id], onDelete: Cascade)
+    latestMessageId  String?   @unique
+    latestMessage    Message?  @relation(name: "LatestMessage", fields: [latestMessageId], references: [id], onDelete: Cascade)
 
     @@index([roomType, superAdminId, latestMessageId])
 }
