@@ -127,7 +127,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             setChatRoomName(
                 chatRoomDetails.isGroup
                     ? chatRoomDetails.name
-                    : chatRoomDetails.participants.find((member) => member.id !== user.id)?.username || ""
+                    : chatRoomDetails.participants.find((member) => member.id !== user.id)?.fullName || ""
             );
             setChatRoomImage(
                 chatRoomDetails.isGroup
@@ -701,7 +701,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 return;
             }
 
-            if (!chatRoomDetails) {
+            if (!chatRoomDetails || !chatRoomDetails.id) {
                 return;
             }
 
@@ -742,6 +742,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             setMessage("");
             socket.send(JSON.stringify(newMessage));
         } catch (error) {
+            setChatRoomDetails((prev) => (prev ? { ...prev, messages: prev.messages.slice(0, -1) } : prev));
             setIsSendingMessage(false);
             commonToastErrorMessage({});
             printlogs("ERROR inside handleSendMessage():", error);
@@ -934,7 +935,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
     if (!chatRoomDetails) {
         return (
-            <div className="flex h-dvh w-full items-center justify-center bg-black/60">
+            <div className="flex h-dvh w-full items-center justify-center bg-white dark:bg-black/60">
                 <Loader visible={!chatRoomDetails} />
             </div>
         );

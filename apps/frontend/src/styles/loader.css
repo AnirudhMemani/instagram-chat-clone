@@ -22,7 +22,7 @@
 
 .sonner-loading-bar {
     animation: sonner-spin 1.2s linear infinite;
-    background: #fff !important;
+    /* background: #fff !important; */
     border-radius: 6px;
     height: 8%;
     left: -10%;

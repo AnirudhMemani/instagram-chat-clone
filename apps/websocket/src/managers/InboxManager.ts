@@ -40,7 +40,6 @@ import WebSocket from "ws";
 import { redis } from "../redis/client.js";
 import { getChatRoom, getLatestChatRoomMessages } from "../services/chatroom.js";
 import { STATUS_CODE } from "../utils/constants.js";
-import { getSortedSetKey } from "../utils/helper.js";
 import { printlogs } from "../utils/logs.js";
 import { IUserWithSocket, UserManager } from "./UserManager.js";
 
@@ -304,7 +303,7 @@ export class InboxManager {
                 );
             }
 
-            this.res.json(READ_MESSAGE, { message: "All messages marked as read", readerId: userId });
+            this.res.json(READ_MESSAGE, { message: "All messages marked as read", readerId: userId, chatRoomId });
         } catch (error) {
             console.error("Error in handleMessageRead():", error);
             this.res.error(READ_MESSAGE, "Failed to mark messages as read");

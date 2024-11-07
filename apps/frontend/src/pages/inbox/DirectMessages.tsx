@@ -2,7 +2,7 @@ import { UserLoadingSkeleton } from "@/components/UserLoadingSkeleton";
 import { chatRoomAtom, TParticipant } from "@/state/chat";
 import { isChatModalVisibleAtom } from "@/state/global";
 import { userAtom } from "@/state/user";
-import { TGetInboxResponse, TLatestMessage } from "@/types/chatRoom";
+import { TGetInboxResponse, TLatestMessage, TReadMessageResponse } from "@/types/chatRoom";
 import { getMessageAge, handleUserLogout, NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
 import { GET_INBOX, READ_MESSAGE, UPDATE_INBOX } from "@instachat/messages/messages";
@@ -71,7 +71,7 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket }): JSX.Element =
                                 return {
                                     ...inbox,
                                     picture: inbox?.isGroup ? inbox?.picture : otherParticipant?.profilePic,
-                                    name: inbox?.isGroup ? inbox?.name : otherParticipant?.username,
+                                    name: inbox?.isGroup ? inbox?.name : otherParticipant?.fullName,
                                 };
                             }) satisfies TInbox[];
                             setDmList(modifiedInboxData);
@@ -95,12 +95,9 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket }): JSX.Element =
                                 ? newMessageData?.picture
                                 : otherParticipant?.profilePic;
 
-                            const name = newMessageData?.isGroup ? newMessageData?.name : otherParticipant?.username;
+                            const name = newMessageData?.isGroup ? newMessageData?.name : otherParticipant?.fullName;
 
-                            newMessageData["hasRead"] =
-                                chatRoomDetails?.id && chatRoomDetails.id === newMessageData.chatRoomId
-                                    ? true
-                                    : newMessageData["hasRead"];
+                            printlogs("chatRoomDetails inside inbox:", chatRoomDetails);
 
                             setDmList((prevDmList) => {
                                 if (prevDmList.length < 1) {
@@ -142,6 +139,16 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket }): JSX.Element =
                             });
                         }
                         break;
+                    case READ_MESSAGE:
+                        const data = message?.payload as TReadMessageResponse;
+                        if (message?.status === StatusCodes.Ok && data?.readerId === user.id) {
+                            setDmList((prevList) =>
+                                prevList?.map((prev) =>
+                                    prev?.chatRoomId === data?.chatRoomId ? { ...prev, hasRead: true } : prev
+                                )
+                            );
+                        }
+                        break;
                 }
             } catch (error) {
                 printlogs("Error handling WebSocket message:", error);
@@ -157,13 +164,6 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket }): JSX.Element =
             socket.removeEventListener("message", handleMessageEvent);
         };
     }, [socket, user]);
-
-    const handleOpenDm = (chatRoomId: string) => {
-        if (!socket) return;
-        socket.send(JSON.stringify({ type: READ_MESSAGE, payload: { chatRoomId } }));
-        setDmList((prev) => prev?.map((p) => (p?.chatRoomId === chatRoomId ? { ...p, hasRead: true } : p)));
-        navigate(`${NAVIGATION_ROUTES.DM}/${chatRoomId}`);
-    };
 
     const formatLatestMessage = (chatRoom: TInbox) =>
         chatRoom.latestMessage.sentBy.id === user.id
@@ -193,7 +193,7 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket }): JSX.Element =
                             message={formatLatestMessage(dm)}
                             name={dm.name}
                             hasRead={dm.hasRead}
-                            onClick={() => handleOpenDm(dm.chatRoomId)}
+                            onClick={() => navigate(`${NAVIGATION_ROUTES.DM}/${dm.chatRoomId}`)}
                         />
                     ))
                 ) : isLoading ? (

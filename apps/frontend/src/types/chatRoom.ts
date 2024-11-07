@@ -62,3 +62,9 @@ export type TNewMesageResponse = {
         latestMessage: TMessage | null;
     };
 };
+
+export type TReadMessageResponse = {
+    message: string;
+    readerId: string;
+    chatRoomId: string;
+};

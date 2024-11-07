@@ -19,9 +19,6 @@ import { toast } from "sonner";
 
 const Login: React.FC = (): JSX.Element => {
     const token = localStorageUtils.getToken();
-
-    if (token) return <Navigate to={NAVIGATION_ROUTES.INBOX} replace />;
-
     const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
     setIsChatModalVisible({ visible: false });
     const [credentials, setCredentials] = useState<string>("");
@@ -32,6 +29,8 @@ const Login: React.FC = (): JSX.Element => {
 
     const setUser = useSetRecoilState(userAtom);
     const navigate = useNavigate();
+
+    if (token) return <Navigate to={NAVIGATION_ROUTES.INBOX} replace />;
 
     const handleUserLogin = async (e: FormEvent) => {
         e.preventDefault();
