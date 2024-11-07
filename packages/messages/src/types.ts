@@ -75,3 +75,8 @@ export interface ISendMessage
         chatRoomId: string;
         content: string;
     }> {}
+
+export interface IMessageRead
+    extends IMessage<{
+        chatRoomId: string;
+    }> {}

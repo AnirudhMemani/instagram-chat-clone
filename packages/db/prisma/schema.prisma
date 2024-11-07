@@ -9,8 +9,8 @@ datasource db {
 
 model User {
     id               String     @id @default(uuid())
-    username         String
-    email            String
+    username         String     @unique
+    email            String     @unique
     fullName         String
     password         String
     createdAt        DateTime   @default(now())
@@ -25,24 +25,23 @@ model User {
     groupsSuperAdmin ChatRoom[] @relation(name: "SuperAdmin")
     groupsAdmin      ChatRoom[] @relation(name: "GroupAdmins")
 
-    @@unique([username, email])
     @@index([username, email])
 }
 
 model Message {
-    id         String     @id @default(uuid())
-    content    String
-    sentAt     DateTime   @default(now())
-    editedAt   DateTime   @updatedAt
-    readBy     User[]     @relation(name: "MessageReadBy")
-    isEdited   Boolean    @default(false)
-    senderId   String
-    sentBy     User       @relation(name: "MessageSentBy", fields: [senderId], references: [id])
-    chatRoomId String?
-    chatRoom   ChatRoom?  @relation(name: "ChatRoomMessages", fields: [chatRoomId], references: [id], onDelete: Cascade)
-    receivedBy User[]     @relation(name: "MessageReceivedBy")
-    recipients User[]     @relation(name: "MessageRecipients")
-    ChatRoom   ChatRoom[] @relation(name: "LatestMessage")
+    id                    String    @id @default(uuid())
+    content               String
+    sentAt                DateTime  @default(now())
+    editedAt              DateTime  @updatedAt
+    readBy                User[]    @relation(name: "MessageReadBy")
+    isEdited              Boolean   @default(false)
+    senderId              String
+    sentBy                User      @relation(name: "MessageSentBy", fields: [senderId], references: [id])
+    chatRoomId            String?
+    chatRoom              ChatRoom? @relation(name: "ChatRoomMessages", fields: [chatRoomId], references: [id], onDelete: Cascade)
+    receivedBy            User[]    @relation(name: "MessageReceivedBy")
+    recipients            User[]    @relation(name: "MessageRecipients")
+    latestMessageChatRoom ChatRoom? @relation(name: "LatestMessage")
 
     @@index([senderId, chatRoomId, editedAt])
 }
@@ -62,8 +61,8 @@ model ChatRoom {
     superAdminId     String?
     superAdmin       User?     @relation(name: "SuperAdmin", fields: [superAdminId], references: [id])
     admins           User[]    @relation(name: "GroupAdmins")
-    latestMessageId  String?
-    latestMessage    Message?  @relation(name: "LatestMessage", fields: [latestMessageId], references: [id], onDelete: Cascade)
+    latestMessageId  String    @unique
+    latestMessage    Message   @relation(name: "LatestMessage", fields: [latestMessageId], references: [id], onDelete: Cascade)
 
     @@index([roomType, superAdminId, latestMessageId])
 }

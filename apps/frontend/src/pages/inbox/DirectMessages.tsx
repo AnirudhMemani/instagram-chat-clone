@@ -1,22 +1,25 @@
 import { UserLoadingSkeleton } from "@/components/UserLoadingSkeleton";
-import { TMessage, TParticipant } from "@/state/chat";
+import { TParticipant } from "@/state/chat";
 import { isChatModalVisibleAtom } from "@/state/global";
 import { userAtom } from "@/state/user";
-import { getMessageAge, StatusCodes } from "@/utils/constants";
-import { GET_INBOX, NEW_MESSAGE } from "@instachat/messages/messages";
+import { TGetInboxResponse, TLatestMessage } from "@/types/chatRoom";
+import { getMessageAge, handleUserLogout, NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
+import { printlogs } from "@/utils/logs";
+import { GET_INBOX, READ_MESSAGE, UPDATE_INBOX } from "@instachat/messages/messages";
 import { IMessage } from "@instachat/messages/types";
 import { Edit } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRecoilValue, useSetRecoilState } from "recoil";
+import { toast } from "sonner";
 import { ChatPreviewBox } from "./ChatPreviewBox";
 
 type TInbox = {
-    id: string;
+    chatRoomId: string;
     picture: string;
     name: string;
     isGroup: boolean;
-    latestMessage: TMessage;
+    latestMessage: TLatestMessage;
     hasRead: boolean;
     participants: TParticipant[];
 };
@@ -26,62 +29,141 @@ type TDirectMessageProps = {
 };
 
 const DirectMessage: React.FC<TDirectMessageProps> = ({ socket }): JSX.Element => {
-    const [dm, setDm] = useState<TInbox[]>([]);
+    const [dmList, setDmList] = useState<TInbox[]>([]);
     const user = useRecoilValue(userAtom);
-
     const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const navigate = useNavigate();
 
-    useEffect(() => {
-        if (!socket) {
-            return;
+    const fetchInbox = (socket: WebSocket) => {
+        try {
+            setIsLoading(true);
+            socket.send(
+                JSON.stringify({
+                    type: GET_INBOX,
+                    payload: { take: 20, skip: 0 },
+                })
+            );
+        } catch (error) {
+            printlogs("ERROR in fetchInbox:", error);
+            setIsLoading(false);
         }
+    };
 
-        socket.onmessage = (event) => {
-            const message = JSON.parse(event.data) as IMessage;
-            if (message?.type === GET_INBOX) {
-                if (message?.status === StatusCodes.Ok) {
-                    const inbox = message?.payload?.userInbox as TInbox[];
-                    setDm(inbox);
-                }
-            } else if (message?.type === NEW_MESSAGE) {
-                if (message?.status === StatusCodes.Ok) {
-                    const newMessage = message?.payload?.messageDetails as TInbox;
-                    const updatedChatRoomDetails = {
-                        id: newMessage?.id,
-                        hasRead: newMessage?.hasRead,
-                        isGroup: newMessage?.isGroup,
-                        latestMessage: { ...newMessage?.latestMessage },
-                        name: newMessage?.name,
-                        participants: newMessage?.participants,
-                        picture: newMessage?.picture,
-                    } satisfies TInbox;
+    useEffect(() => {
+        if (!socket) return;
 
-                    setDm([updatedChatRoomDetails]);
+        const handleMessageEvent = (event: MessageEvent) => {
+            try {
+                const message = JSON.parse(event.data) as IMessage;
+
+                switch (message?.type) {
+                    case GET_INBOX:
+                        if (message?.status === StatusCodes.Ok) {
+                            const inboxData = message?.payload as TGetInboxResponse[];
+                            const modifiedInboxData = inboxData?.map((inbox) => {
+                                const otherParticipant = inbox?.participants?.filter(
+                                    (member) => member?.id !== user.id
+                                )?.[0];
+                                return {
+                                    ...inbox,
+                                    picture: inbox?.isGroup ? inbox?.picture : otherParticipant?.profilePic,
+                                    name: inbox?.isGroup ? inbox?.name : otherParticipant?.username,
+                                };
+                            }) satisfies TInbox[];
+                            setDmList(modifiedInboxData);
+                        } else if (message?.status === StatusCodes.NotFound) {
+                            setDmList([]);
+                        } else {
+                            toast.error("Could not get your inbox. Please try again later!");
+                            handleUserLogout(navigate);
+                        }
+                        break;
+                    case UPDATE_INBOX:
+                        printlogs("New message inside Direct Message component | message.payload:", message.payload);
+                        if (message?.status === StatusCodes.Ok) {
+                            const newMessageData = message?.payload as TGetInboxResponse;
+
+                            const otherParticipant = newMessageData?.participants?.filter(
+                                (member) => member?.id !== user.id
+                            )?.[0];
+
+                            const picture = newMessageData?.isGroup
+                                ? newMessageData?.picture
+                                : otherParticipant?.profilePic;
+
+                            const name = newMessageData?.isGroup ? newMessageData?.name : otherParticipant?.username;
+
+                            printlogs("dmList in the beginning:", dmList);
+
+                            setDmList((prevDmList) => {
+                                if (prevDmList.length < 1) {
+                                    return [
+                                        {
+                                            ...newMessageData,
+                                            picture,
+                                            name,
+                                        },
+                                    ];
+                                }
+
+                                const chatRoomIndex = prevDmList.findIndex(
+                                    (chat) => chat.chatRoomId === newMessageData?.chatRoomId
+                                );
+
+                                printlogs("Index found | chatRoomIndex:", chatRoomIndex);
+
+                                if (chatRoomIndex > -1) {
+                                    const updatedDmList = [...prevDmList];
+                                    updatedDmList.splice(chatRoomIndex, 1);
+                                    updatedDmList.unshift({
+                                        ...newMessageData,
+                                        picture,
+                                        name,
+                                    });
+                                    printlogs("updatedDmList:", updatedDmList);
+                                    return updatedDmList;
+                                } else {
+                                    return [
+                                        {
+                                            ...newMessageData,
+                                            picture,
+                                            name,
+                                        },
+                                        ...prevDmList,
+                                    ];
+                                }
+                            });
+                        }
+                        break;
                 }
+            } catch (error) {
+                printlogs("Error handling WebSocket message:", error);
+            } finally {
+                setIsLoading(false);
             }
         };
 
-        const getUserDM = {
-            type: GET_INBOX,
-            payload: {
-                take: 20,
-                skip: 0,
-            },
+        socket.addEventListener("message", handleMessageEvent);
+        fetchInbox(socket);
+
+        return () => {
+            socket.removeEventListener("message", handleMessageEvent);
         };
+    }, [socket, user]);
 
-        socket.send(JSON.stringify(getUserDM));
-    }, [socket]);
-
-    const getLatestMessage = (userDms: TInbox) => {
-        if (userDms.latestMessage.sentBy.id === user.id) {
-            return `You: ${userDms.latestMessage.content.trim()}`;
-        }
-
-        return userDms.latestMessage.content.trim();
+    const handleOpenDm = (chatRoomId: string) => {
+        if (!socket) return;
+        socket.send(JSON.stringify({ type: READ_MESSAGE, payload: { chatRoomId } }));
+        setDmList((prev) => prev?.map((p) => (p?.chatRoomId === chatRoomId ? { ...p, hasRead: true } : p)));
+        navigate(`${NAVIGATION_ROUTES.DM}/${chatRoomId}`);
     };
+
+    const formatLatestMessage = (chatRoom: TInbox) =>
+        chatRoom.latestMessage.sentBy.id === user.id
+            ? `You: ${chatRoom.latestMessage.content.trim()}`
+            : chatRoom.latestMessage.content.trim();
 
     return (
         <div className="h-dvh w-full overflow-y-hidden border-r border-gray-700 lg:w-[450px] xl:w-[550px]">
@@ -97,19 +179,16 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket }): JSX.Element =
                 <h2 className="pb-5 pt-3">Messages</h2>
             </div>
             <div className="scrollbar flex h-dvh w-full flex-col gap-4 overflow-y-scroll pl-6">
-                {dm && dm.length > 0 ? (
-                    dm.map((_, index) => (
+                {dmList && dmList?.length > 0 ? (
+                    dmList?.map((dm) => (
                         <ChatPreviewBox
-                            key={index}
-                            messageAge={getMessageAge(_?.latestMessage?.sentAt)}
-                            avatar={_?.isGroup ? _?.picture : _?.latestMessage?.sentBy?.profilePic}
-                            message={getLatestMessage(_)}
-                            name={_.isGroup ? _.name : _.latestMessage?.sentBy?.username}
-                            hasRead={_?.hasRead}
-                            onClick={() => {
-                                setDm((prev) => (prev ? prev.map((p) => ({ ...p, hasRead: true })) : prev));
-                                navigate(`/inbox/direct/${_.id}`);
-                            }}
+                            key={dm.chatRoomId}
+                            messageAge={getMessageAge(dm.latestMessage.sentAt)}
+                            avatar={dm.picture}
+                            message={formatLatestMessage(dm)}
+                            name={dm.name}
+                            hasRead={dm.hasRead}
+                            onClick={() => handleOpenDm(dm.chatRoomId)}
                         />
                     ))
                 ) : isLoading ? (

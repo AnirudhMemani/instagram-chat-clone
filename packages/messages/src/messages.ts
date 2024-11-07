@@ -1,6 +1,8 @@
 export const GET_INBOX = "get_inbox";
 export const NEW_MESSAGE = "new_message";
 export const SEND_MESSAGE = "send_message";
+export const UPDATE_INBOX = "update_inbox";
+export const READ_MESSAGE = "read_message";
 export const FIND_CHATS = "find_chats";
 export const CREATE_GROUP = "create_group";
 export const ROOM_EXISTS = "room_exists";

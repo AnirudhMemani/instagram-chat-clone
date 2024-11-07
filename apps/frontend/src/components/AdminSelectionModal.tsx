@@ -21,10 +21,6 @@ const AdminSelectionModal: React.FC<TAdminSelectionModalProps> = ({ socket }): J
 
     const modalContainerRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        printlogs("AdminSelectionModal mounted");
-    }, []);
-
     const confirmSuperAdminSelection = (id: string, username: string) => {
         setAlertModalMetadata({
             visible: true,

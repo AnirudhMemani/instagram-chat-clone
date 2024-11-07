@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { chatRoomAtom, potentialSuperAdminsAtom, TChatRoomAtom, TMessage, TParticipant } from "@/state/chat";
 import { alertModalAtom, isChatModalVisibleAtom, showAdminSelectionModalAtom } from "@/state/global";
 import { userAtom } from "@/state/user";
+import { TNewMesageResponse } from "@/types/chatRoom";
 import { NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
 import { TWebSocket } from "@/utils/types";
@@ -23,6 +24,7 @@ import {
     LEAVE_GROUP_CHAT,
     MAKE_ADMIN,
     NEW_MESSAGE,
+    READ_MESSAGE,
     REMOVE_AS_ADMIN,
     REMOVE_FROM_CHAT,
     SEND_MESSAGE,
@@ -116,9 +118,12 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     }, [chatRoomDetails?.messages]);
 
     useEffect(() => {
-        if (chatRoomDetails && chatRoomDetails.id === id) {
-            printlogs("Chat room details inside chat room component:", chatRoomDetails);
+        if (!socket) {
+            return;
+        }
 
+        if (chatRoomDetails && chatRoomDetails.id === id) {
+            socket.send(JSON.stringify({ type: READ_MESSAGE, payload: { chatRoomId: chatRoomDetails.id } }));
             setChatRoomName(
                 chatRoomDetails.isGroup
                     ? chatRoomDetails.name
@@ -139,21 +144,23 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             return;
         }
 
-        if (!socket) {
-            return;
-        }
-
         if (!chatRoomDetails?.id || id !== chatRoomDetails.id) {
-            const getChatRoomDetailsByIdMessage = {
-                type: CHATROOM_DETAILS_BY_ID,
-                payload: {
-                    chatRoomId: id,
-                },
-            };
+            try {
+                const getChatRoomDetailsByIdMessage = {
+                    type: CHATROOM_DETAILS_BY_ID,
+                    payload: {
+                        chatRoomId: id,
+                    },
+                };
 
-            socket.send(JSON.stringify(getChatRoomDetailsByIdMessage));
+                setChatRoomDetails(null);
+                socket.send(JSON.stringify(getChatRoomDetailsByIdMessage));
+            } catch (error) {
+                printlogs("ERROR trying to get Chat Room details by ID");
+                setIsLoading(false);
+            }
         }
-    }, [chatRoomDetails, socket]);
+    }, [chatRoomDetails, socket, id]);
 
     useEffect(() => {
         if (isEditNameModalVisible && chatRoomDetails?.isGroup) {
@@ -162,16 +169,11 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     }, [isEditNameModalVisible]);
 
     useEffect(() => {
-        printlogs("chat room component mounted!");
         if (!socket) {
-            printlogs("Socket not found inside chat room useEffect");
             return;
         }
 
-        printlogs("Socket found inside chat room useEffect");
-
         socket.onmessage = (event) => {
-            printlogs("Entered socket.onmessage event handler");
             try {
                 const responseMessage = JSON.parse(event.data) as IMessage;
 
@@ -232,8 +234,6 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     return;
                 }
 
-                printlogs("chatRoomDetails inside the chatRoom details useEffect", chatRoomDetails);
-
                 if (chatRoomDetails) {
                     switch (responseMessage?.type) {
                         case CHANGE_GROUP_NAME:
@@ -256,7 +256,6 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             setIsEditNameModalVisible(false);
                             break;
                         case LEAVE_GROUP_CHAT:
-                            printlogs("case LEAVE_GROUP_CHAT entered");
                             if (responseMessage?.status === StatusCodes.Forbidden) {
                                 switch (responseMessage?.payload?.action) {
                                     case "not-member":
@@ -484,7 +483,6 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             }
                             break;
                         case REMOVE_FROM_CHAT:
-                            printlogs("Remove from chat handler");
                             if (responseMessage.success === false) {
                                 switch (responseMessage.status) {
                                     case StatusCodes.NotFound:
@@ -547,9 +545,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                         break;
                                 }
                             } else {
-                                printlogs("else statement remove from chat");
                                 if (responseMessage?.status === StatusCodes.Ok) {
-                                    printlogs("Inside status code 200 remove from chat");
                                     const removedMemberId = responseMessage?.payload?.removedMemberId;
                                     setChatRoomDetails((prev) =>
                                         prev && prev.isGroup
@@ -562,7 +558,6 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                               }
                                             : prev
                                     );
-                                    printlogs("Right above toast message");
                                     toast.success("Member removed successfully!");
                                 } else {
                                     commonToastErrorMessage({
@@ -573,40 +568,47 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             break;
                         case NEW_MESSAGE:
                             if (responseMessage.status === StatusCodes.Ok) {
-                                const newMessage = responseMessage?.payload?.messageDetails?.latestMessage as TMessage;
-                                const updatedChatRoomDetails = {
-                                    ...chatRoomDetails,
-                                    messages: [
-                                        ...chatRoomDetails.messages,
-                                        {
-                                            id: newMessage.id,
-                                            chatRoomId: newMessage.chatRoomId,
-                                            content: newMessage.content,
-                                            editedAt: newMessage.editedAt,
-                                            isEdited: newMessage.isEdited,
-                                            readBy: newMessage.readBy,
-                                            receivedBy: newMessage.receivedBy,
-                                            recipients: newMessage.recipients,
-                                            sentAt: newMessage.sentAt,
-                                            sentBy: newMessage.sentBy,
-                                        },
-                                    ],
-                                } satisfies TChatRoomAtom;
+                                const chatRoomId = (responseMessage?.payload as TNewMesageResponse).messageDetails
+                                    .chatRoomId;
+                                if (chatRoomId !== id) {
+                                    return;
+                                }
+                                const newMessage = (responseMessage?.payload as TNewMesageResponse).messageDetails
+                                    .latestMessage;
+                                const updatedChatRoomDetails: TChatRoomAtom = newMessage
+                                    ? {
+                                          ...chatRoomDetails,
+                                          messages: [
+                                              ...chatRoomDetails.messages,
+                                              {
+                                                  id: newMessage.id,
+                                                  chatRoomId: newMessage.chatRoomId,
+                                                  content: newMessage.content,
+                                                  editedAt: newMessage.editedAt,
+                                                  isEdited: newMessage.isEdited,
+                                                  readBy: newMessage.readBy,
+                                                  receivedBy: newMessage.receivedBy,
+                                                  recipients: newMessage.recipients,
+                                                  sentAt: newMessage.sentAt,
+                                                  sentBy: newMessage.sentBy,
+                                              },
+                                          ],
+                                      }
+                                    : chatRoomDetails;
 
                                 setChatRoomDetails(updatedChatRoomDetails);
+                                socket.send(
+                                    JSON.stringify({ type: READ_MESSAGE, payload: { chatRoomId: chatRoomDetails.id } })
+                                );
                             }
                             break;
                         case SEND_MESSAGE:
                             if (responseMessage.success === false) {
                                 switch (responseMessage.status) {
-                                    case StatusCodes.NotFound:
-                                        navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
-                                        setChatRoomDetails(null);
-                                        break;
                                     case StatusCodes.Forbidden:
                                         navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
                                         setChatRoomDetails(null);
-                                        toast.error("You are not a part of this chat room");
+                                        commonToastErrorMessage({ title: "There was an issue with your request" });
                                         break;
                                     case StatusCodes.BadRequest:
                                         if (responseMessage.payload?.action === "empty-message") {
@@ -641,12 +643,14 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                     } satisfies TChatRoomAtom;
 
                                     setChatRoomDetails(updatedChatRoomDetails);
+                                    setIsSendingMessage(false);
                                     return;
                                 }
                             }
                             setChatRoomDetails((prev) =>
                                 prev ? { ...prev, messages: [...chatRoomDetails.messages.slice(0, -1)] } : prev
                             );
+                            setIsSendingMessage(false);
                             break;
                     }
                 }
@@ -658,7 +662,6 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             } finally {
                 setIsEditNameModalVisible(false);
                 setIsLoading(false);
-                setIsSendingMessage(false);
             }
         };
     }, [socket, chatRoomDetails]);
@@ -1105,20 +1108,18 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             </Button>
                         )}
                     </div>
-                    <div className="flex w-full flex-grow flex-col gap-4 overflow-y-auto px-6">
+                    <div className="scrollbar flex w-full flex-grow flex-col gap-4 overflow-y-auto px-6">
                         {chatRoomDetails &&
                             chatRoomDetails.participants.length &&
                             chatRoomDetails.participants
                                 .map((member) => {
                                     const isUserAdmin = chatRoomDetails.isGroup
-                                        ? Boolean(chatRoomDetails.admins.find((admin) => admin.id === member.id))
-                                        : undefined;
-                                    const isUserSuperAdmin =
-                                        chatRoomDetails.isGroup && chatRoomDetails?.superAdmin?.id === member?.id;
-                                    if (!chatRoomDetails.isGroup && member?.id === user?.id) {
-                                        return;
-                                    }
-                                    if (isUserAdmin === undefined) {
+                                        ? chatRoomDetails.admins.some((admin) => admin.id === member.id) || false
+                                        : false;
+                                    const isUserSuperAdmin = chatRoomDetails.isGroup
+                                        ? chatRoomDetails?.superAdmin?.id === member?.id || false
+                                        : false;
+                                    if (chatRoomDetails.isGroup === false && member.id === user.id) {
                                         return;
                                     }
                                     return (

@@ -25,7 +25,7 @@ const ProtectedRoutes = () => {
             <DirectMessage socket={socket} />
             <Routes>
                 <Route path={NAVIGATION_ROUTES.INBOX} element={<Inbox />} />
-                <Route path={NAVIGATION_ROUTES.DM} element={<ChatRoom socket={socket} />} />
+                <Route path={`${NAVIGATION_ROUTES.DM}/:id`} element={<ChatRoom socket={socket} />} />
                 <Route path={NAVIGATION_ROUTES.CREATE_NEW_GROUP} element={<GroupDetailsPage socket={socket} />} />
                 <Route path="*" element={<Navigate to={NAVIGATION_ROUTES.INBOX} replace />} />
             </Routes>

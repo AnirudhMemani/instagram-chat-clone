@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { getAvatarFallback } from "@/utils/constants";
 import { Dot } from "lucide-react";
 
 export type TChatPreviewBoxProps = {
@@ -24,13 +25,13 @@ export const ChatPreviewBox: React.FC<TChatPreviewBoxProps> = ({
             <div className="flex items-center gap-3">
                 <Avatar className="size-14">
                     <AvatarImage src={avatar} />
-                    <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{getAvatarFallback(name)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col gap-2">
                     <p className={cn("line-clamp-1 text-ellipsis text-sm", !hasRead ? "font-bold" : "font-normal")}>
                         {name}
                     </p>
-                    <div className="flex items-center text-xs">
+                    <div className="mr-2 flex items-center gap-1 text-xs">
                         <p
                             className={cn(
                                 "line-clamp-1 text-ellipsis after:px-1 after:text-gray-400 after:content-['·']",
@@ -39,7 +40,7 @@ export const ChatPreviewBox: React.FC<TChatPreviewBoxProps> = ({
                         >
                             {message}
                         </p>
-                        <span className="text-gray-400">{messageAge}</span>
+                        <span className="flex-shrink-0 text-gray-400">{messageAge}</span>
                     </div>
                 </div>
             </div>

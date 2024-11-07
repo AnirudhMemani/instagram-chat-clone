@@ -1,3 +1,4 @@
+import { getAvatarFallback } from "@/utils/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 type TGroupBarsProps = {
@@ -12,16 +13,6 @@ type TGroupBarsProps = {
 };
 
 const GroupBars: React.FC<TGroupBarsProps> = ({ name, picture, participants, onClick }): JSX.Element => {
-    const getAvatarFallback = (name: string) => {
-        const parts = name.split(" ");
-
-        if (parts.length > 1) {
-            return parts[0].slice(0, 1).toUpperCase() + parts[1].slice(0, 1).toUpperCase();
-        }
-
-        return name.slice(0, 2).toUpperCase();
-    };
-
     return (
         <div
             className="flex w-full cursor-pointer items-center px-6 py-2 hover:bg-[rgba(30,41,59,0.5)] active:scale-[0.98]"

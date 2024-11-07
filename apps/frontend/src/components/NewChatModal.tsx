@@ -4,7 +4,6 @@ import { isChatModalVisibleAtom, showGroupSelectionModalAtom } from "@/state/glo
 import { selectedUsersAtom, userAtom } from "@/state/user";
 import { TGroupExistsResponse } from "@/types/chatRoom";
 import { NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
-import { printlogs } from "@/utils/logs";
 import { ADD_TO_CHAT, FIND_CHATS, ROOM_EXISTS } from "@instachat/messages/messages";
 import { IMessage } from "@instachat/messages/types";
 import { X } from "lucide-react";
@@ -101,8 +100,6 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
             setIsLoading(true);
             return;
         }
-
-        printlogs("NewChatModal mounted");
 
         socket.onmessage = (event) => {
             try {
@@ -281,9 +278,6 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
                       user.username.toLowerCase().includes(searchQuery.toLowerCase())
               )
             : null;
-
-        printlogs("selectedUsers", selectedUsers);
-        printlogs("selectedUsers length", selectedUsers.length);
 
         if (selectedUsers.length > 0 || isChatModalVisible.type === "ADD_USERS") {
             setFilteredChats(

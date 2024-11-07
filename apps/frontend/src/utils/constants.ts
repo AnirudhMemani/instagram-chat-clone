@@ -1,12 +1,12 @@
 import { formatDistanceToNow } from "date-fns";
 import { NavigateFunction } from "react-router-dom";
-import { localStorageUtils } from "./LocalStorageUtils";
+import { LocalStorageKeys, localStorageUtils } from "./LocalStorageUtils";
 
 export const NAVIGATION_ROUTES = {
     LOGIN: "/login",
     SIGNUP: "/signup",
     INBOX: "/inbox",
-    DM: "/inbox/direct/:id",
+    DM: "/inbox/direct",
     CREATE_NEW_GROUP: "/inbox/group/create",
 } as const;
 
@@ -23,9 +23,35 @@ const attachUrl = (path: string) => {
     return `${env.SERVER_URL}${path}`;
 };
 
+export const getPopupStatus = (): Boolean => {
+    const popupFlag = localStorage.getItem(LocalStorageKeys.PopupDisabled);
+    if (popupFlag === null) {
+        return false;
+    }
+    const parsedPopupFlag = JSON.parse(popupFlag);
+    if (parsedPopupFlag === true) {
+        return true;
+    }
+    return false;
+};
+
 export const handleUserLogout = (navigate: NavigateFunction) => {
+    const isPopupDisabled = getPopupStatus();
     localStorageUtils.clearStore();
+    if (isPopupDisabled) {
+        localStorage.setItem(LocalStorageKeys.PopupDisabled, JSON.stringify(true));
+    }
     navigate(NAVIGATION_ROUTES.LOGIN, { replace: true });
+};
+
+export const getAvatarFallback = (name: string) => {
+    const parts = name.split(" ");
+
+    if (parts.length > 1) {
+        return parts[0].slice(0, 1).toUpperCase() + parts[1].slice(0, 1).toUpperCase();
+    }
+
+    return name.slice(0, 2).toUpperCase();
 };
 
 export const EndPoints = {
