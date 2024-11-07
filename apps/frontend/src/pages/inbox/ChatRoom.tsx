@@ -1045,6 +1045,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             placeholder="Message..."
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
+                            onKeyDown={(e) => (e.key === "Enter" ? handleSendMessage() : undefined)}
                             ref={messageInputRef}
                             autoComplete="off"
                         />

@@ -1,5 +1,5 @@
 import { UserLoadingSkeleton } from "@/components/UserLoadingSkeleton";
-import { TParticipant } from "@/state/chat";
+import { chatRoomAtom, TParticipant } from "@/state/chat";
 import { isChatModalVisibleAtom } from "@/state/global";
 import { userAtom } from "@/state/user";
 import { TGetInboxResponse, TLatestMessage } from "@/types/chatRoom";
@@ -30,9 +30,11 @@ type TDirectMessageProps = {
 
 const DirectMessage: React.FC<TDirectMessageProps> = ({ socket }): JSX.Element => {
     const [dmList, setDmList] = useState<TInbox[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
     const user = useRecoilValue(userAtom);
     const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const chatRoomDetails = useRecoilValue(chatRoomAtom);
 
     const navigate = useNavigate();
 
@@ -95,7 +97,10 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket }): JSX.Element =
 
                             const name = newMessageData?.isGroup ? newMessageData?.name : otherParticipant?.username;
 
-                            printlogs("dmList in the beginning:", dmList);
+                            newMessageData["hasRead"] =
+                                chatRoomDetails?.id && chatRoomDetails.id === newMessageData.chatRoomId
+                                    ? true
+                                    : newMessageData["hasRead"];
 
                             setDmList((prevDmList) => {
                                 if (prevDmList.length < 1) {

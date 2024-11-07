@@ -80,7 +80,9 @@ const Login: React.FC = (): JSX.Element => {
                 <div className="border-input flex flex-col justify-center gap-8 rounded-lg border p-16">
                     <div className="flex flex-col items-center justify-center space-y-3">
                         <h1 className="text-bold text-center text-3xl">Sign in to your account</h1>
-                        <p className="text-center text-sm text-[#6c6c89]">Welcome back! Please enter your details.</p>
+                        <p className="text-muted-foreground text-center text-sm">
+                            Welcome back! Please enter your details.
+                        </p>
                     </div>
                     <form onSubmit={handleUserLogin} className="grid w-full max-w-sm items-center space-y-6">
                         <div className="grid w-full max-w-sm items-center space-y-4">
