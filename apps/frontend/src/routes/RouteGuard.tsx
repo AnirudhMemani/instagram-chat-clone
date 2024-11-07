@@ -4,7 +4,7 @@ import { localStorageUtils } from "@/utils/LocalStorageUtils";
 import { EndPoints, NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
 import axios from "axios";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useRecoilState, useSetRecoilState } from "recoil";
 
@@ -13,7 +13,7 @@ const navigateToLoginScreen = () => {
 };
 
 const RouteGuard = ({ children }: { children?: React.ReactNode }) => {
-    const token = localStorageUtils.getToken();
+    const [token] = useState(localStorageUtils.getToken());
 
     if (!token) {
         navigateToLoginScreen();
@@ -47,7 +47,7 @@ const RouteGuard = ({ children }: { children?: React.ReactNode }) => {
 
     useEffect(() => {
         authenticateUser();
-    }, [token]);
+    }, []);
 
     return isAuthenticated ? <>{children}</> : navigateToLoginScreen();
 };
