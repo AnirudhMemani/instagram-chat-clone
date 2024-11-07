@@ -1,13 +1,6 @@
-import { AxiosResponse } from "axios";
-
 class LocalStorageUtils {
-    setLoginResponse = (response: AxiosResponse) => {
-        const token = response.data.token;
-        this.setToken(token);
-    };
-
     setToken(token: string) {
-        return localStorage.setItem(LocalStorageKeys.Token, token);
+        localStorage.setItem(LocalStorageKeys.Token, token);
     }
 
     getToken() {

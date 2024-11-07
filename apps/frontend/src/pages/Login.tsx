@@ -49,7 +49,7 @@ const Login: React.FC = (): JSX.Element => {
             }
             const response = await processUserLogin(credentials, password, navigate);
             if (response) {
-                localStorageUtils.setLoginResponse(response);
+                localStorageUtils.setToken(response.data?.token);
                 setUser({
                     id: response.data.id,
                     email: response.data.email,

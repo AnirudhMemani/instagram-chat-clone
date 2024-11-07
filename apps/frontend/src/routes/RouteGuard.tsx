@@ -47,7 +47,7 @@ const RouteGuard = ({ children }: { children?: React.ReactNode }) => {
 
     useEffect(() => {
         authenticateUser();
-    }, []);
+    }, [token]);
 
     return isAuthenticated ? <>{children}</> : navigateToLoginScreen();
 };
