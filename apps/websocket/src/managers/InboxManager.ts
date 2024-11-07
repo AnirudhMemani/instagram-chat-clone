@@ -80,7 +80,7 @@ export class InboxManager {
 
     async getLatestMessages(userId: string, take: number, skip: number) {
         try {
-            const cacheKey = getSortedSetKey(userId);
+            // const cacheKey = getSortedSetKey(userId);
 
             // LRANGE "key" start "stop"
             // Where start and stop are zero-based indexes. The stop index is inclusive, meaning the element at the stop index is included in the result.
