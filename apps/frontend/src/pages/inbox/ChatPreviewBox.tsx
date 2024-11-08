@@ -21,7 +21,7 @@ export const ChatPreviewBox: React.FC<TChatPreviewBoxProps> = ({
     hasRead = false,
 }): JSX.Element => {
     return (
-        <div className="flex w-full max-w-xs cursor-pointer items-center justify-between" onClick={onClick}>
+        <div className="flex w-full cursor-pointer items-center justify-between max-xl:max-w-xs" onClick={onClick}>
             <div className="flex items-center gap-3">
                 <Avatar className="size-14">
                     <AvatarImage src={avatar} />

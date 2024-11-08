@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FormEvent, SetStateAction } from "react";
+import { useTheme } from "./theme-provider";
 
 type TEditModalProps = {
     children?: React.ReactNode;
@@ -50,6 +51,7 @@ export const EditModal: React.FC<TEditModalProps> = ({
     setOpen,
     disabled,
 }) => {
+    const { theme } = useTheme();
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             {children}
@@ -91,7 +93,7 @@ export const EditModal: React.FC<TEditModalProps> = ({
                         )}
                     </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={disabled} variant="secondary">
+                        <Button type="submit" disabled={disabled} variant={theme === "dark" ? "secondary" : "default"}>
                             {submitLabel ?? "Save changes"}
                         </Button>
                     </DialogFooter>

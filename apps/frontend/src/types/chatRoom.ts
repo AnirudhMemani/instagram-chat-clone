@@ -34,7 +34,9 @@ export type TGetInboxResponse =
           hasRead: boolean;
           chatRoomId: string;
           participants: TParticipant[];
-          latestMessage: TLatestMessage;
+          latestMessage?: TLatestMessage;
+          createdBy: TParticipant;
+          createdAt: Date;
       }
     | {
           isGroup: false;
@@ -42,6 +44,8 @@ export type TGetInboxResponse =
           chatRoomId: string;
           participants: TParticipant[];
           latestMessage: TLatestMessage;
+          createdBy: TParticipant;
+          createdAt: Date;
       };
 
 export type TNewMesageResponse = {

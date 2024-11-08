@@ -16,15 +16,25 @@ import { useRecoilValue, useSetRecoilState } from "recoil";
 import { toast } from "sonner";
 import { ChatPreviewBox } from "./ChatPreviewBox";
 
-type TInbox = {
+type TCommonInboxProps = {
     chatRoomId: string;
     picture: string;
     name: string;
-    isGroup: boolean;
-    latestMessage: TLatestMessage;
     hasRead: boolean;
     participants: TParticipant[];
+    createdBy: TParticipant;
+    createdAt: Date;
 };
+
+type TInbox =
+    | ({
+          isGroup: true;
+          latestMessage?: TLatestMessage;
+      } & TCommonInboxProps)
+    | ({
+          isGroup: false;
+          latestMessage: TLatestMessage;
+      } & TCommonInboxProps);
 
 type TDirectMessageProps = {
     socket: WebSocket | null;
@@ -178,10 +188,21 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket, className }): JS
         }
     };
 
-    const formatLatestMessage = (chatRoom: TInbox) =>
-        chatRoom.latestMessage.sentBy.id === user.id
-            ? `You: ${chatRoom.latestMessage.content.trim()}`
-            : chatRoom.latestMessage.content.trim();
+    const formatLatestMessage = (chatRoom: TInbox) => {
+        let message: string;
+        if (chatRoom.latestMessage) {
+            message =
+                chatRoom.latestMessage.sentBy.id === user.id
+                    ? `You: ${chatRoom.latestMessage.content.trim()}`
+                    : chatRoom.latestMessage.content.trim();
+        } else {
+            message =
+                chatRoom.createdBy.id === user.id
+                    ? "You created the group"
+                    : `Group created by ${chatRoom.createdBy.fullName}`;
+        }
+        return message;
+    };
 
     return (
         <div
@@ -206,7 +227,7 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket, className }): JS
                     dmList?.map((dm) => (
                         <ChatPreviewBox
                             key={dm.chatRoomId}
-                            messageAge={getMessageAge(dm.latestMessage.sentAt)}
+                            messageAge={getMessageAge(dm.latestMessage ? dm.latestMessage.sentAt : dm.createdAt)}
                             avatar={dm.picture}
                             message={formatLatestMessage(dm)}
                             name={dm.name}

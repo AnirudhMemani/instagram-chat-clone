@@ -18,6 +18,9 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { UserBars } from "./UserBars";
 import { UserLoadingSkeleton } from "./UserLoadingSkeleton";
+import useAutosizeTextArea from "@/hooks/useAutosizeTextArea";
+import { useTheme } from "./theme-provider";
+import { printlogs } from "@/utils/logs";
 
 export type TUsersSchema = {
     id: string;
@@ -91,7 +94,13 @@ export const NewChatModal: React.FC<TNewChatModalProps> = ({ socket, containerCl
 
     const modalContainerRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+    const { theme } = useTheme();
+
     const { width: windowWidth } = useWindowDimensions();
+
+    const textAreaRef = useRef<HTMLTextAreaElement>(null);
+
+    useAutosizeTextArea(textAreaRef.current, searchInput);
 
     useEffect(() => {
         if (isChatModalVisible.visible === true) {
@@ -128,6 +137,8 @@ export const NewChatModal: React.FC<TNewChatModalProps> = ({ socket, containerCl
                                 toast.error(payload?.message);
                                 break;
                             case 409:
+                                printlogs("Entered 409 handler");
+                                printlogs("payload", payload);
                                 if (payload?.isGroup === true) {
                                     setExistingGroups((payload as TGroupExistsResponse)?.existingGroups);
                                     setShowGroupSelectionModal(true);
@@ -312,7 +323,7 @@ export const NewChatModal: React.FC<TNewChatModalProps> = ({ socket, containerCl
         setFilteredChats(filteredData);
     };
 
-    const searchInputChangeHandler = async (e: ChangeEvent<HTMLInputElement>) => {
+    const searchInputChangeHandler = async (e: ChangeEvent<HTMLTextAreaElement>) => {
         const searchQuery = e.target.value;
         setSearchInput(searchQuery);
 
@@ -414,29 +425,32 @@ export const NewChatModal: React.FC<TNewChatModalProps> = ({ socket, containerCl
                 </div>
                 <div className="border-input flex items-center gap-3 border py-2">
                     <span className="ml-3 font-semibold sm:ml-6">To:</span>
-                    {selectedUsers.length > 0 &&
-                        selectedUsers.map((user) => (
-                            <Badge className="cursor-pointer" key={user.id}>
-                                {user.fullName}
-                                <X
-                                    onClick={() => {
-                                        if (isLoading) {
-                                            return;
-                                        }
-                                        removeSelectedUser(user.id);
-                                    }}
-                                />
-                            </Badge>
-                        ))}
-                    <input
-                        type="search"
-                        placeholder="Search..."
-                        className="mr-5 w-full border-0 bg-transparent px-2 outline-none placeholder:text-gray-400"
-                        onChange={searchInputChangeHandler}
-                        value={searchInput}
-                    />
+                    <div className="flex w-full flex-wrap items-center gap-1">
+                        {selectedUsers.length > 0 &&
+                            selectedUsers.map((user) => (
+                                <Badge className="cursor-pointer" key={user.id}>
+                                    {user.fullName}
+                                    <X
+                                        onClick={() => {
+                                            if (isLoading) {
+                                                return;
+                                            }
+                                            removeSelectedUser(user.id);
+                                        }}
+                                    />
+                                </Badge>
+                            ))}
+                        <textarea
+                            placeholder="Search..."
+                            className="scrollbar mr-5 flex-grow resize-none border-0 bg-transparent px-2 outline-none placeholder:text-gray-400"
+                            onChange={searchInputChangeHandler}
+                            value={searchInput}
+                            rows={1}
+                            ref={textAreaRef}
+                        />
+                    </div>
                 </div>
-                <div className="scrollbar mb-4 flex w-full flex-grow flex-col gap-1 overflow-y-auto px-3 pt-5 sm:px-6">
+                <div className="scrollbar mb-4 flex w-full flex-grow flex-col gap-1 overflow-y-auto pt-5">
                     {isLoading ? (
                         <div className="flex flex-col gap-6">
                             {Array.from({ length: 10 }, (_, index) => (
@@ -498,12 +512,12 @@ export const NewChatModal: React.FC<TNewChatModalProps> = ({ socket, containerCl
                                 )
                             )
                         ) : (
-                            <div className="text-sm text-gray-400">
+                            <div className="px-3 text-sm text-gray-400 sm:px-6">
                                 <p>No account found</p>
                             </div>
                         )
                     ) : (
-                        <div className="text-sm text-gray-400">
+                        <div className="px-3 text-sm text-gray-400 sm:px-6">
                             <p>No account found</p>
                         </div>
                     )}
@@ -513,7 +527,7 @@ export const NewChatModal: React.FC<TNewChatModalProps> = ({ socket, containerCl
                         className="mx-6 w-full"
                         disabled={selectedUsers.length === 0 || isSubmitting}
                         onClick={isChatModalVisible.type === "ADD_USERS" ? addNewUserToChatRoom : initiateNewChat}
-                        variant="secondary"
+                        variant={theme === "dark" || theme === "system" ? "secondary" : "default"}
                     >
                         {!isSubmitting ? "Chat" : <Loader visible={isSubmitting} />}
                     </Button>

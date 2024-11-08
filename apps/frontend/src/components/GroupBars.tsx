@@ -15,7 +15,7 @@ type TGroupBarsProps = {
 const GroupBars: React.FC<TGroupBarsProps> = ({ name, picture, participants, onClick }): JSX.Element => {
     return (
         <div
-            className="flex w-full cursor-pointer items-center py-2 hover:bg-[rgba(30,41,59,0.5)] active:scale-[0.98]"
+            className="flex w-full cursor-pointer items-center px-3 py-2 hover:bg-[rgba(30,41,59,0.5)] active:scale-[0.98] sm:px-6"
             onClick={onClick}
         >
             <div className="flex w-full flex-grow items-center gap-3">

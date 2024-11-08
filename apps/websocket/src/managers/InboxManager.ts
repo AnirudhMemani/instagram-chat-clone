@@ -47,7 +47,7 @@ import { IUserWithSocket, UserManager } from "./UserManager.js";
  * TODO:
  * Maybe switch to singleton since the scores array is being tracked?
  * Add redis
- * Fix message read thing where in individual chat even if the chat room is open and a new message comes, it shows not read in inbox
+ * Write separate logic for delete chat room for group and individual chats
  */
 
 export class InboxManager {
@@ -96,7 +96,9 @@ export class InboxManager {
                 return;
             }
 
-            const filteredMessages = userMessages.filter((message) => message?.latestMessage);
+            const filteredMessages = userMessages.filter((message) =>
+                message.roomType === "DIRECT_MESSAGE" && !message.latestMessage ? false : true
+            );
 
             const stringifiedUserMessages = filteredMessages.map((message) => {
                 if (!message) {
@@ -108,10 +110,7 @@ export class InboxManager {
                 return {
                     ...rest,
                     chatRoomId,
-                    hasRead:
-                        message.latestMessage?.readBy?.some((user) => user.id === userId) ||
-                        message.latestMessage?.sentBy.id === userId ||
-                        false,
+                    hasRead: message?.latestMessage?.readBy?.some((user) => user.id === userId) ?? true,
                     isGroup: message.roomType === "GROUP",
                 };
             });
@@ -177,6 +176,8 @@ export class InboxManager {
                 name: true,
                 picture: true,
                 roomType: true,
+                createdAt: true,
+                createdBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
                 latestMessage: {
                     select: {
                         id: true,
@@ -223,6 +224,8 @@ export class InboxManager {
                 sentBy: modifiedChatRoom.latestMessage?.sentBy,
                 readBy: modifiedChatRoom.latestMessage?.readBy,
             },
+            createdAt: modifiedChatRoom.createdAt,
+            createdBy: modifiedChatRoom.createdBy,
         };
 
         // const cacheKey = getSortedSetKey(userId);
@@ -448,7 +451,29 @@ export class InboxManager {
                 this.userManager.addUserToRoom(user.id, newChatRoom.id);
             });
 
+            const formattedInboxMessage = {
+                isGroup: true,
+                hasRead: true,
+                chatRoomId: newChatRoom.id,
+                name: newChatRoom.name,
+                picture: newChatRoom.picture,
+                participants: newChatRoom.participants,
+                latestMessage: null,
+                createdAt: newChatRoom.createdAt,
+                createdBy: newChatRoom.createdBy,
+            };
+
+            const updateInboxPayload = {
+                type: UPDATE_INBOX,
+                payload: formattedInboxMessage,
+                status: STATUS_CODE.OK,
+                success: true,
+            };
+
+            this.userManager.publishToRoom(newChatRoom.id, id, updateInboxPayload);
+
             this.res.json(CREATE_GROUP, { ...newChatRoom, message: "Group created successfully" });
+            this.res.json(UPDATE_INBOX, { ...formattedInboxMessage, hasRead: true });
         } catch (error) {
             printlogs("ERROR inside handleGroupCreation()", error);
             this.res.error(CREATE_GROUP, "An error occurred while trying to create this group");
@@ -577,7 +602,7 @@ export class InboxManager {
             },
         });
 
-        if (existingChatRoom?.id) {
+        if (existingChatRoom) {
             this.res.status(STATUS_CODE.CONFLICT).json(ROOM_EXISTS, { existingChatRoom, isGroup: false });
             return;
         }

@@ -15,7 +15,7 @@ import { chatRoomAtom, potentialSuperAdminsAtom, TChatRoomAtom, TMessage, TParti
 import { alertModalAtom, isChatModalVisibleAtom, showAdminSelectionModalAtom } from "@/state/global";
 import { userAtom } from "@/state/user";
 import { TNewMesageResponse } from "@/types/chatRoom";
-import { getAvatarFallback, NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
+import { formatChatRoomDate, getAvatarFallback, NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
 import { TWebSocket } from "@/utils/types";
 import {
@@ -67,8 +67,8 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     const { id } = useParams();
     const { theme } = useTheme();
     const navigate = useNavigate();
-    const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const { width: windowWidth } = useWindowDimensions();
+    const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
     const commonToastErrorMessage = ({ title, description }: { title?: string; description?: string }) => {
         toast.error(title ?? "Uh oh! Something went wrong", {
@@ -988,6 +988,16 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                 {/* messages */}
                 <div className="scrollbar flex w-full flex-grow flex-col overflow-y-auto pb-2 pt-4 text-white">
                     <div className="mx-2 flex flex-col justify-end gap-4">
+                        {chatRoomDetails.isGroup && (
+                            <div className="text-muted-foreground flex w-full flex-col items-center justify-center gap-6 text-sm">
+                                <span>{formatChatRoomDate(chatRoomDetails.createdAt)}</span>
+                                <span>
+                                    {chatRoomDetails.createdBy.id === user.id
+                                        ? "You created the group."
+                                        : `Group created by ${chatRoomDetails.createdBy.fullName}`}
+                                </span>
+                            </div>
+                        )}
                         {chatRoomDetails &&
                             chatRoomDetails?.messages?.length > 0 &&
                             chatRoomDetails?.messages?.map((message, index) =>
@@ -1121,7 +1131,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             </EditModal>
                         </div>
                     )}
-                    <div className="flex items-center justify-between p-6">
+                    <div className="flex items-center justify-between p-6 pb-3">
                         <p className="font-medium">{chatRoomDetails.participants.length > 2 ? "Members" : "Member"}</p>
                         {chatRoomDetails.isGroup && chatRoomDetails.admins.some((admin) => admin.id === user.id) && (
                             <Button
@@ -1133,7 +1143,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             </Button>
                         )}
                     </div>
-                    <div className="scrollbar flex w-full flex-grow flex-col gap-4 overflow-y-auto px-6">
+                    <div className="scrollbar flex w-full flex-grow flex-col gap-4 overflow-y-auto px-6 py-3">
                         {chatRoomDetails &&
                             chatRoomDetails.participants.length &&
                             chatRoomDetails.participants

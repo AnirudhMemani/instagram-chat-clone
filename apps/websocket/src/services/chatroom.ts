@@ -38,13 +38,20 @@ export const getLatestChatRoomMessages = async (
                     sentBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
                 },
             },
+            createdBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
             participants: { select: { id: true, username: true, profilePic: true, fullName: true } },
+            createdAt: true,
         },
-        orderBy: {
-            latestMessage: {
-                sentAt: queryOptions?.orderBy ?? "desc",
+        orderBy: [
+            {
+                createdAt: "desc",
             },
-        },
+            {
+                latestMessage: {
+                    sentAt: queryOptions?.orderBy ?? "desc",
+                },
+            },
+        ],
         take: queryOptions?.take ?? Infinity,
         skip: queryOptions?.skip ?? 0,
     });

@@ -1,4 +1,4 @@
-import { formatDistanceToNowStrict } from "date-fns";
+import { format, formatDistanceToNowStrict, isToday, isYesterday } from "date-fns";
 import { NavigateFunction } from "react-router-dom";
 import { LocalStorageKeys, localStorageUtils } from "./LocalStorageUtils";
 
@@ -38,6 +38,16 @@ export const getMessageAge = (messageSentAt: Date) => {
             },
         },
     });
+};
+
+export const formatChatRoomDate = (date: Date): string => {
+    if (isToday(date)) {
+        return "Today";
+    } else if (isYesterday(date)) {
+        return "Yesterday";
+    } else {
+        return format(date, "d MMM");
+    }
 };
 
 export const env = {
