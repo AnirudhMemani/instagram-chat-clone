@@ -5,9 +5,10 @@ import { LocalStorageKeys, localStorageUtils } from "./LocalStorageUtils";
 export const NAVIGATION_ROUTES = {
     LOGIN: "/login",
     SIGNUP: "/signup",
+    EDIT_PROFILE: "/profile/e",
     INBOX: "/direct/inbox",
     NEW: "/direct/new",
-    DM: "/direct/t/",
+    DM: "/direct/t",
     CREATE_NEW_GROUP: "/direct/group/new",
 } as const;
 

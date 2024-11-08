@@ -11,6 +11,7 @@
         "prepare": "husky install"
     },
     "dependencies": {
+        "@hookform/resolvers": "^3.9.1",
         "@instachat/messages": "*",
         "@instachat/ui": "*",
         "@radix-ui/react-alert-dialog": "^1.0.5",
@@ -33,6 +34,7 @@
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "react-easy-crop": "^5.0.6",
+        "react-hook-form": "^7.53.1",
         "react-router-dom": "^6.22.3",
         "react-spinners": "^0.13.8",
         "recoil": "^0.7.7",

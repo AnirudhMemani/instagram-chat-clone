@@ -18,3 +18,4 @@ export const DELETE_GROUP_CHAT = "delete_group_chat";
 export const CHATROOM_DETAILS_BY_ID = "get_chatroom_details_by_id";
 export const MESSAGE_QUEUE = "message_queue";
 export const TRANSFER_SUPER_ADMIN = "transfer_super_admin";
+export const UPDATE_PROFILE = "update_profile";

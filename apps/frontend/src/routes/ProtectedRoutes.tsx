@@ -3,6 +3,7 @@ import { AlertModal } from "@/components/AlertModal";
 import GroupSelectionModal from "@/components/GroupSelectionModal";
 import { NewChatModal } from "@/components/NewChatModal";
 import { useSocket } from "@/hooks/useSocket";
+import { EditProfile } from "@/pages/EditProfile";
 import GroupDetailsPage from "@/pages/group/GroupDetailsPage";
 import { ChatRoom } from "@/pages/inbox/ChatRoom";
 import DirectMessage from "@/pages/inbox/DirectMessages";
@@ -10,7 +11,6 @@ import Inbox from "@/pages/inbox/Inbox";
 import Sidebar from "@/pages/inbox/Sidebar";
 import { isChatModalVisibleAtom, showAdminSelectionModalAtom, showGroupSelectionModalAtom } from "@/state/global";
 import { NAVIGATION_ROUTES } from "@/utils/constants";
-import { useEffect, useRef, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useRecoilValue } from "recoil";
 
@@ -29,6 +29,7 @@ const ProtectedRoutes = () => {
                     <Route path={NAVIGATION_ROUTES.INBOX} element={<Inbox socket={socket} />} />
                     <Route path={`${NAVIGATION_ROUTES.DM}/:id`} element={<ChatRoom socket={socket} />} />
                     <Route path={NAVIGATION_ROUTES.CREATE_NEW_GROUP} element={<GroupDetailsPage socket={socket} />} />
+                    <Route path={NAVIGATION_ROUTES.EDIT_PROFILE} element={<EditProfile socket={socket} />} />
                     <Route
                         path={NAVIGATION_ROUTES.NEW}
                         element={

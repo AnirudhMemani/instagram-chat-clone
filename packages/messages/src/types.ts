@@ -80,3 +80,12 @@ export interface IMessageRead
     extends IMessage<{
         chatRoomId: string;
     }> {}
+
+export interface IUpdateProfile
+    extends IMessage<{
+        email: string;
+        username: string;
+        fullName: string;
+        profilePic: string;
+        pictureName: string;
+    }> {}

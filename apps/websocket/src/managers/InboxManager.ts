@@ -18,6 +18,7 @@ import {
     SEND_MESSAGE,
     TRANSFER_SUPER_ADMIN,
     UPDATE_INBOX,
+    UPDATE_PROFILE,
 } from "@instachat/messages/messages";
 import {
     IAddUserToGroupChat,
@@ -33,6 +34,7 @@ import {
     IStartConvoMessageRequest,
     ITransferSuperAdminAndLeaveGroupChat,
     IUpdateChatRoomName,
+    IUpdateProfile,
 } from "@instachat/messages/types";
 import cloudinary from "cloudinary";
 import { Redis } from "ioredis";
@@ -1087,6 +1089,69 @@ export class InboxManager {
         }
     }
 
+    async handleUpdateProfile(userId: string, message: IUpdateProfile) {
+        const { email, username, fullName, profilePic, pictureName } = message.payload;
+
+        if (!email || !username || !fullName || !profilePic) {
+            this.res.error(UPDATE_PROFILE, "Invalid params", STATUS_CODE.BAD_REQUEST);
+            return;
+        }
+
+        try {
+            const userExists = await this.prisma.user.findUnique({ where: { id: userId } });
+
+            if (!userExists) {
+                this.res.error(UPDATE_PROFILE, "User not found", STATUS_CODE.NOT_FOUND);
+                return;
+            }
+
+            const identityExists = await this.prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { username, id: { not: userId } },
+                        { email, id: { not: userId } },
+                    ],
+                },
+                select: { username: true, email: true },
+            });
+
+            if (identityExists) {
+                const action = identityExists.username === username ? "username" : "email";
+                this.res
+                    .status(STATUS_CODE.CONFLICT)
+                    .json(UPDATE_PROFILE, { message: `${action} already exists`, action }, { success: false });
+                return;
+            }
+
+            const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8 MB
+
+            const fileSize = Buffer.byteLength(profilePic);
+
+            if (fileSize > MAX_FILE_SIZE) {
+                this.res
+                    .status(STATUS_CODE.BAD_REQUEST)
+                    .json(UPDATE_PROFILE, { fileSize, action: "file-size" }, { success: false });
+                return;
+            }
+
+            const result = await cloudinary.v2.uploader.upload(profilePic, {
+                public_id: pictureName,
+                upload_preset: process.env.CLOUDINARY_PRESET_NAME,
+            });
+
+            const updatedProfile = await this.prisma.user.update({
+                where: { id: userId },
+                data: { username, email, profilePic: result?.secure_url, fullName },
+                select: { id: true, username: true, email: true, profilePic: true, fullName: true },
+            });
+
+            this.res.json(UPDATE_PROFILE, updatedProfile);
+        } catch (error) {
+            printlogs("ERROR inside handleUpdateProfile()", error);
+            this.res.error(UPDATE_PROFILE, "There was an issue trying to update your profile");
+        }
+    }
+
     async addUserToChat(id: string, message: IAddUserToGroupChat) {
         const { chatRoomId, addUsersId } = message.payload;
 
@@ -1391,6 +1456,9 @@ export class InboxManager {
                     break;
                 case READ_MESSAGE:
                     this.handleMessageRead(id, message);
+                    break;
+                case UPDATE_PROFILE:
+                    this.handleUpdateProfile(id, message);
                     break;
                 default:
                     break;

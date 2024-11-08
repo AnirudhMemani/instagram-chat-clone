@@ -9,7 +9,7 @@ type TSelectedUsersAtom = {
     profilePic: string;
 };
 
-type TUser = {
+export type TUser = {
     id: string;
     username: string;
     fullName: string;

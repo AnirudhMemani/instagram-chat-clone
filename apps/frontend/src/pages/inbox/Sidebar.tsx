@@ -43,7 +43,9 @@ const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
                         </Avatar>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="dark:bg-background bg-background">
-                        <DropdownMenuItem>Profile</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(NAVIGATION_ROUTES.EDIT_PROFILE)}>
+                            Profile
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             onClick={() =>
