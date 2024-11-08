@@ -5,7 +5,7 @@ import {
     CHANGE_GROUP_NAME,
     CHATROOM_DETAILS_BY_ID,
     CREATE_GROUP,
-    DELETE_GROUP_CHAT,
+    DELETE_CHAT,
     FIND_CHATS,
     GET_INBOX,
     LEAVE_GROUP_CHAT,
@@ -49,7 +49,6 @@ import { IUserWithSocket, UserManager } from "./UserManager.js";
  * TODO:
  * Maybe switch to singleton since the scores array is being tracked?
  * Add redis
- * Write separate logic for delete chat room for group and individual chats
  */
 
 export class InboxManager {
@@ -91,40 +90,66 @@ export class InboxManager {
             //     return cachedDMs.map((cachedDM: any) => JSON.parse(cachedDM));
             // }
 
-            const userMessages = await getLatestChatRoomMessages(userId, { take, skip, orderBy: "desc" });
+            const chatRooms = await getLatestChatRoomMessages(userId, { take, skip, orderBy: "desc" });
 
-            if (!userMessages) {
+            if (!chatRooms) {
                 this.res.error(GET_INBOX, "User is not a paricipant of any chat room", STATUS_CODE.NOT_FOUND);
                 return;
             }
 
-            const filteredMessages = userMessages.filter((message) =>
-                message.roomType === "DIRECT_MESSAGE" && !message.latestMessage ? false : true
+            const messageVisibility = await this.prisma.messageVisibility.findMany({
+                where: { userId },
+                select: { deletedAt: true, chatRoomId: true },
+            });
+
+            const visibilityMap = messageVisibility.reduce(
+                (map, record) => {
+                    map[record.chatRoomId] = record.deletedAt;
+                    return map;
+                },
+                {} as Record<string, Date>
             );
 
-            const stringifiedUserMessages = filteredMessages.map((message) => {
-                if (!message) {
-                    return message;
+            const filteredChatRooms = chatRooms.filter((chatRoom) => {
+                const deletedAt = visibilityMap[chatRoom.id];
+
+                // If chatRoom is DIRECT_MESSAGE and there’s no latest message, exclude it
+                if (chatRoom.roomType === "DIRECT_MESSAGE" && !chatRoom.latestMessage) {
+                    return false;
                 }
 
-                const { roomType, id: chatRoomId, ...rest } = message;
+                // Only include direct messages sent after deletedAt timestamp
+                if (
+                    chatRoom.roomType === "DIRECT_MESSAGE" &&
+                    deletedAt &&
+                    chatRoom.latestMessage &&
+                    chatRoom.latestMessage.sentAt <= deletedAt
+                ) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            const stringifiedChatRooms = filteredChatRooms.map((chatRoom) => {
+                const { roomType, id: chatRoomId, ...rest } = chatRoom;
 
                 return {
                     ...rest,
                     chatRoomId,
-                    hasRead: message?.latestMessage?.readBy?.some((user) => user.id === userId) ?? true,
-                    isGroup: message.roomType === "GROUP",
+                    hasRead: chatRoom?.latestMessage?.readBy?.some((user) => user.id === userId) ?? true,
+                    isGroup: chatRoom.roomType === "GROUP",
                 };
             });
 
-            // if (filteredMessages.length > 0) {
+            // if (filteredChatRooms.length > 0) {
             //     // Push the new messages to the head of the list
-            //     await this.redis.lpush(cacheKey, ...stringifiedUserMessages.map((message) => JSON.stringify(message)));
+            //     await this.redis.lpush(cacheKey, ...stringifiedChatRooms.map((message) => JSON.stringify(message)));
             //     // Trim the list to keep only the most recent 50 messages
             //     await this.redis.ltrim(cacheKey, 0, 49);
             // }
 
-            return stringifiedUserMessages;
+            return stringifiedChatRooms;
         } catch (error) {
             printlogs("ERROR inside getLatestMessages():", error);
             this.res.error(GET_INBOX, "There was an issue trying to get your inbox");
@@ -132,148 +157,153 @@ export class InboxManager {
     }
 
     async handleNewMessage(userId: string, message: ISendMessage) {
-        const { chatRoomId, content } = message.payload;
+        try {
+            const { chatRoomId, content } = message.payload;
 
-        if (!chatRoomId || !content) {
-            this.res
-                .status(STATUS_CODE.BAD_REQUEST)
-                .json(SEND_MESSAGE, { message: "Invalid params", action: "invalid-params" });
-            return;
-        }
+            if (!chatRoomId || !content) {
+                this.res
+                    .status(STATUS_CODE.BAD_REQUEST)
+                    .json(SEND_MESSAGE, { message: "Invalid params", action: "invalid-params" });
+                return;
+            }
 
-        if (content.trim().length < 1) {
-            this.res
-                .status(STATUS_CODE.BAD_REQUEST)
-                .json(SEND_MESSAGE, { message: "Message cannot be empty", action: "empty-message" });
-            return;
-        }
+            if (content.trim().length < 1) {
+                this.res
+                    .status(STATUS_CODE.BAD_REQUEST)
+                    .json(SEND_MESSAGE, { message: "Message cannot be empty", action: "empty-message" });
+                return;
+            }
 
-        const chatRoom = await getChatRoom(chatRoomId, userId);
+            const chatRoom = await getChatRoom(chatRoomId, userId);
 
-        if (!chatRoom) {
-            this.res.error(
-                SEND_MESSAGE,
-                "Chat room not found or user not a part of this chat room",
-                STATUS_CODE.FORBIDDEN
-            );
-            return;
-        }
+            if (!chatRoom) {
+                this.res.error(
+                    SEND_MESSAGE,
+                    "Chat room not found or user not a part of this chat room",
+                    STATUS_CODE.FORBIDDEN
+                );
+                return;
+            }
 
-        const chatRoomMessages = await this.prisma.chatRoom.update({
-            where: { id: chatRoomId },
-            data: {
-                messages: {
-                    create: {
-                        sentBy: { connect: { id: userId } },
-                        content,
-                        recipients: { connect: chatRoom.participants.map((member) => ({ id: member.id })) },
-                        readBy: { connect: { id: userId } },
-                        receivedBy: { connect: { id: userId } },
-                        latestMessageChatRoom: { connect: { id: chatRoomId } },
+            const chatRoomMessages = await this.prisma.chatRoom.update({
+                where: { id: chatRoomId },
+                data: {
+                    messages: {
+                        create: {
+                            sentBy: { connect: { id: userId } },
+                            content,
+                            recipients: { connect: chatRoom.participants.map((member) => ({ id: member.id })) },
+                            readBy: { connect: { id: userId } },
+                            receivedBy: { connect: { id: userId } },
+                            latestMessageChatRoom: { connect: { id: chatRoomId } },
+                        },
                     },
                 },
-            },
-            select: {
-                id: true,
-                name: true,
-                picture: true,
-                roomType: true,
-                createdAt: true,
-                createdBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                select: {
+                    id: true,
+                    name: true,
+                    picture: true,
+                    roomType: true,
+                    createdAt: true,
+                    createdBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                    latestMessage: {
+                        select: {
+                            id: true,
+                            content: true,
+                            sentAt: true,
+                            editedAt: true,
+                            readBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                            isEdited: true,
+                            sentBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                            receivedBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                            recipients: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                            chatRoomId: true,
+                        },
+                    },
+                    participants: { select: { id: true, username: true, fullName: true, profilePic: true } },
+                },
+            });
+
+            if (!chatRoomMessages) {
+                this.res.error(SEND_MESSAGE, "There was an error trying to send this message");
+                return;
+            }
+
+            const { roomType, id, ...rest } = chatRoomMessages;
+
+            const modifiedChatRoom = {
+                ...rest,
+                chatRoomId,
+                isGroup: chatRoomMessages.roomType === "GROUP",
+                hasRead: chatRoomMessages.latestMessage?.readBy.some((user) => user.id === userId) || false,
+            };
+
+            const formattedInboxMessage = {
+                isGroup: modifiedChatRoom.isGroup,
+                hasRead: false,
+                chatRoomId: modifiedChatRoom.chatRoomId,
+                name: modifiedChatRoom.name,
+                picture: modifiedChatRoom.picture,
+                participants: modifiedChatRoom.participants,
                 latestMessage: {
-                    select: {
-                        id: true,
-                        content: true,
-                        sentAt: true,
-                        editedAt: true,
-                        readBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
-                        isEdited: true,
-                        sentBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
-                        receivedBy: { select: { id: true, username: true, fullName: true, profilePic: true } },
-                        recipients: { select: { id: true, username: true, fullName: true, profilePic: true } },
-                        chatRoomId: true,
-                    },
+                    id: modifiedChatRoom.latestMessage?.id,
+                    content: modifiedChatRoom.latestMessage?.content,
+                    sentAt: modifiedChatRoom.latestMessage?.sentAt,
+                    sentBy: modifiedChatRoom.latestMessage?.sentBy,
+                    readBy: modifiedChatRoom.latestMessage?.readBy,
                 },
-                participants: { select: { id: true, username: true, fullName: true, profilePic: true } },
-            },
-        });
+                createdAt: modifiedChatRoom.createdAt,
+                createdBy: modifiedChatRoom.createdBy,
+            };
 
-        if (!chatRoomMessages) {
-            this.res.error(SEND_MESSAGE, "There was an error trying to send this message");
-            return;
+            // const cacheKey = getSortedSetKey(userId);
+            // const cachedMessages = await this.redis.lrange(cacheKey, 0, -1);
+
+            // const updatedCache = cachedMessages.map((cachedMsg) => {
+            //     const parsedMsg = JSON.parse(cachedMsg);
+            //     return parsedMsg?.chatRoomId === chatRoomId ? JSON.stringify(formattedInboxMessage) : cachedMsg;
+            // });
+
+            // await this.redis.del(cacheKey);
+            // await this.redis.lpush(cacheKey, ...updatedCache);
+            // await this.redis.ltrim(cacheKey, 0, 49);
+
+            const newMessagePayload = {
+                type: NEW_MESSAGE,
+                payload: {
+                    message: "New message received",
+                    messageDetails: modifiedChatRoom,
+                },
+                status: STATUS_CODE.OK,
+                success: true,
+            };
+
+            const updateInboxPayload = {
+                type: UPDATE_INBOX,
+                payload: formattedInboxMessage,
+                status: STATUS_CODE.OK,
+                success: true,
+            };
+
+            this.userManager.publishToRoom(chatRoomId, userId, newMessagePayload);
+            this.userManager.publishToRoom(chatRoomId, userId, updateInboxPayload);
+
+            this.res.json(SEND_MESSAGE, { message: "Message sent", messageDetails: modifiedChatRoom });
+            this.res.json(UPDATE_INBOX, { ...formattedInboxMessage, hasRead: true });
+
+            // fix this
+            // const MQServerUrl = "amqp://localhost";
+
+            // const conn = await amqp.connect(MQServerUrl);
+            // const channel = await conn.createChannel();
+            // await channel.assertQueue(MESSAGE_QUEUE);
+            // channel.sendToQueue(MESSAGE_QUEUE, message.payload);
+
+            // await redis.publish(chatRoomId, JSON.stringify(content));
+        } catch (error) {
+            printlogs("ERROR inside handleNewMessage()", error);
+            this.res.error(NEW_MESSAGE, "There was an error trying to send this message");
         }
-
-        const { roomType, id, ...rest } = chatRoomMessages;
-
-        const modifiedChatRoom = {
-            ...rest,
-            chatRoomId,
-            isGroup: chatRoomMessages.roomType === "GROUP",
-            hasRead: chatRoomMessages.latestMessage?.readBy.some((user) => user.id === userId) || false,
-        };
-
-        const formattedInboxMessage = {
-            isGroup: modifiedChatRoom.isGroup,
-            hasRead: false,
-            chatRoomId: modifiedChatRoom.chatRoomId,
-            name: modifiedChatRoom.name,
-            picture: modifiedChatRoom.picture,
-            participants: modifiedChatRoom.participants,
-            latestMessage: {
-                id: modifiedChatRoom.latestMessage?.id,
-                content: modifiedChatRoom.latestMessage?.content,
-                sentAt: modifiedChatRoom.latestMessage?.sentAt,
-                sentBy: modifiedChatRoom.latestMessage?.sentBy,
-                readBy: modifiedChatRoom.latestMessage?.readBy,
-            },
-            createdAt: modifiedChatRoom.createdAt,
-            createdBy: modifiedChatRoom.createdBy,
-        };
-
-        // const cacheKey = getSortedSetKey(userId);
-        // const cachedMessages = await this.redis.lrange(cacheKey, 0, -1);
-
-        // const updatedCache = cachedMessages.map((cachedMsg) => {
-        //     const parsedMsg = JSON.parse(cachedMsg);
-        //     return parsedMsg?.chatRoomId === chatRoomId ? JSON.stringify(formattedInboxMessage) : cachedMsg;
-        // });
-
-        // await this.redis.del(cacheKey);
-        // await this.redis.lpush(cacheKey, ...updatedCache);
-        // await this.redis.ltrim(cacheKey, 0, 49);
-
-        const newMessagePayload = {
-            type: NEW_MESSAGE,
-            payload: {
-                message: "New message received",
-                messageDetails: modifiedChatRoom,
-            },
-            status: STATUS_CODE.OK,
-            success: true,
-        };
-
-        const updateInboxPayload = {
-            type: UPDATE_INBOX,
-            payload: formattedInboxMessage,
-            status: STATUS_CODE.OK,
-            success: true,
-        };
-
-        this.userManager.publishToRoom(chatRoomId, userId, newMessagePayload);
-        this.userManager.publishToRoom(chatRoomId, userId, updateInboxPayload);
-
-        this.res.json(SEND_MESSAGE, { message: "Message sent", messageDetails: modifiedChatRoom });
-        this.res.json(UPDATE_INBOX, { ...formattedInboxMessage, hasRead: true });
-
-        // fix this
-        // const MQServerUrl = "amqp://localhost";
-
-        // const conn = await amqp.connect(MQServerUrl);
-        // const channel = await conn.createChannel();
-        // await channel.assertQueue(MESSAGE_QUEUE);
-        // channel.sendToQueue(MESSAGE_QUEUE, message.payload);
-
-        // await redis.publish(chatRoomId, JSON.stringify(content));
     }
 
     async handleMessageRead(userId: string, message: IMessageRead) {
@@ -605,7 +635,29 @@ export class InboxManager {
         });
 
         if (existingChatRoom) {
-            this.res.status(STATUS_CODE.CONFLICT).json(ROOM_EXISTS, { existingChatRoom, isGroup: false });
+            const messageVisibility = await this.prisma.messageVisibility.findUnique({
+                where: { chatRoomId_userId: { chatRoomId: existingChatRoom.id, userId: id } },
+                select: { deletedAt: true },
+            });
+            printlogs("messageVisibility", messageVisibility);
+
+            printlogs("existingChatRoom | BEFORE:", existingChatRoom);
+
+            const filteredMessages = existingChatRoom.messages.filter((message) =>
+                messageVisibility?.deletedAt ? message.sentAt >= messageVisibility.deletedAt : true
+            );
+            printlogs("filteredMessages:", filteredMessages);
+
+            const modifiedChatRoom = {
+                ...existingChatRoom,
+                messages: filteredMessages,
+            } satisfies typeof existingChatRoom;
+
+            printlogs("modifiedChatRoom | AFTER:", modifiedChatRoom);
+
+            this.res
+                .status(STATUS_CODE.CONFLICT)
+                .json(ROOM_EXISTS, { existingChatRoom: modifiedChatRoom, isGroup: false });
             return;
         }
 
@@ -1054,6 +1106,25 @@ export class InboxManager {
                 return;
             }
 
+            const messageVisibility = await this.prisma.messageVisibility.findUnique({
+                where: { chatRoomId_userId: { chatRoomId, userId } },
+                select: { deletedAt: true },
+            });
+
+            printlogs("messageVisibility:", messageVisibility);
+
+            const isGroup = chatRoomDetails.roomType === "GROUP";
+
+            printlogs("isGroup:", isGroup);
+
+            printlogs("filtering messages | Before:", chatRoomDetails.messages);
+
+            const filteredMessages = chatRoomDetails.messages.filter((message) =>
+                !isGroup && messageVisibility?.deletedAt ? message.sentAt >= messageVisibility.deletedAt : true
+            );
+
+            printlogs("filtering messages | After:", chatRoomDetails.messages);
+
             const unreadMessages = await this.prisma.message.findMany({
                 where: {
                     chatRoomId,
@@ -1079,7 +1150,8 @@ export class InboxManager {
 
             const modifiedChatRoomDetails = {
                 ...chatRoomDetails,
-                isGroup: chatRoomDetails.roomType === "GROUP" ? true : false,
+                messages: filteredMessages,
+                isGroup,
             };
 
             this.res.json(CHATROOM_DETAILS_BY_ID, modifiedChatRoomDetails);
@@ -1362,46 +1434,85 @@ export class InboxManager {
         });
     }
 
-    async handleGroupChatDeletion(id: string, message: IDeleteGroupChat) {
-        const chatRoomId = message.payload.chatRoomId;
-
-        if (!chatRoomId) {
-            this.res.error(DELETE_GROUP_CHAT, " Invalid params", STATUS_CODE.BAD_REQUEST);
-            return;
-        }
-
-        const chatRoom = await this.prisma.chatRoom.findUnique({
-            where: { id: chatRoomId },
-            select: {
-                id: true,
-                superAdmin: { select: { id: true, username: true, fullName: true, profilePic: true } },
-            },
+    async handleChatMessageDeletion(userId: string, chatRoomId: string) {
+        const deleteAt = await this.prisma.messageVisibility.upsert({
+            where: { chatRoomId_userId: { chatRoomId, userId } },
+            update: { deletedAt: new Date() },
+            create: { chatRoomId, userId, deletedAt: new Date() },
+            select: { deletedAt: true },
         });
 
-        if (!chatRoom) {
-            this.res.error(DELETE_GROUP_CHAT, "This group chat does not exist", STATUS_CODE.NOT_FOUND);
-            return;
+        this.res.send(DELETE_CHAT, { message: "Chats deleted", deleteAt, isGroup: false });
+    }
+
+    async handleGroupChatDeletion(userId: string, message: IDeleteGroupChat) {
+        try {
+            const chatRoomId = message.payload.chatRoomId;
+
+            if (!chatRoomId) {
+                this.res.error(DELETE_CHAT, "Invalid params", STATUS_CODE.BAD_REQUEST);
+                return;
+            }
+
+            const chatRoom = await this.prisma.chatRoom.findUnique({
+                where: { id: chatRoomId },
+                select: {
+                    id: true,
+                    roomType: true,
+                    superAdmin: { select: { id: true } },
+                    participants: { select: { id: true } },
+                },
+            });
+
+            if (!chatRoom) {
+                this.res.error(DELETE_CHAT, "This group chat does not exist", STATUS_CODE.NOT_FOUND);
+                return;
+            }
+
+            const isGroup = chatRoom.roomType === "GROUP";
+
+            if (!isGroup) {
+                const isUserMember = chatRoom.participants.some((member) => member.id === userId);
+                if (!isUserMember) {
+                    this.res
+                        .status(STATUS_CODE.BAD_REQUEST)
+                        .json(
+                            DELETE_CHAT,
+                            { message: "Not a part of this chat", action: "not-member" },
+                            { success: false }
+                        );
+                    return;
+                }
+                this.handleChatMessageDeletion(userId, chatRoomId);
+                return;
+            }
+
+            const hasPermission = chatRoom.superAdmin?.id === userId;
+
+            if (!hasPermission) {
+                this.res.error(
+                    DELETE_CHAT,
+                    "You do not have permission to delete this group chat",
+                    STATUS_CODE.FORBIDDEN
+                );
+                return;
+            }
+
+            const deletedChatRoom = await this.prisma.chatRoom.delete({
+                where: { id: chatRoomId },
+                select: { id: true },
+            });
+
+            if (!deletedChatRoom) {
+                this.res.error(DELETE_CHAT, "There was an error trying to delete this group chat");
+                return;
+            }
+
+            this.res.json(DELETE_CHAT, { message: "Deleted successfully", isGroup: true });
+        } catch (error) {
+            printlogs("ERROR inside :", error);
+            this.res.error(DELETE_CHAT, "There was an error trying to delete this chat");
         }
-
-        const hasPermission = chatRoom.superAdmin?.id === id;
-
-        if (!hasPermission) {
-            this.res.error(
-                DELETE_GROUP_CHAT,
-                "You do not have permission to delete this group chat",
-                STATUS_CODE.FORBIDDEN
-            );
-            return;
-        }
-
-        const deletedChatRoom = await this.prisma.chatRoom.delete({ where: { id: chatRoomId }, select: { id: true } });
-
-        if (!deletedChatRoom) {
-            this.res.error(DELETE_GROUP_CHAT, "There was an error trying to delete this group chat");
-            return;
-        }
-
-        this.res.json(DELETE_GROUP_CHAT, { message: "Deleted successfully" });
     }
 
     async handleIncomingMessages(id: string, socket: WebSocket) {
@@ -1438,7 +1549,7 @@ export class InboxManager {
                 case REMOVE_FROM_CHAT:
                     this.removeUserFromChat(id, message);
                     break;
-                case DELETE_GROUP_CHAT:
+                case DELETE_CHAT:
                     this.handleGroupChatDeletion(id, message);
                     break;
                 case ADD_TO_CHAT:

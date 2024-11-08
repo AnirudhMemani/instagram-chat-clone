@@ -8,24 +8,38 @@ datasource db {
 }
 
 model User {
-    id               String     @id @default(uuid())
-    username         String     @unique
-    email            String     @unique
-    fullName         String
-    password         String
-    createdAt        DateTime   @default(now())
-    updatedAt        DateTime   @updatedAt
-    profilePic       String
-    messageRead      Message[]  @relation(name: "MessageReadBy")
-    messageReceived  Message[]  @relation(name: "MessageReceivedBy")
-    messageSent      Message[]  @relation(name: "MessageSentBy")
-    chatRooms        ChatRoom[] @relation(name: "ChatRoomParticipants")
-    messages         Message[]  @relation(name: "MessageRecipients")
-    groupsCreated    ChatRoom[] @relation(name: "CreatedBy")
-    groupsSuperAdmin ChatRoom[] @relation(name: "SuperAdmin")
-    groupsAdmin      ChatRoom[] @relation(name: "GroupAdmins")
+    id                String              @id @default(uuid())
+    username          String              @unique
+    email             String              @unique
+    fullName          String
+    password          String
+    createdAt         DateTime            @default(now())
+    updatedAt         DateTime            @updatedAt
+    profilePic        String
+    messageRead       Message[]           @relation(name: "MessageReadBy")
+    messageReceived   Message[]           @relation(name: "MessageReceivedBy")
+    messageSent       Message[]           @relation(name: "MessageSentBy")
+    chatRooms         ChatRoom[]          @relation(name: "ChatRoomParticipants")
+    messages          Message[]           @relation(name: "MessageRecipients")
+    groupsCreated     ChatRoom[]          @relation(name: "CreatedBy")
+    groupsSuperAdmin  ChatRoom[]          @relation(name: "SuperAdmin")
+    groupsAdmin       ChatRoom[]          @relation(name: "GroupAdmins")
+    LastDeleteMessage MessageVisibility[]
 
     @@index([username, email])
+}
+
+model MessageVisibility {
+    id         String   @id @default(uuid())
+    deletedAt  DateTime @default(now())
+    userId     String
+    user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    chatRoomId String
+    chatRoom   ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+
+    @@unique([chatRoomId, userId])
+    @@index([userId, chatRoomId])
+    @@index([deletedAt])
 }
 
 model Message {
@@ -47,22 +61,23 @@ model Message {
 }
 
 model ChatRoom {
-    id               String    @id @default(uuid())
-    createdAt        DateTime  @default(now())
-    messages         Message[] @relation(name: "ChatRoomMessages")
-    participants     User[]    @relation(name: "ChatRoomParticipants")
-    roomType         RoomType  @default(DIRECT_MESSAGE)
-    name             String?
-    picture          String?
-    createdById      String?
-    createdBy        User?     @relation(name: "CreatedBy", fields: [createdById], references: [id])
-    pictureUpdatedAt DateTime? @updatedAt
-    nameUpdatedAt    DateTime? @updatedAt
-    superAdminId     String?
-    superAdmin       User?     @relation(name: "SuperAdmin", fields: [superAdminId], references: [id])
-    admins           User[]    @relation(name: "GroupAdmins")
-    latestMessageId  String?   @unique
-    latestMessage    Message?  @relation(name: "LatestMessage", fields: [latestMessageId], references: [id], onDelete: Cascade)
+    id                String              @id @default(uuid())
+    createdAt         DateTime            @default(now())
+    messages          Message[]           @relation(name: "ChatRoomMessages")
+    participants      User[]              @relation(name: "ChatRoomParticipants")
+    roomType          RoomType            @default(DIRECT_MESSAGE)
+    name              String?
+    picture           String?
+    createdById       String?
+    createdBy         User?               @relation(name: "CreatedBy", fields: [createdById], references: [id])
+    pictureUpdatedAt  DateTime?           @updatedAt
+    nameUpdatedAt     DateTime?           @updatedAt
+    superAdminId      String?
+    superAdmin        User?               @relation(name: "SuperAdmin", fields: [superAdminId], references: [id])
+    admins            User[]              @relation(name: "GroupAdmins")
+    latestMessageId   String?             @unique
+    latestMessage     Message?            @relation(name: "LatestMessage", fields: [latestMessageId], references: [id], onDelete: Cascade)
+    LastDeleteMessage MessageVisibility[]
 
     @@index([roomType, superAdminId, latestMessageId])
 }

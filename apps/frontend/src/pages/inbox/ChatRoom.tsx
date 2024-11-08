@@ -21,7 +21,7 @@ import { TWebSocket } from "@/utils/types";
 import {
     CHANGE_GROUP_NAME,
     CHATROOM_DETAILS_BY_ID,
-    DELETE_GROUP_CHAT,
+    DELETE_CHAT,
     LEAVE_GROUP_CHAT,
     MAKE_ADMIN,
     NEW_MESSAGE,
@@ -353,7 +353,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 toast.error("Our servers are busy. Please try again later!");
                             }
                             break;
-                        case DELETE_GROUP_CHAT:
+                        case DELETE_CHAT:
                             if (responseMessage.success === false) {
                                 switch (responseMessage.status) {
                                     case StatusCodes.NotFound:
@@ -368,6 +368,13 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                             title: "You do not have enough permissions to perform this action",
                                         });
                                         break;
+                                    //@ts-ignore
+                                    case StatusCodes.BadRequest:
+                                        if (responseMessage?.payload?.action === "not-member") {
+                                            commonToastErrorMessage({ title: "You are not a member of this chat" });
+                                            navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
+                                            break;
+                                        }
                                     default:
                                         commonToastErrorMessage({
                                             title: "There was an issue with your request",
@@ -376,9 +383,10 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                 }
                             } else {
                                 if (responseMessage.status === StatusCodes.Ok) {
-                                    toast.success("Group deleted!");
+                                    toast.success(
+                                        responseMessage?.payload?.isGroup ? "Group deleted!" : "All messages deleted!"
+                                    );
                                     navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
-                                    setChatRoomDetails(null);
                                     return;
                                 }
                                 commonToastErrorMessage({
@@ -838,7 +846,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
             }
 
             const deleteGroupChat: IMessage = {
-                type: DELETE_GROUP_CHAT,
+                type: DELETE_CHAT,
                 payload: {
                     chatRoomId: chatRoomDetails.id,
                 },
@@ -1264,7 +1272,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                         positiveTitle: "Delete",
                                         negativeTitle: "Cancel",
                                         title: "Permanently delete this chat?",
-                                        description: "This chat and all it's messages will be deleted forever.",
+                                        description: `This chat and all it's messages will be deleted forever. ${!chatRoomDetails.isGroup ? "However, the other person can still see these messages." : ""}`,
                                         positiveOnClick: () => handleDeleteGroupChat(),
                                         PositiveButtonStyles: "!bg-destructive dark:text-slate-200 text-black",
                                     })
