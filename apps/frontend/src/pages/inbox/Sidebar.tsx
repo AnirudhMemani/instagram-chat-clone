@@ -28,12 +28,7 @@ const Sidebar: React.FC<TSidebarProps> = ({ className }): JSX.Element => {
     const navigate = useNavigate();
 
     return (
-        <div
-            className={cn(
-                "dark:bg-background bg-background z-50 w-fit max-lg:fixed max-lg:bottom-0 max-lg:w-full lg:h-dvh",
-                className
-            )}
-        >
+        <div className={cn("dark:bg-background bg-background z-50 w-fit lg:h-dvh", className)}>
             <div className="flex h-full w-full items-center justify-center gap-6 border-t border-gray-950 py-3 lg:w-fit lg:flex-col lg:border-r lg:px-6 lg:py-0 dark:border-gray-700">
                 <Home
                     className="size-7 cursor-pointer select-none active:brightness-50"
