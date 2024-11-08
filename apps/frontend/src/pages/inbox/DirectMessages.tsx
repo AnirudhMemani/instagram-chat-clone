@@ -1,4 +1,6 @@
 import { UserLoadingSkeleton } from "@/components/UserLoadingSkeleton";
+import useWindowDimensions from "@/hooks/useWindowDimensions";
+import { cn } from "@/lib/utils";
 import { chatRoomAtom, TParticipant } from "@/state/chat";
 import { isChatModalVisibleAtom } from "@/state/global";
 import { userAtom } from "@/state/user";
@@ -26,9 +28,10 @@ type TInbox = {
 
 type TDirectMessageProps = {
     socket: WebSocket | null;
+    className?: string;
 };
 
-const DirectMessage: React.FC<TDirectMessageProps> = ({ socket }): JSX.Element => {
+const DirectMessage: React.FC<TDirectMessageProps> = ({ socket, className }): JSX.Element => {
     const [dmList, setDmList] = useState<TInbox[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
@@ -37,6 +40,8 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket }): JSX.Element =
     const chatRoomDetails = useRecoilValue(chatRoomAtom);
 
     const navigate = useNavigate();
+
+    const { width: windowWidth } = useWindowDimensions();
 
     const fetchInbox = (socket: WebSocket) => {
         try {
@@ -165,25 +170,38 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket }): JSX.Element =
         };
     }, [socket, user]);
 
+    const handleOpenNewChatSelection = () => {
+        if (windowWidth < 1024) {
+            navigate(NAVIGATION_ROUTES.NEW);
+        } else {
+            setIsChatModalVisible({ visible: true });
+        }
+    };
+
     const formatLatestMessage = (chatRoom: TInbox) =>
         chatRoom.latestMessage.sentBy.id === user.id
             ? `You: ${chatRoom.latestMessage.content.trim()}`
             : chatRoom.latestMessage.content.trim();
 
     return (
-        <div className="h-dvh w-full overflow-y-hidden border-r border-gray-700 lg:w-[450px] xl:w-[550px]">
-            <div className="px-6 font-bold">
+        <div
+            className={cn(
+                "h-dvh w-full overflow-y-hidden border-r border-gray-700 px-3 sm:px-6 lg:w-[380px] xl:w-[550px]",
+                className
+            )}
+        >
+            <div className="font-bold">
                 <div className="flex items-center justify-between pb-3 pt-9">
-                    <h2 className="text-xl">{user.username}</h2>
+                    <h2 className="line-clamp-1 text-ellipsis text-xl">{user.username}</h2>
                     <Edit
-                        className="size-6 cursor-pointer active:scale-95"
-                        onClick={() => setIsChatModalVisible({ visible: true })}
+                        className="size-6 flex-shrink-0 cursor-pointer active:scale-95"
+                        onClick={handleOpenNewChatSelection}
                         aria-disabled={isLoading}
                     />
                 </div>
                 <h2 className="pb-5 pt-3">Messages</h2>
             </div>
-            <div className="scrollbar flex h-dvh w-full flex-col gap-4 overflow-y-scroll pl-6">
+            <div className="scrollbar flex h-dvh w-full flex-col gap-4 overflow-y-auto">
                 {dmList && dmList?.length > 0 ? (
                     dmList?.map((dm) => (
                         <ChatPreviewBox

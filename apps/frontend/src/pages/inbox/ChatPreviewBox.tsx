@@ -21,7 +21,7 @@ export const ChatPreviewBox: React.FC<TChatPreviewBoxProps> = ({
     hasRead = false,
 }): JSX.Element => {
     return (
-        <div className="flex w-full cursor-pointer items-center justify-between" onClick={onClick}>
+        <div className="flex w-full max-w-xs cursor-pointer items-center justify-between" onClick={onClick}>
             <div className="flex items-center gap-3">
                 <Avatar className="size-14">
                     <AvatarImage src={avatar} />
@@ -34,13 +34,15 @@ export const ChatPreviewBox: React.FC<TChatPreviewBoxProps> = ({
                     <div className="mr-2 flex items-center gap-1 text-xs">
                         <p
                             className={cn(
-                                "line-clamp-1 text-ellipsis after:px-1 after:text-gray-400 after:content-['·']",
+                                "line-clamp-1 text-ellipsis after:text-gray-400",
                                 !hasRead ? "font-bold" : "text-gray-400"
                             )}
                         >
                             {message}
                         </p>
-                        <span className="flex-shrink-0 text-gray-400">{messageAge}</span>
+                        <span className="flex-shrink-0 text-gray-400 before:pr-1 before:content-['·']">
+                            {messageAge}
+                        </span>
                     </div>
                 </div>
             </div>

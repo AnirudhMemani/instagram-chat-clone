@@ -1,17 +1,43 @@
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNowStrict } from "date-fns";
 import { NavigateFunction } from "react-router-dom";
 import { LocalStorageKeys, localStorageUtils } from "./LocalStorageUtils";
 
 export const NAVIGATION_ROUTES = {
     LOGIN: "/login",
     SIGNUP: "/signup",
-    INBOX: "/inbox",
-    DM: "/inbox/direct",
-    CREATE_NEW_GROUP: "/inbox/group/create",
+    INBOX: "/direct/inbox",
+    NEW: "/direct/new",
+    DM: "/direct/t/",
+    CREATE_NEW_GROUP: "/direct/group/new",
 } as const;
 
 export const getMessageAge = (messageSentAt: Date) => {
-    return formatDistanceToNow(messageSentAt, { addSuffix: true });
+    return formatDistanceToNowStrict(messageSentAt, {
+        addSuffix: false,
+        roundingMethod: "floor",
+        locale: {
+            formatDistance: (token, count) => {
+                switch (token) {
+                    case "xSeconds":
+                        return `1m`;
+                    case "xMinutes":
+                        return `${count}m`;
+                    case "xHours":
+                        return `${count}h`;
+                    case "xDays":
+                        return `${count}d`;
+                    case "xWeeks":
+                        return `${count}w`;
+                    case "xMonths":
+                        return `${count}m`;
+                    case "xYears":
+                        return `${count}y`;
+                    default:
+                        return "";
+                }
+            },
+        },
+    });
 };
 
 export const env = {

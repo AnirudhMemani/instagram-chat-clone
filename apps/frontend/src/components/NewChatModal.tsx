@@ -1,4 +1,6 @@
 import { Loader } from "@/components/Loader";
+import useWindowDimensions from "@/hooks/useWindowDimensions";
+import { cn } from "@/lib/utils";
 import { chatRoomAtom, existingGroupsAtom, TParticipant } from "@/state/chat";
 import { isChatModalVisibleAtom, showGroupSelectionModalAtom } from "@/state/global";
 import { selectedUsersAtom, userAtom } from "@/state/user";
@@ -6,16 +8,16 @@ import { TGroupExistsResponse } from "@/types/chatRoom";
 import { NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import { ADD_TO_CHAT, FIND_CHATS, ROOM_EXISTS } from "@instachat/messages/messages";
 import { IMessage } from "@instachat/messages/types";
-import { X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { toast } from "sonner";
 import GroupBars from "./GroupBars";
-import { UserBars } from "./UserBars";
-import { UserLoadingSkeleton } from "./UserLoadingSkeleton";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { UserBars } from "./UserBars";
+import { UserLoadingSkeleton } from "./UserLoadingSkeleton";
 
 export type TUsersSchema = {
     id: string;
@@ -69,7 +71,9 @@ type TGroupSchema = {
     participants: { id: string; username: string; profilePic: string }[];
 };
 
-export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket }): JSX.Element => {
+type TNewChatModalProps = { socket: WebSocket | null; containerClassName?: string; className?: string };
+
+export const NewChatModal: React.FC<TNewChatModalProps> = ({ socket, containerClassName, className }): JSX.Element => {
     const [searchInput, setSearchInput] = useState<string>("");
     const [userDetails, setUserDetails] = useState<TUsersSchema[]>();
     const [groupDetails, setGroupDetails] = useState<TGroupSchema[]>();
@@ -81,13 +85,13 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
     const [isChatModalVisible, setIsChatModalVisible] = useRecoilState(isChatModalVisibleAtom);
     const [selectedUsers, setSelectedUsers] = useRecoilState(selectedUsersAtom);
     const [chatRoomDetails, setChatRoomDetails] = useRecoilState(chatRoomAtom);
-
     const setExistingGroups = useSetRecoilState(existingGroupsAtom);
 
     const user = useRecoilValue(userAtom);
 
     const modalContainerRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+    const { width: windowWidth } = useWindowDimensions();
 
     useEffect(() => {
         if (isChatModalVisible.visible === true) {
@@ -140,7 +144,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
                                         isGroup: payload?.isGroup,
                                     };
                                     setChatRoomDetails(existingRoomDetails);
-                                    navigate(`/inbox/direct/${payload?.existingChatRoom?.id}`);
+                                    navigate(`${NAVIGATION_ROUTES.DM}/${payload?.existingChatRoom?.id}`);
                                 }
                                 break;
                             case 201:
@@ -156,7 +160,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
                                     isGroup: payload?.isGroup,
                                 };
                                 setChatRoomDetails(newChatRoomDetails);
-                                navigate(`/inbox/direct/${payload?.chatRoomDetails?.id}`);
+                                navigate(`${NAVIGATION_ROUTES.DM}/${payload?.chatRoomDetails?.id}`);
                                 break;
                             case 200:
                                 if (payload?.isGroup === true) {
@@ -378,26 +382,38 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
         socket.send(JSON.stringify(message));
     };
 
+    const handleGoBack = () => {
+        if (isSubmitting) {
+            return;
+        }
+        if (windowWidth < 1024) {
+            navigate(-1);
+        } else {
+            setIsChatModalVisible({ visible: false });
+        }
+    };
+
     return (
-        <div className="fixed left-0 right-0 top-0 z-30 flex h-dvh w-full items-center justify-center bg-[#00000080]">
+        <div
+            className={cn(
+                "fixed left-0 right-0 top-0 z-30 flex h-dvh w-full items-center justify-center bg-black/5 dark:bg-black/60",
+                containerClassName
+            )}
+        >
             <div
-                className="bg-background border-input flex w-[90%] flex-col overflow-hidden rounded-lg border py-6 sm:h-[70%] sm:w-[588px]"
+                className={cn(
+                    "bg-background border-input flex w-[90%] flex-col overflow-hidden border py-6 sm:h-[70%] sm:w-[588px] lg:rounded-lg",
+                    className
+                )}
                 ref={modalContainerRef}
             >
                 <div className="mb-3 flex items-center justify-center">
+                    <ArrowLeft className="ml-3 size-7 active:brightness-50 lg:hidden" onClick={handleGoBack} />
                     <h1 className="flex-grow text-center font-bold">New Message</h1>
-                    <X
-                        className="mr-6 size-6 cursor-pointer"
-                        onClick={() => {
-                            if (isSubmitting) {
-                                return;
-                            }
-                            setIsChatModalVisible({ visible: false });
-                        }}
-                    />
+                    <X className="mr-3 size-6 cursor-pointer lg:mr-6" onClick={handleGoBack} />
                 </div>
                 <div className="border-input flex items-center gap-3 border py-2">
-                    <span className="ml-6 font-semibold">To:</span>
+                    <span className="ml-3 font-semibold sm:ml-6">To:</span>
                     {selectedUsers.length > 0 &&
                         selectedUsers.map((user) => (
                             <Badge className="cursor-pointer" key={user.id}>
@@ -420,8 +436,14 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
                         value={searchInput}
                     />
                 </div>
-                <div className="scrollbar mb-4 flex w-full flex-grow flex-col gap-1 overflow-y-scroll pt-5">
-                    {searchInput ? (
+                <div className="scrollbar mb-4 flex w-full flex-grow flex-col gap-1 overflow-y-auto px-3 pt-5 sm:px-6">
+                    {isLoading ? (
+                        <div className="flex flex-col gap-6">
+                            {Array.from({ length: 10 }, (_, index) => (
+                                <UserLoadingSkeleton key={index} />
+                            ))}
+                        </div>
+                    ) : searchInput ? (
                         !isLoading && filteredChats && filteredChats.length > 0 ? (
                             filteredChats.map((chat, index) =>
                                 chat.showGroup === false ? (
@@ -447,7 +469,7 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
                                         picture={chat.data.picture}
                                         onClick={() => {
                                             setIsChatModalVisible({ visible: false, type: "ADD_USERS" });
-                                            navigate(`/inbox/direct/${chat.data.id}`);
+                                            navigate(`${NAVIGATION_ROUTES.DM}/${chat.data.id}`);
                                         }}
                                     />
                                 ) : (
@@ -476,14 +498,12 @@ export const NewChatModal: React.FC<{ socket: WebSocket | null }> = ({ socket })
                                 )
                             )
                         ) : (
-                            <div className="mx-6 flex flex-col gap-6">
-                                {Array.from({ length: 20 }, (_, index) => (
-                                    <UserLoadingSkeleton key={index} />
-                                ))}
+                            <div className="text-sm text-gray-400">
+                                <p>No account found</p>
                             </div>
                         )
                     ) : (
-                        <div className="ml-6 text-sm text-gray-400">
+                        <div className="text-sm text-gray-400">
                             <p>No account found</p>
                         </div>
                     )}

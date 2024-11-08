@@ -21,12 +21,22 @@ const ProtectedRoutes = () => {
 
     return (
         <div className="flex">
-            <Sidebar className="hidden lg:block" />
-            <DirectMessage socket={socket} />
+            <Sidebar />
+            <DirectMessage socket={socket} className="max-lg:hidden" />
             <Routes>
-                <Route path={NAVIGATION_ROUTES.INBOX} element={<Inbox />} />
+                <Route path={NAVIGATION_ROUTES.INBOX} element={<Inbox socket={socket} />} />
                 <Route path={`${NAVIGATION_ROUTES.DM}/:id`} element={<ChatRoom socket={socket} />} />
                 <Route path={NAVIGATION_ROUTES.CREATE_NEW_GROUP} element={<GroupDetailsPage socket={socket} />} />
+                <Route
+                    path={NAVIGATION_ROUTES.NEW}
+                    element={
+                        <NewChatModal
+                            socket={socket}
+                            containerClassName="!relative lg:hidden"
+                            className="!h-full !w-full"
+                        />
+                    }
+                />
                 <Route path="*" element={<Navigate to={NAVIGATION_ROUTES.INBOX} replace />} />
             </Routes>
             {isChatModalVisible.visible && <NewChatModal socket={socket} />}

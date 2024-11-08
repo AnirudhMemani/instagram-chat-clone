@@ -34,7 +34,7 @@ const GroupSelectionModal: React.FC<TGroupSelectionModalProps> = (): JSX.Element
 
     const handleGroupSelection = (groupId: string) => {
         setShowGroupSelectionModal(false);
-        navigate(`/inbox/direct/${groupId}`);
+        navigate(`${NAVIGATION_ROUTES.DM}/${groupId}`);
     };
 
     const handleGroupCreation = () => {

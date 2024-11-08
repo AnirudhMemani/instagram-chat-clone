@@ -53,7 +53,7 @@ export const EditModal: React.FC<TEditModalProps> = ({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             {children}
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="w-[96%] sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle className="text-center">{title}</DialogTitle>
                     <DialogDescription>{description}</DialogDescription>

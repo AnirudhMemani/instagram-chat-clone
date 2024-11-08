@@ -9,12 +9,13 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import useWindowDimensions from "@/hooks/useWindowDimensions";
 import { cn } from "@/lib/utils";
 import { chatRoomAtom, potentialSuperAdminsAtom, TChatRoomAtom, TMessage, TParticipant } from "@/state/chat";
 import { alertModalAtom, isChatModalVisibleAtom, showAdminSelectionModalAtom } from "@/state/global";
 import { userAtom } from "@/state/user";
 import { TNewMesageResponse } from "@/types/chatRoom";
-import { NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
+import { getAvatarFallback, NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
 import { TWebSocket } from "@/utils/types";
 import {
@@ -33,7 +34,7 @@ import {
 import { IMessage } from "@instachat/messages/types";
 import { format } from "date-fns";
 import EmojiPicker, { EmojiClickData, SuggestionMode, Theme } from "emoji-picker-react";
-import { CircleAlert, Clock, EllipsisVertical, Smile } from "lucide-react";
+import { ArrowLeft, CircleAlert, Clock, EllipsisVertical, Smile } from "lucide-react";
 import React, { FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
@@ -67,6 +68,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     const { theme } = useTheme();
     const navigate = useNavigate();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
+    const { width: windowWidth } = useWindowDimensions();
 
     const commonToastErrorMessage = ({ title, description }: { title?: string; description?: string }) => {
         toast.error(title ?? "Uh oh! Something went wrong", {
@@ -688,7 +690,12 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     };
 
     const handleAddMembers = () => {
-        setIsChatModalVisible({ visible: true, type: "ADD_USERS" });
+        if (windowWidth < 1024) {
+            setIsChatModalVisible({ visible: false, type: "ADD_USERS" });
+            navigate(NAVIGATION_ROUTES.NEW);
+        } else {
+            setIsChatModalVisible({ visible: true, type: "ADD_USERS" });
+        }
     };
 
     const handleSendMessage = async () => {
@@ -943,16 +950,25 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
 
     return (
         <div className="flex h-dvh w-full overflow-hidden">
-            <div className="flex h-full w-full flex-col items-center overflow-hidden">
+            <div
+                className={cn(
+                    "flex h-full w-full flex-col items-center overflow-hidden",
+                    windowWidth <= 1280 && isRoomInfoVisible && "!hidden"
+                )}
+            >
                 {/* header */}
                 <div className="border-input flex w-full items-center justify-between border-b p-4">
                     <div className="flex items-center gap-3">
+                        <ArrowLeft
+                            className="size-7 active:brightness-50 lg:hidden"
+                            onClick={() => navigate(NAVIGATION_ROUTES.INBOX)}
+                        />
                         <Avatar
                             className="size-12 cursor-pointer select-none"
                             onClick={() => setIsRoomInfoVisible((p) => !p)}
                         >
                             <AvatarImage src={chatRoomImage} alt="Group Image" />
-                            <AvatarFallback>{chatRoomName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                            <AvatarFallback>{getAvatarFallback(chatRoomName)}</AvatarFallback>
                         </Avatar>
                         <h1
                             className="cursor-pointer select-none font-semibold"
@@ -1063,9 +1079,16 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                     </div>
                 </div>
             </div>
+
             {isRoomInfoVisible && (
-                <div className="border-input ml-[1px] flex h-full w-[550px] flex-col border-l">
-                    <h1 className="border-input border-b p-6 text-2xl font-semibold">Details</h1>
+                <div className="border-input ml-[1px] flex h-full w-full flex-col border-l xl:w-[550px]">
+                    <div className="border-input flex items-center gap-3 border-b p-6">
+                        <ArrowLeft
+                            className="size-7 active:brightness-50 xl:hidden"
+                            onClick={() => setIsRoomInfoVisible(false)}
+                        />
+                        <h1 className="text-2xl font-semibold">Details</h1>
+                    </div>
                     {chatRoomDetails.isGroup && (
                         <div className="border-input flex items-center justify-between border-b p-6">
                             <p>Change group name</p>

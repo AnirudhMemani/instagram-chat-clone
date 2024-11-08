@@ -1,9 +1,14 @@
 import { chatRoomAtom } from "@/state/chat";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useSetRecoilState } from "recoil";
+import DirectMessage from "./DirectMessages";
 import { StartChatPrompt } from "./StartChatPrompt";
 
-const Inbox = () => {
+type TInboxProps = {
+    socket: WebSocket | null;
+};
+
+const Inbox: React.FC<TInboxProps> = ({ socket }): JSX.Element => {
     const setChatRoomDetails = useSetRecoilState(chatRoomAtom);
 
     useEffect(() => {
@@ -11,9 +16,10 @@ const Inbox = () => {
     }, []);
 
     return (
-        <div className="hidden h-dvh w-full lg:flex">
+        <React.Fragment>
             <StartChatPrompt />
-        </div>
+            <DirectMessage socket={socket} className="lg:hidden" />
+        </React.Fragment>
     );
 };
 

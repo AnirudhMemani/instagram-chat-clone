@@ -15,7 +15,7 @@ export const AlertModal = () => {
     const [alertModalMetadata, setAlertModalMetadata] = useRecoilState(alertModalAtom);
     return (
         <AlertDialog open={alertModalMetadata.visible}>
-            <AlertDialogContent>
+            <AlertDialogContent className="dark:bg-background bg-background">
                 <AlertDialogHeader>
                     <AlertDialogTitle>{alertModalMetadata.title}</AlertDialogTitle>
                 </AlertDialogHeader>

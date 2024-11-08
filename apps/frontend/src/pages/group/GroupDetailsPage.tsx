@@ -100,7 +100,7 @@ const GroupDetailsPage: React.FC<{ socket: WebSocket | null }> = ({ socket }): J
                         }));
                         setSelectedUsers([]);
                         toast.success("Group created successfully");
-                        navigate(`/inbox/direct/${payload.id}`);
+                        navigate(`${NAVIGATION_ROUTES.DM}/${payload.id}`);
                     } else {
                         toast.error("Uh oh! Something went wrong.", {
                             description: "Our servers are busy. Please try again later!",
