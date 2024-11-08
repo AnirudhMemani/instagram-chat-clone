@@ -75,11 +75,11 @@ const Login: React.FC = (): JSX.Element => {
 
     return (
         <React.Fragment>
-            <section className="flex h-dvh w-full items-center justify-center">
-                <div className="border-input flex flex-col justify-center gap-8 rounded-lg border p-16">
+            <section className="flex min-h-dvh w-full items-center justify-center">
+                <div className="border-input mx-3 flex flex-col justify-center gap-8 rounded-lg border p-16 [@media(max-width:470px)]:p-10">
                     <div className="flex flex-col items-center justify-center space-y-3">
-                        <h1 className="text-bold text-center text-3xl">Sign in to your account</h1>
-                        <p className="text-muted-foreground text-center text-sm">
+                        <h1 className="text-bold text text-center text-2xl sm:text-3xl">Sign in to your account</h1>
+                        <p className="text-muted-foreground text-center text-xs sm:text-sm">
                             Welcome back! Please enter your details.
                         </p>
                     </div>
@@ -121,11 +121,11 @@ const Login: React.FC = (): JSX.Element => {
                         </Button>
                     </form>
                     <div className="flex items-center justify-center gap-2">
-                        <p className="text-center text-sm">Don't have an account? </p>
+                        <p className="text-center text-xs sm:text-sm">Don't have an account? </p>
                         <Link
                             to={NAVIGATION_ROUTES.SIGNUP}
                             className={cn(
-                                "text-muted-foreground flex items-center text-sm underline",
+                                "text-muted-foreground flex items-center text-xs underline sm:text-sm",
                                 isLoading && "pointer-events-none opacity-50"
                             )}
                         >

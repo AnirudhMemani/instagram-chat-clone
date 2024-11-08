@@ -17,7 +17,9 @@ const CustomInput = React.forwardRef<HTMLInputElement, CustomInputProps>(
     ({ htmlFor, label, rightIcon: RightIcon, rightIconOnClick, containerClassName, ...props }, ref) => {
         return (
             <div className={cn("relative flex flex-col gap-2", containerClassName)}>
-                <Label htmlFor={htmlFor}>{label}</Label>
+                <Label htmlFor={htmlFor} className="max-sm:text-xs">
+                    {label}
+                </Label>
                 <div className="relative">
                     <Input {...props} ref={ref} />
                     {RightIcon && (

@@ -81,7 +81,7 @@ const ButtonToModal: React.FC = (): JSX.Element => {
                         >
                             <CredentailsCard>
                                 <div className="text-foreground/90 mb-8 flex items-center">
-                                    <h2 className="text-muted-foreground mx-auto text-2xl font-bold">
+                                    <h2 className="text-muted-foreground mx-auto text-lg font-bold sm:text-2xl">
                                         Welcome to Insta Chat
                                     </h2>
                                     <Button
@@ -91,7 +91,7 @@ const ButtonToModal: React.FC = (): JSX.Element => {
                                         className="text-foreground hover:bg-foreground/10"
                                         aria-label="Close modal"
                                     >
-                                        <X className="h-6 w-6" />
+                                        <X className="size-5 sm:size-6" />
                                     </Button>
                                 </div>
                                 <p className="text-foreground/80 border-b pb-4">
@@ -118,7 +118,7 @@ const ButtonToModal: React.FC = (): JSX.Element => {
                                         Password: <span className="text-sky-500">Welcome123</span>
                                     </p>
                                 </div>
-                                <p className="text-foreground/80 py-4">
+                                <p className="text-foreground/80 pt-4">
                                     <span className="text-red-500">Note:</span> The backend of this application is
                                     hosted on Vercel, so if you notice delays in response time, that&apos;s the reason
                                     why.
