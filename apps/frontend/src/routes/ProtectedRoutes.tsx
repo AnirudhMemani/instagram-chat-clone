@@ -22,7 +22,7 @@ const ProtectedRoutes = () => {
 
     return (
         <div className="relative">
-            <div className="flex">
+            <div className="flex overflow-hidden max-lg:h-[calc(100dvh-64px)]">
                 <Sidebar className="max-lg:hidden" />
                 <DirectMessage socket={socket} className="max-lg:hidden" />
                 <Routes>
@@ -43,7 +43,7 @@ const ProtectedRoutes = () => {
                     <Route path="*" element={<Navigate to={NAVIGATION_ROUTES.INBOX} replace />} />
                 </Routes>
             </div>
-            <Sidebar className="max-lg:sticky max-lg:bottom-0 max-lg:w-full lg:hidden" />
+            <Sidebar className="max-lg:relative max-lg:w-full lg:hidden" />
             {isChatModalVisible.visible && <NewChatModal socket={socket} />}
             {showGroupSelectionModal && <GroupSelectionModal />}
             {showAdminSelectionModal && <AdminSelectionModal socket={socket} />}

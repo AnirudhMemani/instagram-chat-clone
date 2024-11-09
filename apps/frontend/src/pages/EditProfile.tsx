@@ -246,7 +246,7 @@ export const EditProfile: React.FC<TEditProfileProps> = ({ socket }): JSX.Elemen
     };
 
     return (
-        <div className="relative flex h-dvh w-full items-center justify-center">
+        <div className="relative flex w-full items-center justify-center lg:h-dvh">
             <form className="flex w-3/4 flex-col items-center justify-center gap-10" onSubmit={handleSubmit(onSubmit)}>
                 <fieldset className="flex w-full flex-col items-center justify-center gap-6">
                     <Controller

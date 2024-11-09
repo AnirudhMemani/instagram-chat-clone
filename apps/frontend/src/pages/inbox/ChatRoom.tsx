@@ -957,7 +957,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
     }
 
     return (
-        <div className="flex h-dvh w-full overflow-hidden">
+        <div className="flex w-full overflow-hidden lg:h-dvh">
             <div
                 className={cn(
                     "flex h-full w-full flex-col items-center overflow-hidden",

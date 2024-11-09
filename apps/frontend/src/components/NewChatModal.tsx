@@ -1,4 +1,5 @@
 import { Loader } from "@/components/Loader";
+import useAutosizeTextArea from "@/hooks/useAutosizeTextArea";
 import useWindowDimensions from "@/hooks/useWindowDimensions";
 import { cn } from "@/lib/utils";
 import { chatRoomAtom, existingGroupsAtom, TParticipant } from "@/state/chat";
@@ -6,6 +7,7 @@ import { isChatModalVisibleAtom, showGroupSelectionModalAtom } from "@/state/glo
 import { selectedUsersAtom, userAtom } from "@/state/user";
 import { TGroupExistsResponse } from "@/types/chatRoom";
 import { NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
+import { printlogs } from "@/utils/logs";
 import { ADD_TO_CHAT, FIND_CHATS, ROOM_EXISTS } from "@instachat/messages/messages";
 import { IMessage } from "@instachat/messages/types";
 import { ArrowLeft, X } from "lucide-react";
@@ -14,13 +16,11 @@ import { useNavigate } from "react-router-dom";
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
 import { toast } from "sonner";
 import GroupBars from "./GroupBars";
+import { useTheme } from "./theme-provider";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { UserBars } from "./UserBars";
 import { UserLoadingSkeleton } from "./UserLoadingSkeleton";
-import useAutosizeTextArea from "@/hooks/useAutosizeTextArea";
-import { useTheme } from "./theme-provider";
-import { printlogs } from "@/utils/logs";
 
 export type TUsersSchema = {
     id: string;
@@ -107,6 +107,12 @@ export const NewChatModal: React.FC<TNewChatModalProps> = ({ socket, containerCl
             setSelectedUsers([]);
         }
     }, [isChatModalVisible.visible]);
+
+    useEffect(() => {
+        if (windowWidth < 1024) {
+            setSelectedUsers([]);
+        }
+    }, []);
 
     useEffect(() => {
         if (!socket) {
@@ -407,7 +413,7 @@ export const NewChatModal: React.FC<TNewChatModalProps> = ({ socket, containerCl
     return (
         <div
             className={cn(
-                "fixed left-0 right-0 top-0 z-30 flex h-dvh w-full items-center justify-center bg-black/5 dark:bg-black/60",
+                "fixed left-0 right-0 top-0 z-30 flex w-full items-center justify-center bg-black/5 lg:h-dvh dark:bg-black/60",
                 containerClassName
             )}
         >

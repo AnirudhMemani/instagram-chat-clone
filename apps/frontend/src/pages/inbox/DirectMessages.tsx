@@ -207,7 +207,7 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket, className }): JS
     return (
         <div
             className={cn(
-                "h-dvh w-full overflow-y-hidden border-r border-gray-700 px-3 sm:px-6 lg:w-[380px] xl:w-[550px]",
+                "w-full overflow-y-auto border-r border-gray-700 px-3 sm:px-6 lg:h-dvh lg:w-[380px] xl:w-[550px]",
                 className
             )}
         >
