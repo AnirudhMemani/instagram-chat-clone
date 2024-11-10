@@ -207,7 +207,7 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket, className }): JS
     return (
         <div
             className={cn(
-                "w-full overflow-y-auto border-r border-gray-700 px-3 sm:px-6 lg:h-dvh lg:w-[380px] xl:w-[550px]",
+                "scrollbar w-full overflow-y-auto border-r border-gray-700 px-3 pb-4 sm:px-6 lg:h-dvh lg:w-[380px] xl:w-[550px]",
                 className
             )}
         >
@@ -222,7 +222,7 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket, className }): JS
                 </div>
                 <h2 className="pb-5 pt-3">Messages</h2>
             </div>
-            <div className="scrollbar flex h-dvh w-full flex-col gap-4 overflow-y-auto">
+            <div className="scrollbar flex w-full flex-col gap-4 overflow-y-auto">
                 {dmList && dmList?.length > 0 ? (
                     dmList?.map((dm) => (
                         <ChatPreviewBox
