@@ -59,7 +59,7 @@ const DirectMessage: React.FC<TDirectMessageProps> = ({ socket, className }): JS
             socket.send(
                 JSON.stringify({
                     type: GET_INBOX,
-                    payload: { take: 20, skip: 0 },
+                    payload: {},
                 })
             );
         } catch (error) {

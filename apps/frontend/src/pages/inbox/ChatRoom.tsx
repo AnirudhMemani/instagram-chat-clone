@@ -1011,7 +1011,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                             chatRoomDetails?.messages?.map((message, index) =>
                                 message?.sentBy?.id === user?.id ? (
                                     <div className="flex flex-col items-end gap-1" key={message.id}>
-                                        <div className="flex">
+                                        <div className="flex max-w-[75%]">
                                             <div className="mx-1 flex max-w-md items-center rounded-3xl rounded-br-md bg-sky-500 px-3 py-2 lg:max-w-lg">
                                                 <span>{message?.content}</span>
                                             </div>
@@ -1032,7 +1032,7 @@ export const ChatRoom: React.FC<TWebSocket> = ({ socket }): JSX.Element => {
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-start" key={message.id}>
-                                        <div className="flex">
+                                        <div className="flex max-w-[75%]">
                                             <Avatar className="size-6 self-end">
                                                 <AvatarImage src={message?.sentBy?.profilePic} />
                                                 <AvatarFallback>

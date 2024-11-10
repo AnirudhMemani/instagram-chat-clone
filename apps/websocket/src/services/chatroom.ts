@@ -52,7 +52,7 @@ export const getLatestChatRoomMessages = async (
                 },
             },
         ],
-        take: queryOptions?.take ?? Infinity,
-        skip: queryOptions?.skip ?? 0,
+        take: queryOptions?.take ?? undefined,
+        skip: queryOptions?.skip ?? undefined,
     });
 };

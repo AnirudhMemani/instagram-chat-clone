@@ -346,8 +346,8 @@ export class InboxManager {
     }
 
     async getUserInbox(id: string, message: IMessage) {
-        const take = Number.isNaN(Number(message.payload.take)) ? Infinity : message.payload.take;
-        const skip = Number.isNaN(Number(message.payload.skip)) ? 0 : message.payload.skip;
+        const take = Number.isNaN(Number(message?.payload?.take)) ? undefined : message.payload.take;
+        const skip = Number.isNaN(Number(message?.payload?.skip)) ? undefined : message.payload.skip;
 
         const userInbox = await this.getLatestMessages(id, take, skip);
         this.res.json(GET_INBOX, userInbox);
@@ -1119,9 +1119,10 @@ export class InboxManager {
 
             printlogs("filtering messages | Before:", chatRoomDetails.messages);
 
-            const filteredMessages = chatRoomDetails.messages.filter((message) =>
-                !isGroup && messageVisibility?.deletedAt ? message.sentAt >= messageVisibility.deletedAt : true
-            );
+            const filteredMessages =
+                !isGroup && messageVisibility?.deletedAt
+                    ? chatRoomDetails.messages.filter((message) => message.sentAt >= messageVisibility.deletedAt)
+                    : chatRoomDetails.messages;
 
             printlogs("filtering messages | After:", chatRoomDetails.messages);
 
@@ -1530,7 +1531,6 @@ export class InboxManager {
                 case ROOM_EXISTS:
                     this.handleChatRoomCreation(id, message);
                     break;
-                // start the frontend synchronization from here
                 case CHATROOM_DETAILS_BY_ID:
                     this.getChatRoomDetails(id, message);
                     break;
@@ -1561,7 +1561,6 @@ export class InboxManager {
                 case REMOVE_AS_ADMIN:
                     this.handleRemoveAdmin(id, message);
                     break;
-                // start the backend from here
                 case SEND_MESSAGE:
                     this.handleNewMessage(id, message);
                     break;
