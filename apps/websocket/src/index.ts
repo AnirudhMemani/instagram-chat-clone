@@ -12,7 +12,7 @@ import { printlogs } from "./utils/logs.js";
 // const __filename = fileURLToPath(import.meta.url);
 // export const directoryName = path.dirname(__filename);
 
-// app.use("pictures", express.static(path.resolve(directoryName, "pictures")))
+// app.use("pictures", express.static(path.resolve(directoryName, "pictures")));
 
 const port = Number(process.env.WS_URL) || 8080;
 const wss = new WebSocketServer({ port });
