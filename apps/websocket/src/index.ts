@@ -7,13 +7,6 @@ import { connectToRedis } from "./redis/client.js";
 import { validateUser } from "./utils/helper.js";
 import { printlogs } from "./utils/logs.js";
 
-// const app = express();
-
-// const __filename = fileURLToPath(import.meta.url);
-// export const directoryName = path.dirname(__filename);
-
-// app.use("pictures", express.static(path.resolve(directoryName, "pictures")));
-
 const port = Number(process.env.WS_URL) || 8080;
 const wss = new WebSocketServer({ port });
 const userManager = new UserManager();
