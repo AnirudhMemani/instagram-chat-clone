@@ -12,15 +12,14 @@ import { NAVIGATION_ROUTES, StatusCodes } from "@/utils/constants";
 import { printlogs } from "@/utils/logs";
 import axios from "axios";
 import { ArrowUpRight, Eye, EyeOff } from "lucide-react";
-import React, { FormEvent, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import React, { FormEvent, useCallback, useEffect, useState } from "react";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useSetRecoilState } from "recoil";
 import { toast } from "sonner";
 
 const Login: React.FC = (): JSX.Element => {
     const token = localStorageUtils.getToken();
     const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
-    setIsChatModalVisible({ visible: false });
     const [credentials, setCredentials] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [error, setError] = useState<string>("");
@@ -29,6 +28,11 @@ const Login: React.FC = (): JSX.Element => {
 
     const setUser = useSetRecoilState(userAtom);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    useEffect(() => {
+        setIsChatModalVisible({ visible: false });
+    }, [setIsChatModalVisible]);
 
     if (token) return <Navigate to={NAVIGATION_ROUTES.INBOX} replace />;
 
@@ -72,6 +76,12 @@ const Login: React.FC = (): JSX.Element => {
             setIsLoading(false);
         }
     };
+
+    const showRecruiterCredentials = useCallback((): boolean => {
+        printlogs("Pathname:", location.pathname);
+        if (location.pathname === NAVIGATION_ROUTES.RECRUITER_LOGIN) return true;
+        return false;
+    }, [location.pathname]);
 
     return (
         <React.Fragment>
@@ -135,7 +145,7 @@ const Login: React.FC = (): JSX.Element => {
                     </div>
                 </div>
             </section>
-            <ButtonToModal />
+            {showRecruiterCredentials() && <ButtonToModal />}
         </React.Fragment>
     );
 };

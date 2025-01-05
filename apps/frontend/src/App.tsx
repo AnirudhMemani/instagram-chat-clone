@@ -11,6 +11,7 @@ const App: React.FC = (): JSX.Element => {
             <ImageCropProvider>
                 <Routes>
                     <Route path={NAVIGATION_ROUTES.LOGIN} element={<Login />} />
+                    <Route path={NAVIGATION_ROUTES.RECRUITER_LOGIN} element={<Login />} />
                     <Route path={NAVIGATION_ROUTES.SIGNUP} element={<Signup />} />
                     <Route path="/*" element={<AppRoutes />} />
                 </Routes>

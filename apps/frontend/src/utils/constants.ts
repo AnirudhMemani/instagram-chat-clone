@@ -4,6 +4,7 @@ import { LocalStorageKeys, localStorageUtils } from "./LocalStorageUtils";
 
 export const NAVIGATION_ROUTES = {
     LOGIN: "/login",
+    RECRUITER_LOGIN: "/r/login",
     SIGNUP: "/signup",
     EDIT_PROFILE: "/profile/e",
     INBOX: "/direct/inbox",
