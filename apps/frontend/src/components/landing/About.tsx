@@ -4,36 +4,36 @@ import { motion } from "framer-motion";
 
 const About: React.FC = () => {
   const stats = [
-    { number: "200+", label: "MVPs Launched" },
-    { number: "85%", label: "Success Rate" },
-    { number: "$500M+", label: "Funding Raised" },
-    { number: "2.5 weeks", label: "Avg. Timeline" },
+    { number: "10M+", label: "Messages Daily" },
+    { number: "99.9%", label: "Uptime" },
+    { number: "500K+", label: "Active Users" },
+    { number: "<1ms", label: "Message Latency" },
   ];
 
   const team = [
     {
       name: "Alex Chen",
-      role: "CEO & Lead Architect",
+      role: "CEO & Founder",
       image: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=300",
-      bio: "Former Google AI researcher with 10+ years building scalable systems",
+      bio: "Former WhatsApp engineer with 10+ years building messaging platforms",
     },
     {
       name: "Maria Santos",
       role: "Head of Product",
       image: "https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=300",
-      bio: "Ex-Facebook PM who has launched products used by millions",
+      bio: "Ex-Slack PM who designed features used by millions daily",
     },
     {
       name: "David Kim",
       role: "VP of Engineering",
       image: "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=300",
-      bio: "Full-stack expert and startup advisor with 15+ successful exits",
+      bio: "Real-time systems expert who built infrastructure for Discord",
     },
     {
       name: "Sarah Johnson",
       role: "Head of Design",
       image: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=300",
-      bio: "Award-winning UX designer focused on user-centered product development",
+      bio: "Award-winning UX designer focused on intuitive communication experiences",
     },
   ];
 
@@ -105,11 +105,11 @@ const About: React.FC = () => {
         >
           <h2 className="font-urbanist text-midnight-900 mb-6 text-4xl font-bold md:text-5xl">
             The Team Behind Your{" "}
-            <span className="from-mint-500 to-mint-600 bg-gradient-to-r bg-clip-text text-transparent">Success</span>
+            <span className="from-mint-500 to-mint-600 bg-gradient-to-r bg-clip-text text-transparent">Connection</span>
           </h2>
           <p className="font-inter text-midnight-600 mx-auto max-w-3xl text-xl">
-            We're not just developers – we're entrepreneurs who understand the startup journey. Our mission is to turn
-            your vision into reality, fast.
+            We're passionate about bringing people together through technology. Our mission is to create the most
+            intuitive and secure chat experience possible.
           </p>
         </motion.div>
 
@@ -168,21 +168,22 @@ const About: React.FC = () => {
             <div>
               <h3 className="font-urbanist text-midnight-900 mb-6 text-3xl font-bold">Our Mission</h3>
               <p className="font-inter text-midnight-600 mb-6 text-lg leading-relaxed">
-                We believe every great idea deserves a chance to succeed. That's why we've built a process that combines
-                cutting-edge AI with human expertise to deliver market-ready MVPs in record time.
+                We believe communication should be effortless, secure, and meaningful. That's why we've built a platform
+                that combines cutting-edge technology with intuitive design to deliver the best chat experience
+                possible.
               </p>
               <p className="font-inter text-midnight-600 text-lg leading-relaxed">
-                Our team has been in your shoes – we've started companies, raised funding, and experienced both the
-                triumphs and challenges of building something from scratch.
+                Our team understands the importance of staying connected – we've experienced the frustration of
+                unreliable messaging apps and the joy of seamless communication when it works perfectly.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
               {[
-                { icon: Award, title: "Quality First", desc: "Enterprise-grade code and security" },
-                { icon: Zap, title: "Lightning Fast", desc: "AI-accelerated development" },
-                { icon: Users, title: "User-Centric", desc: "Built for your target market" },
-                { icon: Target, title: "Results Driven", desc: "Focused on business outcomes" },
+                { icon: Award, title: "Quality First", desc: "Premium chat experience" },
+                { icon: Zap, title: "Lightning Fast", desc: "Instant message delivery" },
+                { icon: Users, title: "User-Centric", desc: "Built for seamless communication" },
+                { icon: Target, title: "Privacy Focused", desc: "Your conversations stay private" },
               ].map((item, index) => (
                 <motion.div
                   key={item.title}
@@ -204,7 +205,7 @@ const About: React.FC = () => {
         </motion.div>
 
         {/* Team Section */}
-        <motion.div
+        {/* <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
@@ -230,7 +231,7 @@ const About: React.FC = () => {
                 }}
                 className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-lg transition-all duration-500 hover:shadow-2xl"
               >
-                {/* Subtle hover effect */}
+                // Subtle hover effect
                 <div className="from-mint-50/0 to-mint-100/0 hover:from-mint-50/20 hover:to-mint-100/10 absolute inset-0 rounded-2xl bg-gradient-to-br transition-all duration-500" />
 
                 <div className="relative z-10">
@@ -248,7 +249,7 @@ const About: React.FC = () => {
               </motion.div>
             ))}
           </motion.div>
-        </motion.div>
+        </motion.div> */}
       </div>
     </section>
   );

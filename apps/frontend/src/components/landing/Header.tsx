@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Menu, X, Zap } from "lucide-react";
 import { motion } from "framer-motion";
+import { Menu, X, Zap } from "lucide-react";
+import React, { useEffect, useState } from "react";
 
 const Header: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -62,7 +62,7 @@ const Header: React.FC = () => {
               >
                 <Zap className="h-5 w-5 text-white" />
               </motion.div>
-              <span className="font-urbanist text-midnight-900 text-xl font-bold">Velocity AI</span>
+              <span className="font-urbanist text-midnight-900 text-xl font-bold">Voxella</span>
             </motion.div>
 
             {/* Desktop Navigation */}

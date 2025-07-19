@@ -7,44 +7,43 @@ const FAQ: React.FC = () => {
 
   const faqs = [
     {
-      question: "How can you build an MVP in just 2-4 weeks?",
-      answer:
-        "Our AI-powered development process automates many time-consuming tasks like code generation, testing, and deployment setup. Combined with our experienced team and proven frameworks, we can deliver production-ready MVPs faster than traditional development methods while maintaining high quality standards.",
+      question: "Is the chat app free to use?",
+      answer: "Yes! Our chat features are completely free for personal use.",
     },
     {
-      question: "What technologies do you use for MVP development?",
+      question: "How secure are my conversations?",
       answer:
-        "We use modern, scalable technologies including React/Next.js for frontend, Node.js/Express for backend, PostgreSQL/MongoDB for databases, and cloud platforms like AWS or Vercel for deployment. We choose the best tech stack based on your specific requirements and scalability needs.",
+        "Your privacy and security are our top priorities. All messages are protected with end-to-end encryption, meaning only you and your recipients can read them. We use military-grade 256-bit encryption and follow zero-knowledge architecture principles - we can't access your messages even if we wanted to.",
     },
     {
-      question: "How much does an MVP development project cost?",
+      question: "Can I use the app on multiple devices?",
       answer:
-        "Our MVP development packages start from $15K for basic applications and can go up to $50K for complex platforms with AI integration. The final cost depends on features, complexity, and timeline. We provide transparent pricing with no hidden fees after our initial consultation.",
+        "Absolutely! Our chat app works seamlessly across all your devices - phone, tablet, desktop, and web browser. Your messages sync instantly across all devices, so you can start a conversation on your phone and continue it on your computer without missing a beat.",
     },
     {
-      question: "Do you provide ongoing support after the MVP launch?",
+      question: "What file types can I share in chats?",
       answer:
-        "Yes! We offer comprehensive post-launch support including bug fixes, feature updates, scaling assistance, and technical consultation. Our support packages range from basic maintenance to full-service growth partnerships as your startup evolves.",
+        "You can share almost any file type including photos, videos, documents, PDFs, audio files, and more. Free users get 100MB per file, while premium users can share files up to 2GB. We also support drag-and-drop functionality for easy file sharing.",
     },
     {
-      question: "Can you help with user testing and market validation?",
+      question: "How do group chats and channels work?",
       answer:
-        "Absolutely! We include user research and testing as part of our MVP process. We help you validate assumptions, gather user feedback, analyze usage patterns, and iterate based on real user data to ensure your MVP resonates with your target market.",
+        "Create unlimited group chats with up to 1000 members each. You can organize conversations into channels by topic, set different permission levels for members, and use moderation tools to keep discussions on track. Perfect for teams, communities, or family groups.",
     },
     {
-      question: "What if I need changes during development?",
+      question: "Can I make voice and video calls?",
       answer:
-        "We work in weekly sprints with regular check-ins, allowing for feedback and adjustments throughout the development process. Minor changes are included, while major scope changes are handled through our flexible change request process to keep projects on track.",
+        "Yes! Our platform supports high-quality voice and video calls for individuals and groups. Features include screen sharing, noise cancellation, and recording capabilities. All calls are encrypted and work smoothly even on slower internet connections.",
     },
+    // {
+    //   question: "Is there an AI assistant feature?",
+    //   answer:
+    //     "Our AI assistant can help with various tasks like language translation, message summarization, scheduling, and answering questions. The AI is privacy-focused and processes requests without storing your personal data. You can enable or disable AI features at any time.",
+    // },
     {
-      question: "How do you ensure the quality and security of the MVP?",
+      question: "How do I report inappropriate content or users?",
       answer:
-        "We follow enterprise-grade security practices including data encryption, secure authentication, OWASP compliance, and regular security audits. All code goes through automated testing, peer review, and quality assurance before deployment.",
-    },
-    {
-      question: "Can you help with fundraising and investor presentations?",
-      answer:
-        "While we focus on MVP development, we can provide technical documentation, architecture diagrams, and development roadmaps that are often required for investor presentations. We also have partnerships with VCs and can make introductions for promising startups.",
+        "We have robust reporting and moderation tools. You can report messages, users, or entire channels with just a few clicks. Our moderation team reviews reports quickly, and we have automated systems to detect and prevent spam, harassment, and other inappropriate content.",
     },
   ];
 
@@ -67,7 +66,7 @@ const FAQ: React.FC = () => {
             <span className="from-mint-500 to-mint-600 bg-gradient-to-r bg-clip-text text-transparent">Questions</span>
           </h2>
           <p className="font-inter text-midnight-600 mx-auto max-w-2xl text-xl">
-            Everything you need to know about our MVP development process and services.
+            Everything you need to know about our chat platform and features.
           </p>
         </motion.div>
 
@@ -124,7 +123,7 @@ const FAQ: React.FC = () => {
           <div className="from-mint-50 to-mint-100 rounded-3xl bg-gradient-to-r p-8">
             <h3 className="font-urbanist text-midnight-900 mb-4 text-2xl font-bold">Still have questions?</h3>
             <p className="font-inter text-midnight-600 mb-6 text-lg">
-              Our team is here to help. Schedule a free consultation to discuss your project.
+              Our support team is here to help. Contact us anytime for assistance with the platform.
             </p>
             <button
               onClick={() => {
@@ -133,7 +132,7 @@ const FAQ: React.FC = () => {
               }}
               className="bg-mint-500 hover:bg-mint-600 font-inter transform rounded-2xl px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl"
             >
-              Schedule Free Consultation
+              Contact Support
             </button>
           </div>
         </motion.div>

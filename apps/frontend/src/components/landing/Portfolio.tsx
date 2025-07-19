@@ -1,89 +1,93 @@
+import { NAVIGATION_ROUTES } from "@/utils/constants";
+import { AnimatePresence, motion } from "framer-motion";
+import { Calendar, ChevronLeft, ChevronRight, ExternalLink, TrendingUp, Users } from "lucide-react";
 import React, { useState } from "react";
-import { ExternalLink, Calendar, Users, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 const Portfolio: React.FC = () => {
   const [activeProject, setActiveProject] = useState(0);
 
   const projects = [
     {
-      title: "TechFlow",
-      category: "B2B SaaS Platform",
+      title: "TeamChat Pro",
+      category: "Business Communication",
       description:
-        "AI-powered project management platform that helps teams ship faster with intelligent automation and predictive analytics.",
+        "Enterprise-grade team communication platform with advanced security, file sharing, and integration capabilities.",
       image: "https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=800",
-      timeline: "3 weeks",
+      timeline: "Real-time",
       users: "25K+",
-      growth: "+150% MRR",
-      tech: ["React", "Node.js", "AI/ML", "PostgreSQL"],
+      growth: "99.9% uptime",
+      tech: ["WebSocket", "React", "Node.js", "Redis"],
       color: "from-blue-500 to-purple-600",
       accent: "blue",
     },
     {
-      title: "GreenLogistics",
-      category: "Supply Chain Platform",
+      title: "CommunityHub",
+      category: "Social Platform",
       description:
-        "Sustainable logistics platform connecting eco-friendly suppliers with conscious businesses worldwide.",
+        "Community-focused chat platform connecting like-minded individuals with topic-based channels and events.",
       image: "https://images.pexels.com/photos/4481322/pexels-photo-4481322.jpeg?auto=compress&cs=tinysrgb&w=800",
-      timeline: "4 weeks",
-      users: "10K+",
-      growth: "$2M ARR",
-      tech: ["React", "Express", "MongoDB", "Maps API"],
+      timeline: "Instant",
+      users: "100K+",
+      growth: "50K daily messages",
+      tech: ["WebSocket", "React", "Node.js", "Redis"],
       color: "from-green-500 to-teal-600",
       accent: "green",
     },
     {
-      title: "HealthConnect",
-      category: "Digital Health Platform",
+      title: "SecureChat",
+      category: "Privacy-First Messaging",
       description:
-        "Telemedicine platform connecting patients with healthcare providers through secure video calls and AI diagnostics.",
+        "End-to-end encrypted messaging platform for healthcare professionals with HIPAA compliance and secure file sharing.",
       image: "https://images.pexels.com/photos/4386467/pexels-photo-4386467.jpeg?auto=compress&cs=tinysrgb&w=800",
-      timeline: "3 weeks",
+      timeline: "Encrypted",
       users: "50K+",
-      growth: "Series A",
-      tech: ["React", "WebRTC", "HIPAA", "AWS"],
+      growth: "Zero breaches",
+      tech: ["E2E Encryption", "HIPAA", "AWS"],
       color: "from-pink-500 to-red-600",
       accent: "pink",
     },
     {
-      title: "EduTech Pro",
-      category: "EdTech Platform",
+      title: "StudyGroup",
+      category: "Educational Chat",
       description:
-        "Interactive learning platform with AI-powered personalized curriculum and real-time progress tracking.",
+        "Interactive study platform with group chats, screen sharing, and AI-powered study assistance for students.",
       image: "https://images.pexels.com/photos/5212345/pexels-photo-5212345.jpeg?auto=compress&cs=tinysrgb&w=800",
-      timeline: "4 weeks",
-      users: "100K+",
-      growth: "+200% engagement",
-      tech: ["React", "AI/ML", "Video Streaming", "Analytics"],
+      timeline: "Live",
+      users: "200K+",
+      growth: "80% retention rate",
+      tech: ["WebSocket", "React", "Node.js", "Redis"],
       color: "from-orange-500 to-yellow-600",
       accent: "orange",
     },
     {
-      title: "FinanceFlow",
-      category: "FinTech Platform",
-      description: "Smart budgeting app with AI-powered expense tracking and personalized financial insights.",
+      title: "GameChat",
+      category: "Gaming Communication",
+      description: "Low-latency voice and text chat for gamers with noise cancellation and team coordination features.",
       image: "https://images.pexels.com/photos/6801648/pexels-photo-6801648.jpeg?auto=compress&cs=tinysrgb&w=800",
-      timeline: "2 weeks",
-      users: "75K+",
-      growth: "$5M valuation",
-      tech: ["React Native", "AI/ML", "Blockchain", "Security"],
+      timeline: "<10ms latency",
+      users: "500K+",
+      growth: "1M+ hours/month",
+      tech: ["Real-time", "CDN"],
       color: "from-indigo-500 to-purple-600",
       accent: "indigo",
     },
     {
-      title: "RetailConnect",
-      category: "E-commerce Platform",
+      title: "LocalConnect",
+      category: "Neighborhood Chat",
       description:
-        "AI-driven marketplace connecting local retailers with customers for same-day delivery and smart recommendations.",
+        "Location-based community chat connecting neighbors for local events, recommendations, and mutual support.",
       image: "https://images.pexels.com/photos/3965545/pexels-photo-3965545.jpeg?auto=compress&cs=tinysrgb&w=800",
-      timeline: "3 weeks",
-      users: "30K+",
-      growth: "$1.5M revenue",
-      tech: ["React", "Microservices", "Payment APIs", "Logistics"],
+      timeline: "Location-aware",
+      users: "150K+",
+      growth: "Active in 500+ cities",
+      tech: ["WebSocket", "React", "Node.js", "Redis"],
       color: "from-teal-500 to-cyan-600",
       accent: "teal",
     },
   ];
+
+  const navigate = useNavigate();
 
   const nextProject = () => {
     setActiveProject((prev) => (prev + 1) % projects.length);
@@ -147,13 +151,11 @@ const Portfolio: React.FC = () => {
           className="mb-16 text-center"
         >
           <h2 className="font-urbanist text-midnight-900 mb-6 text-4xl font-bold md:text-5xl">
-            MVPs That{" "}
-            <span className="from-mint-500 to-mint-600 bg-gradient-to-r bg-clip-text text-transparent">
-              Became Unicorns
-            </span>
+            Chat Solutions for{" "}
+            <span className="from-mint-500 to-mint-600 bg-gradient-to-r bg-clip-text text-transparent">Every Need</span>
           </h2>
           <p className="font-inter text-midnight-600 mx-auto max-w-3xl text-xl">
-            From startup idea to market success. See how our MVPs have grown into thriving businesses.
+            From business teams to gaming communities. See how our platform adapts to different communication needs.
           </p>
         </motion.div>
 
@@ -237,7 +239,7 @@ const Portfolio: React.FC = () => {
                       <p className="font-urbanist text-midnight-900 text-lg font-bold">
                         {projects[activeProject].timeline}
                       </p>
-                      <p className="font-inter text-midnight-600 text-sm">Timeline</p>
+                      <p className="font-inter text-midnight-600 text-sm">Speed</p>
                     </motion.div>
 
                     <motion.div
@@ -259,13 +261,13 @@ const Portfolio: React.FC = () => {
                       <p className="font-urbanist text-midnight-900 text-lg font-bold">
                         {projects[activeProject].growth}
                       </p>
-                      <p className="font-inter text-midnight-600 text-sm">Growth</p>
+                      <p className="font-inter text-midnight-600 text-sm">Performance</p>
                     </motion.div>
                   </div>
 
                   {/* Tech Stack */}
                   <div>
-                    <h4 className="font-urbanist text-midnight-900 mb-3 text-lg font-semibold">Tech Stack</h4>
+                    <h4 className="font-urbanist text-midnight-900 mb-3 text-lg font-semibold">Key Features</h4>
                     <div className="flex flex-wrap gap-3">
                       {projects[activeProject].tech.map((tech, index) => (
                         <motion.span
@@ -328,7 +330,7 @@ const Portfolio: React.FC = () => {
           transition={{ duration: 0.8, delay: 0.3 }}
           viewport={{ once: true }}
         >
-          <h3 className="font-urbanist text-midnight-900 mb-12 text-center text-2xl font-bold">More Success Stories</h3>
+          <h3 className="font-urbanist text-midnight-900 mb-12 text-center text-2xl font-bold">More Chat Solutions</h3>
 
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             {projects.slice(0, 6).map((project, index) => (
@@ -401,21 +403,18 @@ const Portfolio: React.FC = () => {
 
             <div className="relative z-10">
               <h3 className="font-urbanist text-midnight-900 mb-4 text-3xl font-bold">
-                Ready to Join These Success Stories?
+                Ready to Transform Your Communication?
               </h3>
               <p className="font-inter text-midnight-600 mx-auto mb-8 max-w-2xl text-lg">
-                Let's transform your idea into the next unicorn. Start your MVP journey today.
+                Join thousands of users who have revolutionized their communication experience. Start chatting today.
               </p>
               <motion.button
-                onClick={() => {
-                  const element = document.querySelector("#contact");
-                  if (element) element.scrollIntoView({ behavior: "smooth" });
-                }}
+                onClick={() => navigate(NAVIGATION_ROUTES.LOGIN)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="bg-mint-500 hover:bg-mint-600 font-inter rounded-2xl px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl"
               >
-                Start Your Success Story
+                Start Your Chat Experience
               </motion.button>
             </div>
           </div>

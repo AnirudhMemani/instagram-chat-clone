@@ -1,6 +1,8 @@
-import React from "react";
-import { Zap, ArrowUpRight } from "lucide-react";
+import { NAVIGATION_ROUTES } from "@/utils/constants";
 import { motion } from "framer-motion";
+import { ArrowUpRight, Zap } from "lucide-react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -11,6 +13,8 @@ const Footer: React.FC = () => {
     { name: "Contact", href: "#contact" },
     { name: "FAQ", href: "#faq" },
   ];
+
+  const navigate = useNavigate();
 
   const scrollToSection = (href: string) => {
     const element = document.querySelector(href);
@@ -57,27 +61,27 @@ const Footer: React.FC = () => {
                 >
                   <Zap className="h-7 w-7 text-white" />
                 </motion.div>
-                <span className="font-urbanist text-3xl font-bold">Velocity AI</span>
+                <span className="font-urbanist text-3xl font-bold">ChatApp</span>
               </div>
 
               <h3 className="font-urbanist mb-4 text-2xl font-bold leading-tight md:text-3xl">
-                Ready to launch your{" "}
+                Ready to connect with{" "}
                 <span className="from-mint-400 to-mint-500 bg-gradient-to-r bg-clip-text text-transparent">
-                  next big idea?
+                  the world?
                 </span>
               </h3>
 
               <p className="font-inter mb-8 max-w-md text-lg text-gray-300">
-                Join hundreds of successful startups who transformed their vision into reality.
+                Join millions of users who trust our platform for seamless communication.
               </p>
 
               <motion.button
-                onClick={() => scrollToSection("#contact")}
+                onClick={() => navigate(NAVIGATION_ROUTES.LOGIN)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="bg-mint-500 hover:bg-mint-600 font-inter group flex items-center space-x-2 rounded-2xl px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl"
               >
-                <span>Start Your Project</span>
+                <span>Start Chatting</span>
                 <motion.div animate={{ x: [0, 5, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>
                   <ArrowUpRight className="h-5 w-5" />
                 </motion.div>
@@ -112,20 +116,20 @@ const Footer: React.FC = () => {
               {/* Contact Info */}
               <div className="space-y-3">
                 <motion.a
-                  href="mailto:hello@velocityai.dev"
+                  href="mailto:support@chatapp.com"
                   whileHover={{ scale: 1.02 }}
                   className="font-inter hover:text-mint-400 block text-xl text-white transition-colors duration-200"
                 >
-                  hello@velocityai.dev
+                  support@voxella.com
                 </motion.a>
                 <motion.a
                   href="tel:+15551234567"
                   whileHover={{ scale: 1.02 }}
                   className="font-inter hover:text-mint-400 block text-lg text-gray-300 transition-colors duration-200"
                 >
-                  +1 (555) 123-4567
+                  +91 1234 56 7890
                 </motion.a>
-                <p className="font-inter text-gray-400">San Francisco, CA</p>
+                <p className="font-inter text-gray-400">Bangalore, IN</p>
               </div>
             </motion.div>
           </div>
@@ -140,7 +144,7 @@ const Footer: React.FC = () => {
           className="border-t border-gray-800 py-8"
         >
           <div className="flex flex-col items-center justify-between space-y-4 md:flex-row md:space-y-0">
-            <p className="font-inter text-gray-400">© {currentYear} Velocity AI. Crafted with passion.</p>
+            <p className="font-inter text-gray-400">© {currentYear} ChatApp. Connecting the world.</p>
 
             <div className="flex items-center space-x-8">
               <motion.a

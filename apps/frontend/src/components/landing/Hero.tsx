@@ -1,6 +1,8 @@
-import React from "react";
-import { ArrowRight } from "lucide-react";
+import { NAVIGATION_ROUTES } from "@/utils/constants";
 import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const Hero: React.FC = () => {
   const scrollToSection = (href: string) => {
@@ -33,24 +35,26 @@ const Hero: React.FC = () => {
     },
   };
 
+  const navigate = useNavigate();
+
   // Dummy brand logo images from Pexels
   const brands = [
-    "https://images.pexels.com/photos/267350/pexels-photo-267350.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/267371/pexels-photo-267371.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/267394/pexels-photo-267394.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/267401/pexels-photo-267401.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/267507/pexels-photo-267507.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/267569/pexels-photo-267569.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/267580/pexels-photo-267580.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/267885/pexels-photo-267885.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/268533/pexels-photo-268533.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/269077/pexels-photo-269077.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/269630/pexels-photo-269630.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/270348/pexels-photo-270348.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/270404/pexels-photo-270404.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/270557/pexels-photo-270557.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/270632/pexels-photo-270632.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
-    "https://images.pexels.com/photos/270637/pexels-photo-270637.jpeg?auto=compress&cs=tinysrgb&w=100&h=100",
+    "https://randomuser.me/api/portraits/women/10.jpg",
+    "https://randomuser.me/api/portraits/women/71.jpg",
+    "https://randomuser.me/api/portraits/men/48.jpg",
+    "https://randomuser.me/api/portraits/men/60.jpg",
+    "https://randomuser.me/api/portraits/men/47.jpg",
+    "https://randomuser.me/api/portraits/men/39.jpg",
+    "https://randomuser.me/api/portraits/men/68.jpg",
+    "https://randomuser.me/api/portraits/women/29.jpg",
+    "https://randomuser.me/api/portraits/women/63.jpg",
+    "https://randomuser.me/api/portraits/women/54.jpg",
+    "https://randomuser.me/api/portraits/women/32.jpg",
+    "https://randomuser.me/api/portraits/women/12.jpg",
+    "https://randomuser.me/api/portraits/women/77.jpg",
+    "https://randomuser.me/api/portraits/women/31.jpg",
+    "https://randomuser.me/api/portraits/women/19.jpg",
+    "https://randomuser.me/api/portraits/women/70.jpg",
   ];
 
   return (
@@ -214,7 +218,7 @@ const Hero: React.FC = () => {
                 <br />
                 in Weeks
               </div>
-              Launch Your{" "}
+              Connect{" "}
               <motion.span
                 className="font-instrument from-mint-500 to-mint-600 relative bg-gradient-to-r bg-clip-text italic text-transparent"
                 animate={{
@@ -226,7 +230,7 @@ const Hero: React.FC = () => {
                   ease: "easeInOut",
                 }}
               >
-                {/* Additional glow for the "Idea" text */}
+                {/* Additional glow for the "Instantly" text */}
                 <motion.span
                   className="font-instrument text-mint-400 absolute inset-0 italic opacity-30 blur-md"
                   animate={{
@@ -239,20 +243,20 @@ const Hero: React.FC = () => {
                     ease: "easeInOut",
                   }}
                 >
-                  Idea
+                  Instantly
                 </motion.span>
-                Idea
+                Instantly
               </motion.span>
               <br />
-              in Weeks
+              Anywhere
             </motion.h1>
 
             <motion.p
               className="font-inter text-midnight-600 mx-auto max-w-3xl text-xl leading-relaxed md:text-2xl"
               variants={itemVariants}
             >
-              Transform your startup vision into a market-ready MVP with our AI-powered development process. Ship
-              faster, validate quicker, scale smarter.
+              Experience smooth communication with our next generation chat platform. Connect with friends, teams, and
+              communities in real-time with powerful features and crystal clear messaging.
             </motion.p>
           </motion.div>
 
@@ -261,14 +265,14 @@ const Hero: React.FC = () => {
             className="mb-16 flex flex-col items-center justify-center gap-4 sm:flex-row"
           >
             <motion.button
-              onClick={() => scrollToSection("#contact")}
+              onClick={() => navigate(NAVIGATION_ROUTES.LOGIN)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="bg-mint-500 hover:bg-mint-600 font-inter group relative flex items-center space-x-2 overflow-hidden rounded-2xl px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl"
             >
               {/* Button glow effect */}
               <div className="from-mint-400 to-mint-600 absolute inset-0 rounded-2xl bg-gradient-to-r opacity-0 blur-xl transition-opacity duration-300 group-hover:opacity-20" />
-              <span className="relative z-10">Start Your MVP</span>
+              <span className="relative z-10">Start Chatting</span>
               <motion.div
                 animate={{ x: [0, 5, 0] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
@@ -284,7 +288,7 @@ const Hero: React.FC = () => {
               whileTap={{ scale: 0.95 }}
               className="text-midnight-900 font-inter hover:border-mint-300 group rounded-2xl border-2 border-gray-200 bg-white px-8 py-4 text-lg font-semibold transition-all duration-300 hover:bg-gray-50"
             >
-              View Case Studies
+              See Features
             </motion.button>
           </motion.div>
 
@@ -296,7 +300,7 @@ const Hero: React.FC = () => {
               whileInView={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
             >
-              Trusted by teams from leading companies
+              Trusted by millions of users worldwide
             </motion.p>
 
             {/* Single Line Carousel */}
@@ -338,23 +342,23 @@ const Hero: React.FC = () => {
             <div className="grid grid-cols-1 gap-6 text-center md:grid-cols-3">
               <motion.div whileHover={{ scale: 1.05 }} className="group">
                 <h3 className="font-urbanist text-mint-600 group-hover:text-mint-700 mb-2 text-3xl font-bold transition-colors">
-                  200+
+                  10M+
                 </h3>
-                <p className="font-inter text-midnight-600 font-medium">MVPs Launched</p>
+                <p className="font-inter text-midnight-600 font-medium">Messages Sent</p>
               </motion.div>
 
               <motion.div whileHover={{ scale: 1.05 }} className="group">
                 <h3 className="font-urbanist text-mint-600 group-hover:text-mint-700 mb-2 text-3xl font-bold transition-colors">
-                  $500M+
+                  500K+
                 </h3>
-                <p className="font-inter text-midnight-600 font-medium">Funding Raised</p>
+                <p className="font-inter text-midnight-600 font-medium">Active Users</p>
               </motion.div>
 
               <motion.div whileHover={{ scale: 1.05 }} className="group">
                 <h3 className="font-urbanist text-mint-600 group-hover:text-mint-700 mb-2 text-3xl font-bold transition-colors">
-                  2.5 weeks
+                  &lt;1ms
                 </h3>
-                <p className="font-inter text-midnight-600 font-medium">Avg. Timeline</p>
+                <p className="font-inter text-midnight-600 font-medium">Message Delivery</p>
               </motion.div>
             </div>
           </motion.div>

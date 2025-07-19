@@ -53,11 +53,11 @@ const Contact: React.FC = () => {
           <h2 className="font-urbanist text-midnight-900 mb-6 text-4xl font-bold md:text-5xl">
             Ready to{" "}
             <span className="from-mint-500 to-mint-600 bg-gradient-to-r bg-clip-text text-transparent">
-              Launch Your MVP?
+              Start Chatting?
             </span>
           </h2>
           <p className="font-inter text-midnight-600 mx-auto max-w-3xl text-xl">
-            Let's discuss your project and see how we can turn your idea into a market-ready MVP in weeks, not months.
+            Get in touch with our team for support, feedback, or partnership opportunities. We'd love to hear from you!
           </p>
         </motion.div>
 
@@ -73,8 +73,8 @@ const Contact: React.FC = () => {
             <div>
               <h3 className="font-urbanist text-midnight-900 mb-6 text-2xl font-bold">Get in Touch</h3>
               <p className="font-inter text-midnight-600 mb-8 text-lg leading-relaxed">
-                Schedule a free 30-minute consultation to discuss your project requirements, timeline, and how we can
-                help bring your vision to life.
+                Whether you need technical support, want to share feedback, or are interested in partnership
+                opportunities, our team is here to help.
               </p>
             </div>
 
@@ -85,7 +85,7 @@ const Contact: React.FC = () => {
                 </div>
                 <div>
                   <h4 className="font-urbanist text-midnight-900 font-semibold">Email</h4>
-                  <p className="font-inter text-midnight-600">hello@velocityai.dev</p>
+                  <p className="font-inter text-midnight-600">support@chatapp.com</p>
                 </div>
               </div>
 
@@ -111,13 +111,13 @@ const Contact: React.FC = () => {
             </div>
 
             <div className="bg-mint-50 rounded-2xl p-6">
-              <h4 className="font-urbanist text-midnight-900 mb-3 font-semibold">What to Expect</h4>
+              <h4 className="font-urbanist text-midnight-900 mb-3 font-semibold">How We Can Help</h4>
               <ul className="font-inter text-midnight-600 space-y-2">
-                <li>• Free 30-minute consultation</li>
-                <li>• Project scope and timeline discussion</li>
-                <li>• Technology recommendations</li>
-                <li>• Transparent pricing estimate</li>
-                <li>• Next steps and proposal</li>
+                <li>• Technical support and troubleshooting</li>
+                <li>• Feature requests and feedback</li>
+                <li>• Business partnership opportunities</li>
+                <li>• Custom integration assistance</li>
+                <li>• Account and billing questions</li>
               </ul>
             </div>
           </motion.div>
@@ -168,7 +168,7 @@ const Contact: React.FC = () => {
 
                 <div>
                   <label htmlFor="company" className="font-inter text-midnight-900 mb-2 block font-medium">
-                    Company / Startup Name
+                    Company / Organization
                   </label>
                   <input
                     type="text"
@@ -184,7 +184,7 @@ const Contact: React.FC = () => {
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <div>
                     <label htmlFor="budget" className="font-inter text-midnight-900 mb-2 block font-medium">
-                      Budget Range
+                      Inquiry Type
                     </label>
                     <select
                       id="budget"
@@ -193,17 +193,17 @@ const Contact: React.FC = () => {
                       onChange={handleChange}
                       className="focus:border-mint-500 focus:ring-mint-200 font-inter w-full rounded-xl border border-gray-300 px-4 py-3 transition-colors focus:ring-2"
                     >
-                      <option value="">Select budget</option>
-                      <option value="15k-25k">$15K - $25K</option>
-                      <option value="25k-40k">$25K - $40K</option>
-                      <option value="40k-50k">$40K - $50K</option>
-                      <option value="50k+">$50K+</option>
+                      <option value="">Select inquiry type</option>
+                      <option value="support">Technical Support</option>
+                      <option value="feedback">Feature Request/Feedback</option>
+                      <option value="partnership">Business Partnership</option>
+                      <option value="other">Other</option>
                     </select>
                   </div>
 
                   <div>
                     <label htmlFor="timeline" className="font-inter text-midnight-900 mb-2 block font-medium">
-                      Timeline
+                      Priority Level
                     </label>
                     <select
                       id="timeline"
@@ -212,18 +212,18 @@ const Contact: React.FC = () => {
                       onChange={handleChange}
                       className="focus:border-mint-500 focus:ring-mint-200 font-inter w-full rounded-xl border border-gray-300 px-4 py-3 transition-colors focus:ring-2"
                     >
-                      <option value="">Select timeline</option>
-                      <option value="asap">ASAP (2-3 weeks)</option>
-                      <option value="month">Within a month</option>
-                      <option value="quarter">This quarter</option>
-                      <option value="flexible">Flexible</option>
+                      <option value="">Select priority</option>
+                      <option value="urgent">Urgent</option>
+                      <option value="high">High</option>
+                      <option value="normal">Normal</option>
+                      <option value="low">Low</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
                   <label htmlFor="message" className="font-inter text-midnight-900 mb-2 block font-medium">
-                    Project Description *
+                    Message *
                   </label>
                   <textarea
                     id="message"
@@ -233,7 +233,7 @@ const Contact: React.FC = () => {
                     value={formData.message}
                     onChange={handleChange}
                     className="focus:border-mint-500 focus:ring-mint-200 font-inter w-full resize-none rounded-xl border border-gray-300 px-4 py-3 transition-colors focus:ring-2"
-                    placeholder="Tell us about your project, target users, key features, and any specific requirements..."
+                    placeholder="Please describe your inquiry, issue, or feedback in detail..."
                   />
                 </div>
 
@@ -242,7 +242,7 @@ const Contact: React.FC = () => {
                   className="bg-mint-500 hover:bg-mint-600 font-inter flex w-full transform items-center justify-center space-x-2 rounded-2xl px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl"
                 >
                   <Send className="h-5 w-5" />
-                  <span>Send Project Details</span>
+                  <span>Send Message</span>
                 </button>
               </form>
             ) : (
@@ -254,7 +254,7 @@ const Contact: React.FC = () => {
                 <CheckCircle className="text-mint-500 mx-auto mb-6 h-16 w-16" />
                 <h3 className="font-urbanist text-midnight-900 mb-4 text-2xl font-bold">Message Sent Successfully!</h3>
                 <p className="font-inter text-midnight-600 text-lg">
-                  Thank you for your interest. We'll get back to you within 24 hours to schedule your free consultation.
+                  Thank you for contacting us. We'll get back to you within 24 hours with a response to your inquiry.
                 </p>
               </motion.div>
             )}

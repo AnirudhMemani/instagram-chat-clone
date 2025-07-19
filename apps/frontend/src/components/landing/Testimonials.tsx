@@ -1,64 +1,66 @@
-import React from "react";
-import { Star, Quote, Award, Heart, Lightbulb, Target } from "lucide-react";
+import { NAVIGATION_ROUTES } from "@/utils/constants";
 import { motion } from "framer-motion";
+import { Award, Heart, Lightbulb, Quote, Star, Target } from "lucide-react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const Testimonials: React.FC = () => {
   const testimonials = [
     {
-      name: "Sarah Chen",
-      role: "CEO",
-      company: "TechFlow",
-      image: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=200",
+      name: "Sarah Ali",
+      role: "Team Lead",
+      company: "Amazon",
+      image: "https://randomuser.me/api/portraits/women/15.jpg",
       content:
-        "Velocity AI transformed our idea into a working MVP in just 3 weeks. Their AI-powered approach saved us months of development time.",
+        "This chat app transformed how our team communicates. The features and instant messaging have made collaboration effortless.",
       rating: 5,
-      results: "Raised $2M seed round",
+      results: "50% faster communication",
       color: "from-blue-500 to-purple-600",
       accent: "blue",
     },
     {
-      name: "Marcus Rodriguez",
-      role: "Founder",
+      name: "Aarav Joshi",
+      role: "Project Manager",
       company: "GreenLogistics",
-      image: "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=200",
+      image: "https://randomuser.me/api/portraits/men/65.jpg",
       content:
-        "The quality and speed exceeded our expectations. We went from concept to customer validation in record time.",
+        "The security and reliability are outstanding. We can trust this platform with our sensitive business communications.",
       rating: 5,
-      results: "10K+ active users",
+      results: "Zero security incidents",
       color: "from-green-500 to-teal-600",
       accent: "green",
     },
     {
-      name: "Emily Foster",
-      role: "CTO",
+      name: "Jiya Verma",
+      role: "Community Manager",
       company: "HealthConnect",
-      image: "https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=200",
+      image: "https://randomuser.me/api/portraits/women/63.jpg",
       content:
-        "Their technical expertise helped us build exactly what our users needed. The MVP became our Series A foundation.",
+        "Managing our community of thousands is now seamless. The group features and moderation tools are exactly what we needed.",
       rating: 5,
-      results: "Series A: $15M",
+      results: "10K+ community members",
       color: "from-pink-500 to-red-600",
       accent: "pink",
     },
     {
       name: "David Kim",
-      role: "Founder",
+      role: "Developer",
       company: "EduTech Pro",
       image: "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=200",
       content:
-        "The AI-powered development process was incredible. They delivered a scalable platform that handled our rapid growth.",
+        "The API integration was smooth and the real-time features work flawlessly. Perfect for our educational platform.",
       rating: 5,
-      results: "100K+ students",
+      results: "99.9% uptime achieved",
       color: "from-orange-500 to-yellow-600",
       accent: "orange",
     },
   ];
 
   const values = [
-    { icon: Award, title: "Excellence", desc: "Premium quality in every detail", color: "text-yellow-600" },
-    { icon: Heart, title: "Passion", desc: "We love what we build", color: "text-red-600" },
-    { icon: Lightbulb, title: "Innovation", desc: "Cutting-edge solutions", color: "text-blue-600" },
-    { icon: Target, title: "Focus", desc: "Results-driven approach", color: "text-green-600" },
+    { icon: Award, title: "Excellence", desc: "Premium chat experience", color: "text-yellow-600" },
+    { icon: Heart, title: "Connection", desc: "Bringing people together", color: "text-red-600" },
+    { icon: Lightbulb, title: "Innovation", desc: "Next-gen messaging tech", color: "text-blue-600" },
+    { icon: Target, title: "Privacy", desc: "Your data stays secure", color: "text-green-600" },
   ];
 
   const containerVariants = {
@@ -88,6 +90,8 @@ const Testimonials: React.FC = () => {
       },
     },
   };
+
+  const navigate = useNavigate();
 
   const getAccentColors = (accent: string) => {
     const colors = {
@@ -141,13 +145,12 @@ const Testimonials: React.FC = () => {
           className="mb-16 text-center"
         >
           <h2 className="font-urbanist text-midnight-900 mb-6 text-4xl font-bold md:text-5xl">
-            Success Stories from{" "}
-            <span className="from-mint-500 to-mint-600 bg-gradient-to-r bg-clip-text text-transparent">
-              Real Founders
-            </span>
+            Loved by{" "}
+            <span className="from-mint-500 to-mint-600 bg-gradient-to-r bg-clip-text text-transparent">Real Users</span>
           </h2>
           <p className="font-inter text-midnight-600 mx-auto max-w-3xl text-xl">
-            Don't just take our word for it. See how we've helped startups go from idea to funded companies.
+            Don't just take our word for it. See how our chat platform has transformed communication for teams and
+            communities worldwide.
           </p>
         </motion.div>
 
@@ -300,7 +303,7 @@ const Testimonials: React.FC = () => {
               </div>
               <h4 className="font-urbanist text-midnight-900 mb-2 text-xl font-bold">Trusted Partner</h4>
               <p className="font-inter text-midnight-600 text-sm">
-                Join 200+ successful startups who chose us to bring their vision to life
+                Join 500K+ users who trust our platform for their daily communication
               </p>
             </div>
           </motion.div>
@@ -365,21 +368,18 @@ const Testimonials: React.FC = () => {
 
             <div className="relative z-10">
               <h3 className="font-urbanist text-midnight-900 mb-4 text-3xl font-bold">
-                Ready to Write Your Success Story?
+                Ready to Join the Conversation?
               </h3>
               <p className="font-inter text-midnight-600 mx-auto mb-8 max-w-2xl text-lg">
-                Join these successful founders and transform your idea into a thriving business.
+                Join these satisfied users and experience the future of communication today.
               </p>
               <motion.button
-                onClick={() => {
-                  const element = document.querySelector("#contact");
-                  if (element) element.scrollIntoView({ behavior: "smooth" });
-                }}
+                onClick={() => navigate(NAVIGATION_ROUTES.LOGIN)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="bg-mint-500 hover:bg-mint-600 font-inter rounded-2xl px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl"
               >
-                Start Your Journey Today
+                Start Chatting Today
               </motion.button>
             </div>
           </div>

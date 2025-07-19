@@ -1,52 +1,60 @@
-import React from "react";
-import { Bot, Rocket, Users, Code, Shield, Smartphone, BarChart, Zap, Database, Cloud, Lock, Cpu } from "lucide-react";
+import { NAVIGATION_ROUTES } from "@/utils/constants";
 import { motion } from "framer-motion";
+import { BarChart, Bot, Cloud, Code, Cpu, Database, Lock, Rocket, Shield, Smartphone, Users, Zap } from "lucide-react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const Features: React.FC = () => {
   const mainFeatures = [
     {
       icon: Bot,
-      title: "AI-Powered Development",
-      description: "Leverage cutting-edge AI tools to accelerate coding, testing, and deployment processes by 10x.",
+      title: "Smart Messaging",
+      description:
+        "Enjoy enhanced messaging with smart features like quick replies, message scheduling, and typing indicators to make your conversations more efficient.",
       color: "from-mint-400 to-mint-600",
       bgColor: "from-mint-50 to-mint-100",
-      stats: "10x Faster",
-      details: ["Smart code generation", "Automated testing", "Intelligent debugging", "Performance optimization"],
+      stats: "Smart Features",
+      details: ["Quick replies", "Message scheduling", "Typing indicators", "Read receipts"],
     },
     {
       icon: Rocket,
-      title: "Rapid MVP Creation",
-      description: "Ship your minimum viable product in 2-4 weeks with our streamlined development process.",
+      title: "Fast & Reliable",
+      description:
+        "Send and receive messages quickly with our optimized messaging system that works even with slower connections.",
       color: "from-blue-400 to-blue-600",
       bgColor: "from-blue-50 to-blue-100",
-      stats: "2-4 Weeks",
-      details: ["Agile methodology", "Weekly sprints", "Continuous deployment", "Real-time feedback"],
+      stats: "Reliable Delivery",
+      details: ["Message status", "Delivery confirmations", "Offline mode", "Low data usage"],
     },
     {
       icon: Users,
-      title: "User-Centric Design",
-      description: "Built-in user testing and feedback loops to ensure your MVP resonates with your target market.",
+      title: "Group Chats",
+      description:
+        "Create group conversations with friends, family or colleagues to share moments, plan events or discuss ideas together.",
       color: "from-purple-400 to-purple-600",
       bgColor: "from-purple-50 to-purple-100",
-      stats: "85% Success",
-      details: ["User research", "A/B testing", "Feedback integration", "Market validation"],
+      stats: "Up to 100 Members",
+      details: ["Group creation", "Photo sharing", "Emoji reactions", "Polls & voting"],
     },
     {
       icon: Shield,
-      title: "Enterprise Security",
-      description: "Bank-level security measures, compliance standards, and data protection protocols built-in.",
+      title: "Private Conversations",
+      description:
+        "Your messages are private and secure with standard encryption and privacy controls that keep your conversations confidential.",
       color: "from-red-400 to-red-600",
       bgColor: "from-red-50 to-red-100",
-      stats: "100% Secure",
-      details: ["End-to-end encryption", "GDPR compliance", "Security audits", "Data protection"],
+      stats: "Privacy Controls",
+      details: ["Message privacy", "Block unwanted contacts", "Report system", "Account security"],
     },
   ];
 
+  const navigate = useNavigate();
+
   const techFeatures = [
-    { icon: Database, title: "Smart Database", desc: "Auto-optimized queries", color: "text-blue-600" },
-    { icon: Cloud, title: "Cloud Native", desc: "Scalable infrastructure", color: "text-green-600" },
-    { icon: Lock, title: "Zero Trust", desc: "Advanced security", color: "text-red-600" },
-    { icon: Cpu, title: "AI Processing", desc: "Intelligent automation", color: "text-purple-600" },
+    { icon: Database, title: "Message History", desc: "Searchable chat logs", color: "text-blue-600" },
+    { icon: Cloud, title: "Cloud Sync", desc: "Cross-device sync", color: "text-green-600" },
+    { icon: Lock, title: "Privacy First", desc: "Your data stays private", color: "text-red-600" },
+    { icon: Cpu, title: "Smart Features", desc: "AI-powered assistance", color: "text-purple-600" },
   ];
 
   const containerVariants = {
@@ -121,12 +129,12 @@ const Features: React.FC = () => {
           <h2 className="font-urbanist text-midnight-900 mb-6 text-4xl font-bold md:text-5xl">
             Everything You Need to{" "}
             <span className="from-mint-500 to-mint-600 bg-gradient-to-r bg-clip-text text-transparent">
-              Launch Fast
+              Stay Connected
             </span>
           </h2>
           <p className="font-inter text-midnight-600 mx-auto max-w-3xl text-xl">
-            Our comprehensive suite of services ensures your MVP is built with enterprise-grade quality and ready for
-            rapid market validation.
+            Our comprehensive chat platform provides all the tools you need for great communication, collaboration, and
+            connection with the people who matter most.
           </p>
         </motion.div>
 
@@ -322,8 +330,8 @@ const Features: React.FC = () => {
                   <Code className="h-7 w-7 text-white" />
                 </motion.div>
                 <div className="text-center">
-                  <h3 className="font-urbanist text-midnight-900 text-2xl font-bold">Modern Tech Stack</h3>
-                  <p className="font-inter text-midnight-600">Built with industry-leading technologies</p>
+                  <h3 className="font-urbanist text-midnight-900 text-2xl font-bold">Advanced Chat Features</h3>
+                  <p className="font-inter text-midnight-600">Powered by cutting-edge technology</p>
                 </div>
               </div>
 
@@ -384,21 +392,18 @@ const Features: React.FC = () => {
 
             <div className="relative z-10">
               <h3 className="font-urbanist text-midnight-900 mb-4 text-2xl font-bold md:text-3xl">
-                Ready to Transform Your Idea?
+                Ready to Start Chatting?
               </h3>
               <p className="font-inter text-midnight-600 mx-auto mb-8 max-w-2xl text-lg">
-                Join hundreds of successful startups who have launched their MVPs with our proven process.
+                Join millions of users who trust our platform for their daily communication needs.
               </p>
               <motion.button
-                onClick={() => {
-                  const element = document.querySelector("#contact");
-                  if (element) element.scrollIntoView({ behavior: "smooth" });
-                }}
+                onClick={() => navigate(NAVIGATION_ROUTES.LOGIN)}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="bg-mint-500 hover:bg-mint-600 font-inter rounded-2xl px-8 py-4 text-lg font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl"
               >
-                Start Your Project Today
+                Join the Conversation
               </motion.button>
             </div>
           </div>
