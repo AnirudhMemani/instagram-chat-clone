@@ -8,96 +8,96 @@ import { printlogs } from "../utils/logs.js";
 const salt = 10;
 
 export const validateUser = async (credentials: string, password: string) => {
-    const userInfo = await prisma.user.findFirst({
-        where: {
-            OR: [{ email: credentials }, { username: credentials }],
-        },
-        select: {
-            id: true,
-            password: true,
-            profilePic: true,
-            fullName: true,
-            username: true,
-            email: true,
-        },
-    });
+  const userInfo = await prisma.user.findFirst({
+    where: {
+      OR: [{ email: credentials }, { username: credentials }],
+    },
+    select: {
+      id: true,
+      password: true,
+      profilePic: true,
+      fullName: true,
+      username: true,
+      email: true,
+    },
+  });
 
-    if (!userInfo) {
-        throw new ResourceNotFoundError("Username or Email does not exists");
-    }
+  if (!userInfo) {
+    throw new ResourceNotFoundError("Username or Email does not exists");
+  }
 
-    const isPasswordValid = await bcrypt.compare(password, userInfo.password);
+  const isPasswordValid = await bcrypt.compare(password, userInfo.password);
 
-    if (!isPasswordValid) {
-        throw new UnauthorizedError("Invalid Credentials");
-    }
+  if (!isPasswordValid) {
+    throw new UnauthorizedError("Invalid Credentials");
+  }
 
-    const jwtPayload = {
-        id: userInfo.id,
-        username: userInfo.username,
-        email: userInfo.email,
-        fullName: userInfo.fullName,
-        profilePic: userInfo.profilePic,
-    };
+  const jwtPayload = {
+    id: userInfo.id,
+    username: userInfo.username,
+    email: userInfo.email,
+    fullName: userInfo.fullName,
+    profilePic: userInfo.profilePic,
+  };
 
-    const token = jwt.sign(jwtPayload, env.JWT_SECRET);
+  const token = jwt.sign(jwtPayload, env.JWT_SECRET);
 
-    return { token, ...jwtPayload };
+  return { token, ...jwtPayload };
 };
 
 export const saveUserInfo = async (
-    email: string,
-    fullName: string,
-    username: string,
-    password: string,
-    profilePic: string
+  email: string,
+  fullName: string,
+  username: string,
+  password: string,
+  profilePic: string
 ) => {
-    const userExists = await prisma.user.findFirst({
-        where: {
-            OR: [{ email }, { username }],
-        },
-        select: { id: true },
-    });
+  const userExists = await prisma.user.findFirst({
+    where: {
+      OR: [{ email }, { username }],
+    },
+    select: { id: true },
+  });
 
-    printlogs("userExists", userExists);
+  printlogs("userExists", userExists);
 
-    if (userExists) {
-        throw new ConflictException("Username or Email already exists");
-    }
+  if (userExists) {
+    throw new ConflictException("Username or Email already exists");
+  }
 
-    const encryptedPassword = await bcrypt.hash(password, salt);
+  const encryptedPassword = await bcrypt.hash(password, salt);
 
-    await prisma.user.create({
-        data: {
-            username,
-            fullName,
-            email,
-            password: encryptedPassword,
-            profilePic,
-        },
-        select: {
-            id: true,
-        },
-    });
-    return true;
+  await prisma.user.create({
+    data: {
+      username,
+      fullName,
+      email,
+      password: encryptedPassword,
+      profilePic,
+    },
+    select: {
+      id: true,
+    },
+  });
+  return true;
 };
 
 export const getAllUserData = async (id: string) => {
-    const userData = await prisma.user.findMany({
-        where: {
-            NOT: { id },
-        },
-        select: {
-            id: true,
-            fullName: true,
-            username: true,
-            profilePic: true,
-        },
-    });
+  const userData = await prisma.user.findMany({
+    where: {
+      NOT: { id },
+    },
+    select: {
+      id: true,
+      fullName: true,
+      username: true,
+      profilePic: true,
+    },
+  });
 
-    if (!userData) {
-        throw new ResourceNotFoundError("No other user found");
-    }
+  if (!userData) {
+    throw new ResourceNotFoundError("No other user found");
+  }
 
-    return userData;
+  return userData;
 };

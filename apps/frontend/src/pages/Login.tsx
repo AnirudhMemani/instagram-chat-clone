@@ -18,136 +18,136 @@ import { useSetRecoilState } from "recoil";
 import { toast } from "sonner";
 
 const Login: React.FC = (): JSX.Element => {
-    const token = localStorageUtils.getToken();
-    const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
-    const [credentials, setCredentials] = useState<string>("");
-    const [password, setPassword] = useState<string>("");
-    const [error, setError] = useState<string>("");
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
+  const token = localStorageUtils.getToken();
+  const setIsChatModalVisible = useSetRecoilState(isChatModalVisibleAtom);
+  const [credentials, setCredentials] = useState<string>("beta_tester");
+  const [password, setPassword] = useState<string>("Welcome123");
+  const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
 
-    const setUser = useSetRecoilState(userAtom);
-    const navigate = useNavigate();
-    const location = useLocation();
+  const setUser = useSetRecoilState(userAtom);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-    useEffect(() => {
-        setIsChatModalVisible({ visible: false });
-    }, [setIsChatModalVisible]);
+  useEffect(() => {
+    setIsChatModalVisible({ visible: false });
+  }, [setIsChatModalVisible]);
 
-    if (token) return <Navigate to={NAVIGATION_ROUTES.INBOX} replace />;
+  if (token) return <Navigate to={NAVIGATION_ROUTES.INBOX} replace />;
 
-    const handleUserLogin = async (e: FormEvent) => {
-        e.preventDefault();
+  const handleUserLogin = async (e: FormEvent) => {
+    e.preventDefault();
 
-        const validation = LoginFormSchema.safeParse({ credentials, password });
-        if (!validation.success) {
-            const { fieldErrors } = validation.error.flatten();
+    const validation = LoginFormSchema.safeParse({ credentials, password });
+    if (!validation.success) {
+      const { fieldErrors } = validation.error.flatten();
 
-            Object.entries(fieldErrors).map(([field, errors]) => printlogs(`${field}: ${[...errors]}`));
-            return setError("Invalid form data");
-        }
+      Object.entries(fieldErrors).map(([field, errors]) => printlogs(`${field}: ${[...errors]}`));
+      return setError("Invalid form data");
+    }
 
-        try {
-            setIsLoading(true);
-            const response = await processUserLogin(credentials, password, navigate);
-            if (response) {
-                localStorageUtils.setToken(response.data?.token);
-                setUser({
-                    id: response.data.id,
-                    email: response.data.email,
-                    username: response.data.username,
-                    fullName: response.data.fullName,
-                    profilePic: response.data.profilePic,
-                });
-                toast.success("Login successful");
-                navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
-            }
-        } catch (error) {
-            printlogs("ERROR inside handleUserLogin():", error);
-            const message = axios.isAxiosError(error)
-                ? {
-                      [StatusCodes.BadRequest]: "There was an issue with your request",
-                      [StatusCodes.NotFound]: "Account not found. Please sign up.",
-                      [StatusCodes.Unauthorized]: "Invalid Credentials",
-                  }[error.response?.status || 500] || "An unknown error occurred. Please try again later!"
-                : "An unknown error occurred. Please try again later!";
-            setError(message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    try {
+      setIsLoading(true);
+      const response = await processUserLogin(credentials, password, navigate);
+      if (response) {
+        localStorageUtils.setToken(response.data?.token);
+        setUser({
+          id: response.data.id,
+          email: response.data.email,
+          username: response.data.username,
+          fullName: response.data.fullName,
+          profilePic: response.data.profilePic,
+        });
+        toast.success("Login successful");
+        navigate(NAVIGATION_ROUTES.INBOX, { replace: true });
+      }
+    } catch (error) {
+      printlogs("ERROR inside handleUserLogin():", error);
+      const message = axios.isAxiosError(error)
+        ? {
+            [StatusCodes.BadRequest]: "There was an issue with your request",
+            [StatusCodes.NotFound]: "Account not found. Please sign up.",
+            [StatusCodes.Unauthorized]: "Invalid Credentials",
+          }[error.response?.status || 500] || "An unknown error occurred. Please try again later!"
+        : "An unknown error occurred. Please try again later!";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const showRecruiterCredentials = useCallback((): boolean => {
-        printlogs("Pathname:", location.pathname);
-        if (location.pathname === NAVIGATION_ROUTES.RECRUITER_LOGIN) return true;
-        return false;
-    }, [location.pathname]);
+  const showRecruiterCredentials = useCallback((): boolean => {
+    printlogs("Pathname:", location.pathname);
+    if (location.pathname === NAVIGATION_ROUTES.RECRUITER_LOGIN) return true;
+    return false;
+  }, [location.pathname]);
 
-    return (
-        <React.Fragment>
-            <section className="flex min-h-dvh w-full items-center justify-center">
-                <div className="border-input mx-3 flex flex-col justify-center gap-8 rounded-lg border p-16 [@media(max-width:470px)]:p-10">
-                    <div className="flex flex-col items-center justify-center space-y-3">
-                        <h1 className="text-bold text text-center text-2xl sm:text-3xl">Sign in to your account</h1>
-                        <p className="text-muted-foreground text-center text-xs sm:text-sm">
-                            Welcome back! Please enter your details.
-                        </p>
-                    </div>
-                    <form onSubmit={handleUserLogin} className="grid w-full max-w-sm items-center space-y-6">
-                        <div className="grid w-full max-w-sm items-center space-y-4">
-                            <CustomInput
-                                type="text"
-                                id="email"
-                                placeholder="user@gmail.com"
-                                required
-                                disabled={isLoading}
-                                label="Username or Email"
-                                htmlFor="email"
-                                onChange={(e) => setCredentials(e.target.value)}
-                                value={credentials}
-                            />
-                            <CustomInput
-                                type={isPasswordVisible ? "text" : "password"}
-                                id="password"
-                                placeholder="••••••••"
-                                label="Password"
-                                htmlFor="password"
-                                required
-                                disabled={isLoading}
-                                minLength={8}
-                                onChange={(e) => setPassword(e.target.value)}
-                                value={password}
-                                rightIcon={isPasswordVisible ? EyeOff : Eye}
-                                rightIconOnClick={() => setIsPasswordVisible((p) => !p)}
-                            />
-                            {error && (
-                                <p className="text-destructive text-sm font-medium" id="error">
-                                    {error}
-                                </p>
-                            )}
-                        </div>
-                        <Button variant="secondary" type="submit" disabled={isLoading}>
-                            {!isLoading ? "Sign in" : <Loader visible={isLoading} />}
-                        </Button>
-                    </form>
-                    <div className="flex items-center justify-center gap-2">
-                        <p className="text-center text-xs sm:text-sm">Don't have an account? </p>
-                        <Link
-                            to={NAVIGATION_ROUTES.SIGNUP}
-                            className={cn(
-                                "text-muted-foreground flex items-center text-xs underline sm:text-sm",
-                                isLoading && "pointer-events-none opacity-50"
-                            )}
-                        >
-                            Sign up
-                            <ArrowUpRight className="size-4" />
-                        </Link>
-                    </div>
-                </div>
-            </section>
-            {showRecruiterCredentials() && <ButtonToModal />}
-        </React.Fragment>
-    );
+  return (
+    <React.Fragment>
+      <section className="flex min-h-dvh w-full items-center justify-center">
+        <div className="border-input mx-3 flex flex-col justify-center gap-8 rounded-lg border p-16 [@media(max-width:470px)]:p-10">
+          <div className="flex flex-col items-center justify-center space-y-3">
+            <h1 className="text-bold text text-center text-2xl sm:text-3xl">Sign in to your account</h1>
+            <p className="text-muted-foreground text-center text-xs sm:text-sm">
+              Welcome back! Please enter your details.
+            </p>
+          </div>
+          <form onSubmit={handleUserLogin} className="grid w-full max-w-sm items-center space-y-6">
+            <div className="grid w-full max-w-sm items-center space-y-4">
+              <CustomInput
+                type="text"
+                id="email"
+                placeholder="user@gmail.com"
+                required
+                disabled={isLoading}
+                label="Username or Email"
+                htmlFor="email"
+                onChange={(e) => setCredentials(e.target.value)}
+                value={credentials}
+              />
+              <CustomInput
+                type={isPasswordVisible ? "text" : "password"}
+                id="password"
+                placeholder="••••••••"
+                label="Password"
+                htmlFor="password"
+                required
+                disabled={isLoading}
+                minLength={8}
+                onChange={(e) => setPassword(e.target.value)}
+                value={password}
+                rightIcon={isPasswordVisible ? EyeOff : Eye}
+                rightIconOnClick={() => setIsPasswordVisible((p) => !p)}
+              />
+              {error && (
+                <p className="text-destructive text-sm font-medium" id="error">
+                  {error}
+                </p>
+              )}
+            </div>
+            <Button variant="secondary" type="submit" disabled={isLoading}>
+              {!isLoading ? "Sign in" : <Loader visible={isLoading} />}
+            </Button>
+          </form>
+          <div className="flex items-center justify-center gap-2">
+            <p className="text-center text-xs sm:text-sm">Don't have an account? </p>
+            <Link
+              to={NAVIGATION_ROUTES.SIGNUP}
+              className={cn(
+                "text-muted-foreground flex items-center text-xs underline sm:text-sm",
+                isLoading && "pointer-events-none opacity-50"
+              )}
+            >
+              Sign up
+              <ArrowUpRight className="size-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+      {showRecruiterCredentials() && <ButtonToModal />}
+    </React.Fragment>
+  );
 };
 
 export default Login;

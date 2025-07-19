@@ -1,40 +1,40 @@
 {
-    "name": "websocket",
-    "version": "1.0.0",
-    "description": "",
-    "main": "dist/index.js",
-    "type": "module",
-    "scripts": {
-        "build": "tsc",
-        "start": "node dist/index.js",
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "dev": "nodemon --exec node --loader ts-node/esm src/index.ts",
-        "prepare": "husky install"
-    },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "dependencies": {
-        "@instachat/db": "*",
-        "@instachat/messages": "*",
-        "@instachat/common": "*",
-        "amqplib": "^0.10.4",
-        "cloudinary": "^2.2.0",
-        "copyfiles": "^2.4.1",
-        "dotenv": "^16.4.5",
-        "ioredis": "^5.4.1",
-        "jsonwebtoken": "^9.0.2",
-        "ws": "^8.16.0"
-    },
-    "devDependencies": {
-        "@types/amqplib": "^0.10.5",
-        "@types/node": "^20.12.7",
-        "@types/ws": "^8.5.10",
-        "husky": "^9.1.6",
-        "lint-staged": "^15.2.10",
-        "nodemon": "^3.1.0",
-        "prettier": "^3.3.3",
-        "ts-node": "^10.9.2",
-        "typescript": "^5.4.5"
-    }
+  "name": "websocket",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon --exec node --loader ts-node/esm src/index.ts",
+    "prepare": "husky install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@instachat/db": "*",
+    "@instachat/messages": "*",
+    "@instachat/common": "*",
+    "amqplib": "^0.10.4",
+    "cloudinary": "^2.2.0",
+    "copyfiles": "^2.4.1",
+    "dotenv": "^16.4.5",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.5",
+    "@types/node": "^20.12.7",
+    "@types/ws": "^8.5.10",
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10",
+    "nodemon": "^3.1.0",
+    "prettier": "^3.3.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
 }

@@ -8,41 +8,41 @@ import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
 const RouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const navigate = useNavigate();
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-    const token = useMemo(() => localStorageUtils.getToken(), []);
+  const token = useMemo(() => localStorageUtils.getToken(), []);
 
-    useEffect(() => {
-        const authenticateUser = async () => {
-            if (!token) return handleUserLogout(navigate);
+  useEffect(() => {
+    const authenticateUser = async () => {
+      if (!token) return handleUserLogout(navigate);
 
-            try {
-                const response = await axios.post(EndPoints.Auth, null, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                response.status === StatusCodes.Ok ? setIsAuthenticated(true) : handleUserLogout(navigate);
-            } catch (error) {
-                printlogs("Authentication error", error);
-                handleUserLogout(navigate);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+      try {
+        const response = await axios.post(EndPoints.Auth, null, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        response.status === StatusCodes.Ok ? setIsAuthenticated(true) : handleUserLogout(navigate);
+      } catch (error) {
+        printlogs("Authentication error", error);
+        handleUserLogout(navigate);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-        authenticateUser();
-    }, [token]);
+    authenticateUser();
+  }, [token]);
 
-    if (isLoading) {
-        return (
-            <div className="flex h-dvh w-full items-center justify-center bg-black/60">
-                <Loader visible />
-            </div>
-        );
-    }
+  if (isLoading) {
+    return (
+      <div className="flex h-dvh w-full items-center justify-center bg-black/60">
+        <Loader visible />
+      </div>
+    );
+  }
 
-    return isAuthenticated ? <>{children}</> : <Navigate to={NAVIGATION_ROUTES.LOGIN} replace />;
+  return isAuthenticated ? <>{children}</> : <Navigate to={NAVIGATION_ROUTES.LOGIN} replace />;
 };
 
 export default RouteGuard;

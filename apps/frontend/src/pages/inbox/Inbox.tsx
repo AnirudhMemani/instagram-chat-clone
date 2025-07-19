@@ -5,22 +5,22 @@ import DirectMessage from "./DirectMessages";
 import { StartChatPrompt } from "./StartChatPrompt";
 
 type TInboxProps = {
-    socket: WebSocket | null;
+  socket: WebSocket | null;
 };
 
 const Inbox: React.FC<TInboxProps> = ({ socket }): JSX.Element => {
-    const setChatRoomDetails = useSetRecoilState(chatRoomAtom);
+  const setChatRoomDetails = useSetRecoilState(chatRoomAtom);
 
-    useEffect(() => {
-        setChatRoomDetails(null);
-    }, []);
+  useEffect(() => {
+    setChatRoomDetails(null);
+  }, []);
 
-    return (
-        <React.Fragment>
-            <StartChatPrompt />
-            <DirectMessage socket={socket} className="lg:hidden" />
-        </React.Fragment>
-    );
+  return (
+    <React.Fragment>
+      <StartChatPrompt />
+      <DirectMessage socket={socket} className="lg:hidden" />
+    </React.Fragment>
+  );
 };
 
 export default Inbox;

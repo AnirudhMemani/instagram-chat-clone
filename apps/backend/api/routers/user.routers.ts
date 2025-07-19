@@ -7,8 +7,8 @@ const router = Router();
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: MAX_FILE_SIZE },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_FILE_SIZE },
 });
 
 router.post("/signup", upload.single("profilePic"), userSignupController);

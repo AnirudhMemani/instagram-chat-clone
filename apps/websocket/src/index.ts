@@ -19,45 +19,45 @@ const wss = new WebSocketServer({ port });
 const userManager = new UserManager();
 
 cloudinary.v2.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_SECRET,
 });
 
 connectToRedis();
 
 wss.on("connection", function connection(socket, req) {
-    console.log("Connection Established");
+  console.log("Connection Established");
 
-    socket.on("error", printlogs);
+  socket.on("error", printlogs);
 
-    const token = url.parse(req.url as string, true).query.token as string;
+  const token = url.parse(req.url as string, true).query.token as string;
 
-    if (!token) {
-        return closeSocket(socket, "Token not found");
-    }
+  if (!token) {
+    return closeSocket(socket, "Token not found");
+  }
 
-    const user = validateUser(token, socket) as IUser;
+  const user = validateUser(token, socket) as IUser;
 
-    if (!user) {
-        return socket.close(1007, "Invalid token");
-    }
+  if (!user) {
+    return socket.close(1007, "Invalid token");
+  }
 
-    const userWithSocket: IUserWithSocket = {
-        ...user,
-        socket,
-        chatRooms: [],
-    };
+  const userWithSocket: IUserWithSocket = {
+    ...user,
+    socket,
+    chatRooms: [],
+  };
 
-    userManager.addUser(userWithSocket);
+  userManager.addUser(userWithSocket);
 
-    const inboxManager = new InboxManager(socket, userManager);
+  const inboxManager = new InboxManager(socket, userManager);
 
-    inboxManager.connectUser(userWithSocket);
+  inboxManager.connectUser(userWithSocket);
 
-    socket.on("close", () => userManager.removeUser(user.id));
+  socket.on("close", () => userManager.removeUser(user.id));
 });
 
 function closeSocket(socket: WebSocket, reason: string) {
-    socket.close(1007, reason);
+  socket.close(1007, reason);
 }

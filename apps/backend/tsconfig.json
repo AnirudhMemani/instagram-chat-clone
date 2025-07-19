@@ -1,17 +1,17 @@
 {
-    "compilerOptions": {
-        "target": "ES2020",
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
-        "sourceMap": true,
-        "outDir": "./dist",
-        "esModuleInterop": true,
-        "forceConsistentCasingInFileNames": true,
-        "strict": true,
-        "skipLibCheck": true
-    },
-    "ts-node": {
-        "transpileOnly": true
-    },
-    "include": ["api/**/*"]
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "ts-node": {
+    "transpileOnly": true
+  },
+  "include": ["api/**/*"]
 }

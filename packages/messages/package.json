@@ -1,28 +1,28 @@
 {
-    "name": "@instachat/messages",
-    "version": "1.0.0",
-    "description": "",
-    "type": "module",
-    "scripts": {
-        "dev": "tsc --watch",
-        "build": "tsc",
-        "test": "echo \"Error: no test specified\" && exit 1"
+  "name": "@instachat/messages",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "dev": "tsc --watch",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "exports": {
+    "./messages": {
+      "types": "./src/messages.ts",
+      "default": "./dist/messages.js"
     },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
-    "exports": {
-        "./messages": {
-            "types": "./src/messages.ts",
-            "default": "./dist/messages.js"
-        },
-        "./types": {
-            "types": "./src/types.ts",
-            "default": "./dist/types.js"
-        }
-    },
-    "devDependencies": {
-        "@repo/typescript-config": "*",
-        "typescript": "^5.6.3"
+    "./types": {
+      "types": "./src/types.ts",
+      "default": "./dist/types.js"
     }
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "*",
+    "typescript": "^5.6.3"
+  }
 }

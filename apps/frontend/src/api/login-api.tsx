@@ -4,19 +4,19 @@ import { NavigateFunction } from "react-router-dom";
 import { APIServices } from "./APIServices";
 
 export const processUserLogin = async (credentials: string, password: string, navigate: NavigateFunction) => {
-    try {
-        const requestBody = {
-            credentials,
-            password,
-        };
+  try {
+    const requestBody = {
+      credentials,
+      password,
+    };
 
-        const response = await new APIServices(false, navigate).post(EndPoints.Login, requestBody);
+    const response = await new APIServices(false, navigate).post(EndPoints.Login, requestBody);
 
-        if (response.status === StatusCodes.Ok) {
-            return response;
-        }
-    } catch (error) {
-        printlogs(error);
-        throw error;
+    if (response.status === StatusCodes.Ok) {
+      return response;
     }
+  } catch (error) {
+    printlogs(error);
+    throw error;
+  }
 };

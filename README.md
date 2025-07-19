@@ -8,24 +8,24 @@ A fully scalable Instagram-like chat application. It utilizes TurboRepo for proj
 
 # Features
 
--   TurboRepo: Management of both the frontend and backend.
--   Real-time Chat: Instant messaging using Websockets for real-time communication.
--   Pub/Sub Messaging: Efficient message distribution using RabbitMQ for Pub/Sub patterns.
--   Scalable Architecture: Designed to handle high loads with RabbitMQ and horizontal scaling.
--   User Authentication: Secure login and registration using JWT.
--   Database Management: Prisma ORM with PostgreSQL for robust database interactions.
--   Modern UI: Shadcn for responsive and modern UI components.
--   Deployment Ready: Configurations for deploying on cloud platforms.
+- TurboRepo: Management of both the frontend and backend.
+- Real-time Chat: Instant messaging using Websockets for real-time communication.
+- Pub/Sub Messaging: Efficient message distribution using RabbitMQ for Pub/Sub patterns.
+- Scalable Architecture: Designed to handle high loads with RabbitMQ and horizontal scaling.
+- User Authentication: Secure login and registration using JWT.
+- Database Management: Prisma ORM with PostgreSQL for robust database interactions.
+- Modern UI: Shadcn for responsive and modern UI components.
+- Deployment Ready: Configurations for deploying on cloud platforms.
 
 # Tech Stack
 
--   Frontend: React.js, Shadcn
--   Backend: Node.js, Express
--   Database: PostgreSQL, Prisma ORM
--   Real-time Communication: Websockets
--   Message Brokering: RabbitMQ
--   Authentication: JWT (JSON Web Tokens)
--   TurboRepo: Project management
+- Frontend: React.js, Shadcn
+- Backend: Node.js, Express
+- Database: PostgreSQL, Prisma ORM
+- Real-time Communication: Websockets
+- Message Brokering: RabbitMQ
+- Authentication: JWT (JSON Web Tokens)
+- TurboRepo: Project management
 
 # Websockets and RabbitMQ Integration
 
@@ -33,15 +33,15 @@ The application uses Websockets for real-time messaging and RabbitMQ for handlin
 
 # Websockets
 
--   WebSockets: A library for real-time web applications. It enables real-time, bidirectional, and event-based communication.
+- WebSockets: A library for real-time web applications. It enables real-time, bidirectional, and event-based communication.
 
 # RabbitMQ
 
--   Pub/Sub Pattern: RabbitMQ handles the distribution of messages between the sender and receiver using a publish/subscribe pattern to ensure scalability.
+- Pub/Sub Pattern: RabbitMQ handles the distribution of messages between the sender and receiver using a publish/subscribe pattern to ensure scalability.
 
 # Prisma ORM
 
--   Prisma ORM is used to interact with PostgreSQL, providing a type-safe database client.
+- Prisma ORM is used to interact with PostgreSQL, providing a type-safe database client.
 
 # Contributing
 
