@@ -90,7 +90,7 @@ const LoadingScreen: React.FC = () => {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="font-urbanist text-midnight-900 mb-4 text-3xl font-bold"
         >
-          Velocity AI
+          Voxella
         </motion.h1>
 
         {/* Loading text */}
