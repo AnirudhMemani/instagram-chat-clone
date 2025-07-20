@@ -61,7 +61,7 @@ const Footer: React.FC = () => {
                 >
                   <Zap className="h-7 w-7 text-white" />
                 </motion.div>
-                <span className="font-urbanist text-3xl font-bold">ChatApp</span>
+                <span className="font-urbanist text-3xl font-bold">Voxella</span>
               </div>
 
               <h3 className="font-urbanist mb-4 text-2xl font-bold leading-tight md:text-3xl">
