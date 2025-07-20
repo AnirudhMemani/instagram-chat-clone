@@ -1,10 +1,14 @@
+import { NAVIGATION_ROUTES } from "@/utils/constants";
 import { motion } from "framer-motion";
 import { Menu, X, Zap } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Header: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -86,7 +90,7 @@ const Header: React.FC = () => {
                 </motion.button>
               ))}
               <motion.button
-                onClick={() => scrollToSection("#contact")}
+                onClick={() => navigate(NAVIGATION_ROUTES.LOGIN)}
                 className="bg-mint-500 hover:bg-mint-600 font-inter rounded-xl px-6 py-2 font-medium text-white shadow-lg transition-all duration-200 hover:shadow-xl"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

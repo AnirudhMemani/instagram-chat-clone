@@ -80,7 +80,7 @@ export const handleUserLogout = (navigate: NavigateFunction) => {
   if (isPopupDisabled) {
     localStorage.setItem(LocalStorageKeys.PopupDisabled, JSON.stringify(true));
   }
-  navigate(NAVIGATION_ROUTES.LOGIN, { replace: true });
+  navigate(NAVIGATION_ROUTES.LANDING, { replace: true });
 };
 
 export const getAvatarFallback = (name: string) => {
