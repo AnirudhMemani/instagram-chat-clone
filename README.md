@@ -1,10 +1,10 @@
-# Instagram Chat Clone using TurboRepo, Websockets, Pub/Subs, and RabbitMQ
+# Chat App using TurboRepo, Websockets, Pub/Subs, and RabbitMQ
 
 # Architecture
 
-![Screenshot 2024-04-20 045625](https://github.com/AnirudhMemani/instagram-chat-clone/assets/46074384/d705140f-1999-4a3d-b12b-6ffffa248e4e)
+![Screenshot 2024-04-20 045625](https://github.com/AnirudhMemani/voxella/assets/46074384/d705140f-1999-4a3d-b12b-6ffffa248e4e)
 
-A fully scalable Instagram-like chat application. It utilizes TurboRepo for project management, Websockets for real-time communication, RabbitMQ for message brokering with Pub/Sub patterns, Prisma ORM with PostgreSQL for database management, Shadcn for UI components, React.js for the frontend, and Node/Express for the backend.
+A fully scalable chat application. It utilizes TurboRepo for project management, Websockets for real-time communication, RabbitMQ for message brokering with Pub/Sub patterns, Prisma ORM with PostgreSQL for database management, Shadcn for UI components, React.js for the frontend, and Node/Express for the backend.
 
 # Features
 
